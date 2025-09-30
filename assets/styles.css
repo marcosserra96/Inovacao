@@ -1,68 +1,55 @@
-:root{
-  --bg1:#003e57;
-  --bg2:#59c085;
-  --bg3:#f37021;
-  --ink:#eaf7fb;
-  --muted:#b8d0d7;
-  --gold:#ffd76a; --silver:#cfd4da; --bronze:#d18a49;
-}
+/* Reset */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Segoe UI",Arial,sans-serif;background:#f5f8fa;color:#0a4561;}
 
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%}
-body{
-  font-family: Inter, "Segoe UI", system-ui, Arial, sans-serif;
-  background: linear-gradient(135deg, var(--bg1), var(--bg2), var(--bg3));
-  color:var(--ink);
-  overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
+/* Navbar */
+.navbar{display:flex;justify-content:space-between;align-items:center;
+  padding:16px 32px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+.logo{font-weight:700;color:#0a4561;}
+.navbar a{color:#0a4561;text-decoration:none;font-weight:600}
 
-.stage{width:100%; max-width:900px; text-align:center; padding:20px}
+/* Botões */
+.btn{cursor:pointer;font-weight:600;border:none;transition:.2s;}
+.btn-pill{border-radius:999px;padding:12px 20px}
+.btn-pill.small{padding:8px 16px;font-size:.9rem}
+.btn-energisa{background:linear-gradient(90deg,#0f3f53,#0b3a4f);color:#fff;}
+.btn-energisa:hover{filter:brightness(1.08);transform:translateY(-1px)}
 
-h1{font-size:2.4rem; margin-bottom:22px}
+/* Card base */
+.card{background:#fff;padding:28px;border-radius:28px;
+  box-shadow:0 3px 10px rgba(0,0,0,.08);margin:24px auto;max-width:1200px;}
+.muted{font-size:.9rem;color:#777}
 
-.list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px}
-.item{
-  display:grid;
-  grid-template-columns: 40px 1fr 90px;
-  align-items:center;
-  background:rgba(0,0,0,0.25);
-  border-radius:14px;
-  padding:12px 16px;
-  font-size:1.2rem;
-  position:relative;
-}
-.item .meter{
-  position:absolute; left:0; right:0; bottom:0; height:6px;
-  background:rgba(255,255,255,0.08); border-radius:0 0 14px 14px; overflow:hidden;
-}
-.item .bar{height:100%; background:linear-gradient(90deg,#00c2ff,#59c085)}
+/* Modern home layout */
+.modern-card{border:1px solid rgba(0,0,0,.06);overflow:hidden}
+.modern-grid{display:grid;grid-template-columns:1fr 1fr;}
+@media(max-width:992px){.modern-grid{grid-template-columns:1fr;}}
 
-.gold{color:var(--gold); font-weight:700}
-.silver{color:var(--silver); font-weight:700}
-.bronze{color:var(--bronze); font-weight:700}
+.hero-card{padding:40px 32px;background:linear-gradient(135deg,#009BC1,#4CC38A);color:#fff;}
+.hero-title{font-size:40px;font-weight:900;margin-bottom:8px}
+.hero-sub{margin-bottom:20px;font-size:1.1rem}
+.hero-form{display:grid;gap:12px;max-width:420px}
+.input-white{background:#fff;border:none;padding:14px 16px;border-radius:14px;font-size:1rem;box-shadow:0 4px 10px rgba(0,0,0,.1);}
 
-.fact{margin:28px 0 18px; font-size:1.1rem; color:var(--muted); min-height:28px}
-.fade{opacity:0; transition:opacity .3s}
-.fade.show{opacity:1}
+/* Side card ranking */
+.side-card{padding:32px;background:#fff}
+.side-title{margin-bottom:16px;font-size:1.4rem;font-weight:800}
+.table-modern{width:100%;border-collapse:separate;border-spacing:0 10px}
+.table-modern th{font-size:.85rem;color:#507286;text-align:left}
+.table-modern td{background:#fff;padding:12px 10px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.table-modern tr:hover td{background:#f3f9fc}
+#ranking-rows tr:nth-child(1) td:first-child{color:#d4af37;font-weight:800}
+#ranking-rows tr:nth-child(2) td:first-child{color:#a9b2bd;font-weight:800}
+#ranking-rows tr:nth-child(3) td:first-child{color:#cd7f32;font-weight:800}
 
-.qrwrap{margin-top:20px; position:relative; display:inline-block}
-.qr{width:180px; height:180px; border-radius:12px; z-index:2; position:relative}
-.qrHalo{
-  position:absolute; top:50%; left:50%;
-  width:230px; height:230px;
-  margin:-115px 0 0 -115px;
-  border-radius:50%;
-  background:radial-gradient(circle,rgba(255,255,255,0.25),transparent 70%);
-  animation:pulse 2s infinite;
-  z-index:1;
-}
-.hint{margin-top:12px; font-size:0.95rem; color:var(--ink)}
+/* Quiz */
+#quiz-container h2{margin-bottom:16px}
+#options-list{list-style:none;display:grid;gap:14px}
+#options-list li{padding:16px;border-radius:14px;background:linear-gradient(90deg,#009BC1,#4CC38A);
+  color:#fff;font-weight:600;cursor:pointer;transition:.2s}
+#options-list li:hover{filter:brightness(1.08);transform:translateY(-2px)}
 
-@keyframes pulse{
-  0%{transform:scale(.9); opacity:.6}
-  50%{transform:scale(1.1); opacity:1}
-  100%{transform:scale(.9); opacity:.6}
-}
+/* Barra de progresso */
+.progress-bar{height:8px;background:#e0e9ed;border-radius:8px;margin-top:20px}
+#progress{height:100%;width:0;background:#009BC1;border-radius:8px;transition:width .3s}
+.timer{margin-top:8px;font-size:.9rem}
