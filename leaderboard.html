@@ -1,106 +1,126 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz EMR — Ranking</title>
   <link rel="stylesheet" href="assets/styles.css"/>
 </head>
 <body>
-  <div class="header">
+  <!-- Cabeçalho padrão -->
+  <header class="header">
     <div class="brand">
-      <div class="logo-dot"></div><div class="title">Ranking</div>
+      <span class="logo-dot"></span>
+      <span class="title">Quiz EMR</span>
     </div>
-    <a class="btn ghost" href="index.html">Novo jogo</a>
-  </div>
+    <div class="badge">Ranking</div>
+  </header>
 
   <main class="container narrow">
     <section class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+        <h2 style="margin:0;">🏆 Ranking geral</h2>
+        <a href="index.html" class="btn ghost">Novo jogo</a>
+      </div>
+
       <table class="table">
-        <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
-        <tbody id="rows"></tbody>
+        <thead>
+          <tr>
+            <th style="width:70px;">#</th>
+            <th>Nome</th>
+            <th style="width:120px;">Pontos</th>
+            <th style="width:120px;">Tempo</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <!-- linhas renderizadas via JS -->
+        </tbody>
       </table>
+
+      <p id="hint" class="muted" style="margin-top:12px;">Desempate por menor tempo total.</p>
     </section>
   </main>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-  import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  // 🔧 MESMO firebaseConfig DO QUIZ
-  const firebaseConfig = {
-    apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
-    authDomain: "inovacao-emr.firebaseapp.com",
-    projectId: "inovacao-emr",
-    storageBucket: "inovacao-emr.firebasestorage.app",
-    messagingSenderId: "1075399271811",
-    appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
-    measurementId: "G-8CTLMNCZJN"
-  };
+    // 🔧 MESMO config do quiz
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
 
-  const rows = document.getElementById('rows') || document.getElementById('ranking-list');
+    const rows = document.getElementById('rows');
+    const hint = document.getElementById('hint');
 
-  async function loadRanking(){
-    try{
-      // Pega top 100 ordenado por score (desc) — SEM índice composto
-      const q = query(collection(db,"scores"), orderBy("score","desc"), limit(100));
-      const snap = await getDocs(q);
+    function fmtTime(t){
+      if (typeof t === "number") return `${t.toFixed(1)}s`;
+      const n = Number(t);
+      return Number.isFinite(n) ? `${n.toFixed(1)}s` : "-";
+    }
 
-      const data = [];
-      snap.forEach(doc => data.push(doc.data()));
+    async function loadRanking(){
+      rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Carregando…</td></tr>`;
+      try{
+        // pega top 100 por score (desc) — sem índice composto
+        const q = query(collection(db,"scores"), orderBy("score","desc"), limit(100));
+        const snap = await getDocs(q);
 
-      // Desempate local por tempo (asc)
-      data.sort((a,b)=>{
-        if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
-        return (a.totalTime ?? Infinity) - (b.totalTime ?? Infinity);
-      });
+        const data = [];
+        snap.forEach(doc => data.push(doc.data()));
 
-      if (!rows) return;
-      rows.innerHTML = "";
+        // desempata local por tempo (asc)
+        data.sort((a,b)=>{
+          const sa = a.score ?? 0, sb = b.score ?? 0;
+          if (sb !== sa) return sb - sa;
+          const ta = Number(a.totalTime ?? Infinity);
+          const tb = Number(b.totalTime ?? Infinity);
+          return ta - tb;
+        });
 
-      if (data.length === 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="4" style="padding:14px;color:#5e7d8c;">Sem resultados ainda.</td>`;
-        rows.appendChild(tr);
-        console.warn("Ranking vazio: confira se a coleção 'scores' tem documentos e se o firebaseConfig é o mesmo do quiz.");
-        return;
-      }
+        rows.innerHTML = "";
+        if (data.length === 0){
+          rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`;
+          return;
+        }
 
-      let pos = 1;
-      data.forEach(d=>{
-        let medal = pos;
-        if (pos===1) medal="🏆"; else if (pos===2) medal="🥈"; else if (pos===3) medal="🥉";
+        let pos = 1;
+        for (const d of data){
+          let medal = pos;
+          if (pos === 1) medal = "🏆";
+          else if (pos === 2) medal = "🥈";
+          else if (pos === 3) medal = "🥉";
 
-        // suporta tabela (#, Nome, Pontos, Tempo) ou <ol>
-        if (rows.tagName === "TBODY") {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="rank-medal">${medal}</td>
-            <td>${d.name || "-"}</td>
-            <td>${d.score ?? 0}</td>
-            <td>${(d.totalTime ?? 0).toFixed ? d.totalTime.toFixed(1) : d.totalTime}</td>
+            <td>${(d.name || "-").toString().slice(0,48)}</td>
+            <td><strong>${d.score ?? 0}</strong></td>
+            <td>${fmtTime(d.totalTime)}</td>
           `;
           rows.appendChild(tr);
-        } else {
-          const li = document.createElement('li');
-          li.textContent = `${medal} ${d.name || "-"} — ${d.score ?? 0} pts • ${d.totalTime ?? 0}s`;
-          rows.appendChild(li);
+          pos++;
         }
-        pos++;
-      });
 
-    }catch(e){
-      console.error("Erro carregando ranking:", e.code, e.message);
-      // Se aparecer um link "Create index" no console, você pode clicar e criar o índice composto
-      // e depois voltar para a versão com dois orderBy (score desc, totalTime asc) e onSnapshot.
+        // dica opcional: se quiser tempo real com dois orderBy, crie o índice composto
+        hint.innerHTML = `Desempate por menor tempo total. <span class="muted">(atualiza a cada visita)</span>`;
+
+      }catch(e){
+        console.error("Erro carregando ranking:", e?.code, e?.message);
+        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Erro ao carregar ranking. Tente novamente.</td></tr>`;
+      }
     }
-  }
 
-  loadRanking();
-</script>
-
+    loadRanking();
+  </script>
 </body>
 </html>
