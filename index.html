@@ -101,7 +101,7 @@
     // depois liga o onSnapshot; se der erro, mostra mensagem clara.
     async function startLive(){
       try{
-        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(10));
+        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(20));
         // pré-carrega (caso onSnapshot demore)
         const snap = await getDocs(baseQ);
         const pre = [];
