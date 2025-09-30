@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz EMR — Início</title>
-  <link rel="stylesheet" href="assets/styles.css?v=7"/>
+  <link rel="stylesheet" href="assets/styles.css?v=9"/>
 </head>
 <body>
   <header class="header">
@@ -14,25 +14,25 @@
     <div class="badge">Evento</div>
   </header>
 
-  <main class="card modern-card">
-    <div class="modern-grid">
-      <!-- LEFT -->
-      <div class="hero-card">
-        <h1 class="hero-title">Pronto para jogar? 🎯</h1>
-        <p class="hero-sub">Responda rápido e acerte para pontuar mais. Estilo Energisa, leve e moderno.</p>
+  <section class="card">
+    <div class="grid-home">
+      <!-- HERO (form) -->
+      <div class="hero">
+        <h1>Pronto para jogar? 🎯</h1>
+        <p>Responda rápido e acerte para pontuar mais. Visual claro com cartões no estilo Energisa.</p>
 
-        <form id="start-form" class="hero-form">
+        <form id="start-form" class="form">
           <input id="name"  class="input" type="text"  placeholder="Seu nome" required/>
           <input id="email" class="input" type="email" placeholder="Seu e-mail (empresa)" required/>
-          <button class="btn btn-pill btn-energisa" type="submit">Começar agora</button>
+          <button class="btn btn-pill btn-primary" type="submit">Começar agora</button>
         </form>
 
         <p class="muted" style="margin-top:10px">Ao iniciar, você concorda em aparecer no ranking do evento.</p>
       </div>
 
-      <!-- RIGHT -->
-      <aside class="side-card">
-        <h2 class="side-title">🏆 Ranking em tempo real</h2>
+      <!-- RANKING -->
+      <aside class="side">
+        <h2>🏆 Ranking em tempo real</h2>
         <table class="table">
           <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
           <tbody id="ranking-rows">
@@ -42,12 +42,13 @@
         <p class="muted">Desempate por menor tempo total.</p>
       </aside>
     </div>
-  </main>
+  </section>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+    // ⚙️ Mesmo projeto do quiz
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -61,41 +62,71 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // Form -> abre quiz com nome/email
+    // ➜ Navega para o quiz com nome/email
     document.getElementById('start-form').addEventListener('submit',(e)=>{
       e.preventDefault();
-      const name=document.getElementById('name').value.trim();
-      const email=document.getElementById('email').value.trim();
-      if(!name||!email) return;
-      const p=new URLSearchParams({name,email});
-      location.href=`quiz.html?${p.toString()}`;
+      const name  = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      if(!name || !email) return;
+      const qs = new URLSearchParams({ name, email }).toString();
+      location.href = `quiz.html?${qs}`;
     });
 
-    // Ranking live (score desc) + desempate por tempo no cliente
-    const rows=document.getElementById('ranking-rows');
-    const fmt=(t)=>Number.isFinite(+t)?`${(+t).toFixed(1)}s`:"-";
-    const q=query(collection(db,"scores"),orderBy("score","desc"),limit(20));
+    const rows = document.getElementById('ranking-rows');
+    const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
 
-    onSnapshot(q,(snap)=>{
-      const data=[]; snap.forEach(d=>data.push(d.data()));
-      data.sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
-      rows.innerHTML="";
-      if(!data.length){ rows.innerHTML=`<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`; return; }
-      let pos=1;
-      for(const d of data){
-        let medal=pos; if(pos===1) medal="🏆"; else if(pos===2) medal="🥈"; else if(pos===3) medal="🥉";
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
+    function renderData(data){
+      rows.innerHTML = "";
+      if (!data.length){
+        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`;
+        return;
+      }
+      let pos = 1;
+      data.forEach(d=>{
+        let medal = pos;
+        if (pos===1) medal="🏆"; else if (pos===2) medal="🥈"; else if (pos===3) medal="🥉";
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
           <td>${medal}</td>
           <td>${(d.name||"-").toString().slice(0,48)}</td>
-          <td><strong>${d.score??0}</strong></td>
-          <td>${fmt(d.totalTime)}</td>`;
-        rows.appendChild(tr); pos++;
+          <td><strong>${d.score ?? 0}</strong></td>
+          <td>${fmt(d.totalTime)}</td>
+        `;
+        rows.appendChild(tr);
+        pos++;
+      });
+    }
+
+    // 🔴 Fallback robusto: tenta getDocs primeiro (mostra já algo),
+    // depois liga o onSnapshot; se der erro, mostra mensagem clara.
+    async function startLive(){
+      try{
+        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(20));
+        // pré-carrega (caso onSnapshot demore)
+        const snap = await getDocs(baseQ);
+        const pre = [];
+        snap.forEach(d=>pre.push(d.data()));
+        pre.sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+        renderData(pre);
+
+        onSnapshot(baseQ, (s)=>{
+          const arr=[]; s.forEach(d=>arr.push(d.data()));
+          arr.sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+          renderData(arr);
+        }, (e)=>{
+          console.error("onSnapshot error:", e?.code, e?.message);
+          rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">
+            Erro ao carregar ranking (${e?.code||"desconhecido"}). Verifique as <b>Regras do Firestore</b> e o <b>firebaseConfig</b>.
+          </td></tr>`;
+        });
+      }catch(e){
+        console.error("getDocs error:", e?.code, e?.message);
+        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">
+          Erro ao consultar ranking (${e?.code||"desconhecido"}).
+        </td></tr>`;
       }
-    },(e)=>{
-      console.error(e);
-      rows.innerHTML=`<tr><td colspan="4" class="muted" style="padding:14px;">Erro ao carregar ranking.</td></tr>`;
-    });
+    }
+    startLive();
   </script>
 </body>
 </html>
