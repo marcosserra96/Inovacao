@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz EMR — Início</title>
   <link rel="stylesheet" href="assets/styles.css?v=dev"/>
+  <style>
+    /* Sugestões */
+    .typeahead{
+      list-style:none;margin:8px 0 0;padding:0;
+      border:1px solid rgba(0,0,0,.08); border-radius:12px;
+      background:#fff; max-height:220px; overflow:auto;
+      box-shadow:0 8px 24px rgba(0,0,0,.08);
+      position:absolute; width:100%; z-index:10;
+    }
+    .typeahead li{
+      padding:10px 12px; cursor:pointer;
+    }
+    .typeahead li:hover, .typeahead li.active{
+      background:#e9f4f8
+    }
+    .muted{ font-size:.85rem; color:#555 }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -19,15 +36,15 @@
       <!-- HERO -->
       <div class="hero">
         <h1>Pronto para jogar? 🎯</h1>
-        <p>Responda rápido e acerte para pontuar mais. Visual claro com cartões no estilo Energisa.</p>
+        <p>Digite seu nome e escolha da lista oficial para participar.</p>
 
-        <form id="start-form" class="form">
-          <input id="name"  class="input" type="text"  placeholder="Seu nome" required/>
-          <input id="email" class="input" type="email" placeholder="Seu e-mail (empresa)" required/>
-          <button class="btn btn-pill btn-primary" type="submit">Começar agora</button>
+        <form id="start-form" class="form" novalidate style="position:relative">
+          <input id="name" class="input" type="text" placeholder="Digite seu nome" required autocomplete="off"/>
+          <ul id="suggestions" class="typeahead" style="display:none"></ul>
+          <button id="start-btn" class="btn btn-pill btn-primary" type="submit">Começar agora</button>
         </form>
 
-        <p class="muted" style="margin:10px 0 6px">Ao iniciar, você concorda em aparecer no ranking do evento.</p>
+        <p class="muted" style="margin:10px 0 6px">Somente nomes da lista oficial podem jogar.</p>
 
         <!-- QR + Copiar link -->
         <div class="qr">
@@ -43,10 +60,7 @@
         <table class="table">
           <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
           <tbody id="ranking-rows">
-            <!-- skeleton -->
-            <tr><td colspan="4"><div class="skel"></div></td></tr>
-            <tr><td colspan="4"><div class="skel"></div></td></tr>
-            <tr><td colspan="4"><div class="skel"></div></td></tr>
+            <tr><td colspan="4" class="muted" style="padding:14px;">Carregando…</td></tr>
           </tbody>
         </table>
         <p class="muted">Mostrando os 10 melhores (desempate por tempo).</p>
@@ -72,17 +86,54 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // ➜ Ir para o quiz
-    document.getElementById('start-form').addEventListener('submit',(e)=>{
-      e.preventDefault();
-      const name  = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
-      if(!name || !email) return;
-      location.href = `quiz.html?${new URLSearchParams({name,email})}`;
+    const nameEl = document.getElementById('name');
+    const sugEl  = document.getElementById('suggestions');
+    let participants = [], filtered = [], chosen=null;
+
+    // Carrega lista oficial
+    async function loadParticipants(){
+      try{
+        const res = await fetch("data/participants.json?_="+Date.now());
+        const json = await res.json();
+        participants = json.participants || [];
+      }catch(e){ console.error("Erro ao carregar participantes", e); }
+    }
+    loadParticipants();
+
+    // Helpers
+    function norm(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
+    function filterNames(q){
+      const n = norm(q);
+      return participants.filter(p => norm(p.name).includes(n)).slice(0,8);
+    }
+    function renderSuggestions(list){
+      sugEl.innerHTML="";
+      if(!list.length){ sugEl.style.display='none'; return; }
+      list.forEach((p)=>{
+        const li=document.createElement('li');
+        li.textContent=p.name;
+        li.onclick=()=>{ nameEl.value=p.name; chosen=p; sugEl.style.display='none'; };
+        sugEl.appendChild(li);
+      });
+      sugEl.style.display='block';
+    }
+
+    nameEl.addEventListener('input',()=>{
+      chosen=null;
+      filtered=filterNames(nameEl.value);
+      renderSuggestions(filtered);
     });
 
-    // QR e copiar
-    const homeURL = location.origin + location.pathname; // URL da página
+    // Submeter somente se escolheu da lista
+    document.getElementById('start-form').addEventListener('submit',(e)=>{
+      e.preventDefault();
+      if(!chosen){ alert("Selecione seu nome na lista oficial"); return; }
+      const qs = new URLSearchParams({ id:chosen.id, name:chosen.name }).toString();
+      location.href=`quiz.html?${qs}`;
+    });
+
+    // ===== QR e copiar link =====
+    const homeURL = location.origin + location.pathname;
     const qrURL   = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(homeURL)}`;
     document.getElementById('qr').src = qrURL;
     document.getElementById('copy').onclick = async ()=>{
@@ -91,10 +142,7 @@
       ok.style.display='inline'; setTimeout(()=>ok.style.display='none',1500);
     };
 
-    // destaque do jogador se vier ?me=email
-    const meEmail = (new URLSearchParams(location.search).get('me')||'').toLowerCase();
-
-    // Ranking
+    // ===== Ranking =====
     const rows = document.getElementById('ranking-rows');
     const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
 
@@ -109,7 +157,6 @@
       for(const d of top){
         let medal=pos; if(pos===1)medal="🏆"; else if(pos===2)medal="🥈"; else if(pos===3)medal="🥉";
         const tr=document.createElement('tr');
-        if ((d.email||'').toLowerCase()===meEmail) tr.className='me';
         tr.innerHTML = `
           <td>${medal}</td>
           <td>${(d.name||"-").toString().slice(0,48)}</td>
@@ -121,8 +168,8 @@
 
     async function startLive(){
       try{
-        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(10));
-        const snap  = await getDocs(baseQ); // pre-load
+        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(20));
+        const snap  = await getDocs(baseQ);
         const pre   = snap.docs.map(d=>d.data())
                          .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
         renderData(pre);
@@ -131,16 +178,8 @@
           const arr = s.docs.map(d=>d.data())
                        .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
           renderData(arr);
-        }, (e)=>{
-          console.error(e);
-          rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">
-            Erro ao carregar ranking (${e?.code||"desconhecido"}).
-          </td></tr>`;
         });
-      }catch(e){
-        console.error(e);
-        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Erro ao consultar ranking.</td></tr>`;
-      }
+      }catch(e){ console.error(e); }
     }
     startLive();
   </script>
