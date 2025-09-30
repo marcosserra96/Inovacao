@@ -92,10 +92,10 @@
           <p id="loadMsg" class="muted" role="status">Carregando lista de participantes…</p>
         </form>
 
-        <div class="qr">
-          <img id="qr" alt="QR do jogo"/>
-          <button id="copy" class="btn btn-pill" style="background:#e9f4f8;color:#0a4561">Copiar link</button>
-          <span id="copied" class="muted" style="display:none">Link copiado!</span>
+        <div class="qr" style="margin-top:12px;">
+          <img id="qr" alt="QR do jogo" width="120" height="120" />
+          <button id="copy" class="btn btn-pill" style="background:#e9f4f8;color:#0a4561; margin-left:8px;">Copiar link</button>
+          <span id="copied" class="muted" style="display:none; margin-left:8px;">Link copiado!</span>
         </div>
       </div>
 
@@ -161,13 +161,18 @@
     const db  = getFirestore(app);
 
     /* =====================
-       Utils / Segurança leve
+       Utils / Segurança leve (MODO TESTE: SEM VALIDAÇÃO)
        ===================== */
-    const DEV_HASH = "senha"; // troque!
-async function askDevPassword(){ 
-  return true; 
-}
-    // helper exposto pra você gerar hash no console
+    // deixe o DEV_HASH caso queira depois voltar a verificação; não usado abaixo
+    const DEV_HASH = "";
+
+    async function sha256Hex(str){
+      const enc = new TextEncoder().encode(str);
+      const buf = await crypto.subtle.digest("SHA-256", enc);
+      const arr = Array.from(new Uint8Array(buf));
+      return arr.map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+    // helper exposto pra você gerar hash no console, se quiser
     window.__hash = sha256Hex;
 
     function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
@@ -364,7 +369,7 @@ async function askDevPassword(){
     startLive();
 
     /* =====================
-       Modo Dev (invisível)
+       Modo Dev (LIBERADO - SEM SENHA)
        ===================== */
     const devModal = document.getElementById('dev-modal');
     const devFreeState = document.getElementById('dev-free-state');
@@ -381,11 +386,9 @@ async function askDevPassword(){
       devFreeState.style.color = allowFreeName ? '#59C085' : '#e8f7fb';
     }
 
+    // MODO TESTE: sempre retorna true -> abre o modal sem validação
     async function askDevPassword(){
-      const pass = prompt("Senha do modo desenvolvedor:");
-      if(pass===null) return false;
-      const hash = await sha256Hex(pass);
-      return hash === DEV_HASH;
+      return true;
     }
 
     function openDev(){
@@ -455,3 +458,4 @@ async function askDevPassword(){
   </script>
 </body>
 </html>
+
