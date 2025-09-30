@@ -7,38 +7,36 @@
   <link rel="stylesheet" href="assets/styles.css"/>
 </head>
 <body>
-  <div class="bg-gradient"></div>
-
-  <header class="hero">
+  <div class="header">
     <div class="brand">
       <div class="logo-dot"></div>
-      <span>Quiz EMR</span>
+      <div class="title">Quiz EMR</div>
     </div>
-    <div class="hero-badge">Evento</div>
-  </header>
+    <div class="badge">Evento</div>
+  </div>
 
   <main class="container">
-    <section class="card entrance">
-      <h1 class="title">Pronto para jogar? 🎯</h1>
-      <p class="subtitle">Responda rápido e acerte para pontuar mais. Visual azul → verde no estilo Energisa.</p>
+    <section class="card hero">
+      <h1>Pronto para jogar? 🎯</h1>
+      <p>Responda rápido e acerte para pontuar mais. Visual claro com cartões no estilo Energisa.</p>
 
-      <form id="start-form" class="form-grid">
-        <div class="field">
-          <label for="name">Seu nome</label>
-          <input id="name" type="text" placeholder="Ex.: Ana Souza" required/>
+      <form id="start-form" class="grid two" style="margin-top:14px;">
+        <div>
+          <label class="sr-only" for="name"></label>
+          <input id="name" class="input" type="text" placeholder="Seu nome" required/>
         </div>
-        <div class="field">
-          <label for="email">Seu e-mail</label>
-          <input id="email" type="email" placeholder="nome@empresa.com" required/>
+        <div>
+          <label class="sr-only" for="email"></label>
+          <input id="email" class="input" type="email" placeholder="Seu e-mail (empresa)" required/>
         </div>
-        <button type="submit" class="btn primary stretch">Começar agora</button>
+        <div style="grid-column: 1 / -1;">
+          <button class="btn primary full" type="submit">Começar agora</button>
+        </div>
       </form>
 
-      <p class="muted center">Ao iniciar, você concorda em aparecer no ranking do evento.</p>
+      <p style="margin-top:10px; opacity:.9;">Ao iniciar, você concorda em aparecer no ranking do evento.</p>
     </section>
   </main>
-
-  <footer class="footer"><div class="foot-gradient"></div></footer>
 
   <script>
     document.getElementById('start-form').addEventListener('submit', (e)=>{
