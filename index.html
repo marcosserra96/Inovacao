@@ -1,148 +1,68 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quiz EMR — Início</title>
-  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
-</head>
-<body>
-  <header class="header">
-    <div class="brand">
-      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
-    </div>
-    <div class="badge">Evento</div>
-  </header>
+:root{
+  --bg1:#003e57;
+  --bg2:#59c085;
+  --bg3:#f37021;
+  --ink:#eaf7fb;
+  --muted:#b8d0d7;
+  --gold:#ffd76a; --silver:#cfd4da; --bronze:#d18a49;
+}
 
-  <section class="card">
-    <div class="grid-home">
-      <!-- HERO -->
-      <div class="hero">
-        <h1>Pronto para jogar? 🎯</h1>
-        <p>Responda rápido e acerte para pontuar mais. Visual claro com cartões no estilo Energisa.</p>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family: Inter, "Segoe UI", system-ui, Arial, sans-serif;
+  background: linear-gradient(135deg, var(--bg1), var(--bg2), var(--bg3));
+  color:var(--ink);
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
 
-        <form id="start-form" class="form">
-          <input id="name"  class="input" type="text"  placeholder="Seu nome" required/>
-          <input id="email" class="input" type="email" placeholder="Seu e-mail (empresa)" required/>
-          <button class="btn btn-pill btn-primary" type="submit">Começar agora</button>
-        </form>
+.stage{width:100%; max-width:900px; text-align:center; padding:20px}
 
-        <p class="muted" style="margin:10px 0 6px">Ao iniciar, você concorda em aparecer no ranking do evento.</p>
+h1{font-size:2.4rem; margin-bottom:22px}
 
-        <!-- QR + Copiar link -->
-        <div class="qr">
-          <img id="qr" alt="QR do jogo"/>
-          <button id="copy" class="btn btn-pill" style="background:#e9f4f8;color:#0a4561">Copiar link</button>
-          <span id="copied" class="muted" style="display:none">Link copiado!</span>
-        </div>
-      </div>
+.list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px}
+.item{
+  display:grid;
+  grid-template-columns: 40px 1fr 90px;
+  align-items:center;
+  background:rgba(0,0,0,0.25);
+  border-radius:14px;
+  padding:12px 16px;
+  font-size:1.2rem;
+  position:relative;
+}
+.item .meter{
+  position:absolute; left:0; right:0; bottom:0; height:6px;
+  background:rgba(255,255,255,0.08); border-radius:0 0 14px 14px; overflow:hidden;
+}
+.item .bar{height:100%; background:linear-gradient(90deg,#00c2ff,#59c085)}
 
-      <!-- RANKING -->
-      <aside class="side">
-        <h2>🏆 Ranking em tempo real</h2>
-        <table class="table">
-          <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
-          <tbody id="ranking-rows">
-            <!-- skeleton -->
-            <tr><td colspan="4"><div class="skel"></div></td></tr>
-            <tr><td colspan="4"><div class="skel"></div></td></tr>
-            <tr><td colspan="4"><div class="skel"></div></td></tr>
-          </tbody>
-        </table>
-        <p class="muted">Mostrando os 10 melhores (desempate por tempo).</p>
-      </aside>
-    </div>
-  </section>
+.gold{color:var(--gold); font-weight:700}
+.silver{color:var(--silver); font-weight:700}
+.bronze{color:var(--bronze); font-weight:700}
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+.fact{margin:28px 0 18px; font-size:1.1rem; color:var(--muted); min-height:28px}
+.fade{opacity:0; transition:opacity .3s}
+.fade.show{opacity:1}
 
-    // 🔑 MESMO CONFIG do quiz
-    const firebaseConfig = {
-      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
-      authDomain: "inovacao-emr.firebaseapp.com",
-      projectId: "inovacao-emr",
-      storageBucket: "inovacao-emr.firebasestorage.app",
-      messagingSenderId: "1075399271811",
-      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
-      measurementId: "G-8CTLMNCZJN"
-    };
+.qrwrap{margin-top:20px; position:relative; display:inline-block}
+.qr{width:180px; height:180px; border-radius:12px; z-index:2; position:relative}
+.qrHalo{
+  position:absolute; top:50%; left:50%;
+  width:230px; height:230px;
+  margin:-115px 0 0 -115px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,0.25),transparent 70%);
+  animation:pulse 2s infinite;
+  z-index:1;
+}
+.hint{margin-top:12px; font-size:0.95rem; color:var(--ink)}
 
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-
-    // ➜ Ir para o quiz
-    document.getElementById('start-form').addEventListener('submit',(e)=>{
-      e.preventDefault();
-      const name  = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
-      if(!name || !email) return;
-      location.href = `quiz.html?${new URLSearchParams({name,email})}`;
-    });
-
-    // QR e copiar
-    const homeURL = location.origin + location.pathname; // URL da página
-    const qrURL   = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(homeURL)}`;
-    document.getElementById('qr').src = qrURL;
-    document.getElementById('copy').onclick = async ()=>{
-      await navigator.clipboard.writeText(homeURL);
-      const ok = document.getElementById('copied');
-      ok.style.display='inline'; setTimeout(()=>ok.style.display='none',1500);
-    };
-
-    // destaque do jogador se vier ?me=email
-    const meEmail = (new URLSearchParams(location.search).get('me')||'').toLowerCase();
-
-    // Ranking
-    const rows = document.getElementById('ranking-rows');
-    const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
-
-    function renderData(data){
-      rows.innerHTML = "";
-      const top = data.slice(0,10);
-      if(!top.length){
-        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`;
-        return;
-      }
-      let pos=1;
-      for(const d of top){
-        let medal=pos; if(pos===1)medal="🏆"; else if(pos===2)medal="🥈"; else if(pos===3)medal="🥉";
-        const tr=document.createElement('tr');
-        if ((d.email||'').toLowerCase()===meEmail) tr.className='me';
-        tr.innerHTML = `
-          <td>${medal}</td>
-          <td>${(d.name||"-").toString().slice(0,48)}</td>
-          <td><strong>${d.score ?? 0}</strong></td>
-          <td>${fmt(d.totalTime)}</td>`;
-        rows.appendChild(tr); pos++;
-      }
-    }
-
-    async function startLive(){
-      try{
-        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(10));
-        const snap  = await getDocs(baseQ); // pre-load
-        const pre   = snap.docs.map(d=>d.data())
-                         .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
-        renderData(pre);
-
-        onSnapshot(baseQ, (s)=>{
-          const arr = s.docs.map(d=>d.data())
-                       .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
-          renderData(arr);
-        }, (e)=>{
-          console.error(e);
-          rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">
-            Erro ao carregar ranking (${e?.code||"desconhecido"}).
-          </td></tr>`;
-        });
-      }catch(e){
-        console.error(e);
-        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Erro ao consultar ranking.</td></tr>`;
-      }
-    }
-    startLive();
-  </script>
-</body>
-</html>
+@keyframes pulse{
+  0%{transform:scale(.9); opacity:.6}
+  50%{transform:scale(1.1); opacity:1}
+  100%{transform:scale(.9); opacity:.6}
+}
