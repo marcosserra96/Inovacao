@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz EMR — Início</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Quiz EMR</h1>
+    <p>Responda rápido e acerte para marcar mais pontos. 🎯</p>
+
+    <form id="start-form" class="card">
+      <label for="name">Seu nome</label>
+      <input id="name" type="text" placeholder="Ex.: Ana Souza" required />
+      <label for="email">Seu e-mail</label>
+      <input id="email" type="email" placeholder="nome@empresa.com" required />
+
+      <button type="submit" class="btn">Começar</button>
+    </form>
+
+    <p class="muted">Ao iniciar, você concorda em aparecer no ranking do evento.</p>
+  </main>
+
+  <script>
+    document.getElementById('start-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      if(!name || !email) return;
+
+      // Encaminha para o quiz com os dados na URL (simples e rápido para MVP)
+      const params = new URLSearchParams({ name, email });
+      window.location.href = `quiz.html?${params.toString()}`;
+    });
+  </script>
+</body>
+</html>

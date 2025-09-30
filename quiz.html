@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz EMR — Perguntas</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="between">
+      <h1>Quiz EMR</h1>
+      <a class="btn ghost" href="leaderboard.html">Ver Ranking</a>
+    </header>
+
+    <section id="quiz" class="card">
+      <div id="question-meta" class="between">
+        <div><strong id="q-count"></strong></div>
+        <div>⏱️ <span id="q-timer">0.0s</span></div>
+      </div>
+      <h2 id="q-title"></h2>
+      <div id="q-options" class="options"></div>
+      <div id="q-feedback" class="feedback"></div>
+      <button id="next-btn" class="btn" disabled>Próxima</button>
+    </section>
+
+    <section id="final" class="card hidden">
+      <h2>Resultado</h2>
+      <p><strong>Pontuação:</strong> <span id="total-score">0</span></p>
+      <p><strong>Tempo total:</strong> <span id="total-time">0.0s</span></p>
+      <button id="send-btn" class="btn">Enviar e Ver Ranking</button>
+    </section>
+  </main>
+
+  <!-- Firebase (substitua as versões se desejar) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    // === CONFIGURE AQUI ===
+    const firebaseConfig = {
+      apiKey: "COLOQUE_AQUI",
+      authDomain: "COLOQUE_AQUI.firebaseapp.com",
+      projectId: "COLOQUE_AQUI",
+      storageBucket: "COLOQUE_AQUI.appspot.com",
+      messagingSenderId: "COLOQUE_AQUI",
+      appId: "COLOQUE_AQUI"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    import { QUESTIONS, computeScore } from "./js/questions.js";
+
+    // Util
+    const qs = (s)=>document.querySelector(s);
+    const qsa = (s)=>document.querySelectorAll(s);
+    const params = new URLSearchParams(window.location.search);
+    const player = {
+      name: params.get('name') || 'Participante',
+      email: params.get('email') || 'desconhecido@empresa.com'
+    };
+
+    // Estado do quiz
+    let idx = 0;
+    let totalScore = 0;
+    let totalTime = 0;
+    let questionStart = 0;
+    let canAnswer = true;
+
+    // Sessão no Firestore (marca início no servidor)
+    let sessionId = null;
+    (async () => {
+      try {
+        const ref = await addDoc(collection(db, "sessions"), {
+          name: player.name,
+          email: player.email,
+          startedAt: serverTimestamp()
+        });
+        sessionId = ref.id;
+      } catch (e) {
+        console.error("Falha ao criar sessão:", e);
+      }
+    })();
+
+    const qCount = qs('#q-count'), qTitle = qs('#q-title'), qOptions = qs('#q-options');
+    const qTimer = qs('#q-timer'), qFeedback = qs('#q-feedback'), nextBtn = qs('#next-btn');
+    const finalBox = qs('#final'), quizBox = qs('#quiz');
+    const totalScoreEl = qs('#total-score'), totalTimeEl = qs('#total-time');
+    let timerHandle = null;
+
+    function startQuestion() {
+      const q = QUESTIONS[idx];
+      qCount.textContent = `Pergunta ${idx+1} de ${QUESTIONS.length}`;
+      qTitle.textContent = q.title;
+      qOptions.innerHTML = "";
+      qFeedback.textContent = "";
+      nextBtn.disabled = true;
+      canAnswer = true;
+
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = "btn option";
+        btn.textContent = opt;
+        btn.onclick = ()=>answer(i);
+        qOptions.appendChild(btn);
+      });
+
+      questionStart = performance.now();
+      if (timerHandle) cancelAnimationFrame(timerHandle);
+      const tick = () => {
+        const elapsed = (performance.now() - questionStart) / 1000;
+        qTimer.textContent = `${elapsed.toFixed(1)}s`;
+        timerHandle = requestAnimationFrame(tick);
+      };
+      timerHandle = requestAnimationFrame(tick);
+    }
+
+    function answer(index) {
+      if (!canAnswer) return;
+      canAnswer = false;
+      cancelAnimationFrame(timerHandle);
+      const elapsed = (performance.now() - questionStart) / 1000;
+      totalTime += elapsed;
+
+      const q = QUESTIONS[idx];
+      const correct = index === q.answerIndex;
+      const score = computeScore(correct, elapsed);
+      totalScore += score;
+
+      qFeedback.textContent = correct ? `✔️ Correto! +${score} pontos` : `❌ Errado. +0 pontos`;
+      qsa('.option').forEach((b, i) => {
+        b.disabled = true;
+        if (i === q.answerIndex) b.classList.add('success');
+        if (i === index && i !== q.answerIndex) b.classList.add('danger');
+      });
+      nextBtn.disabled = false;
+    }
+
+    nextBtn.addEventListener('click', () => {
+      idx++;
+      if (idx < QUESTIONS.length) {
+        startQuestion();
+      } else {
+        // fim
+        quizBox.classList.add('hidden');
+        totalScoreEl.textContent = totalScore;
+        totalTimeEl.textContent = `${totalTime.toFixed(1)}s`;
+        finalBox.classList.remove('hidden');
+      }
+    });
+
+    qs('#send-btn').addEventListener('click', async () => {
+      try {
+        await addDoc(collection(db, "scores"), {
+          sessionId,
+          name: player.name,
+          email: player.email,
+          score: totalScore,
+          totalTime: Math.round(totalTime * 100) / 100,
+          createdAt: serverTimestamp()
+        });
+        window.location.href = "leaderboard.html";
+      } catch (e) {
+        alert("Falha ao enviar resultado. Verifique sua conexão e tente novamente.");
+        console.error(e);
+      }
+    });
+
+    // Inicializa primeira questão
+    startQuestion();
+  </script>
+</body>
+</html>

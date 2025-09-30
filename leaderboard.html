@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz EMR — Ranking</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="between">
+      <h1>Ranking</h1>
+      <a class="btn ghost" href="index.html">Novo Jogo</a>
+    </header>
+
+    <section class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Pontos</th>
+            <th>Tempo</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p class="muted">Critério de desempate: menor tempo total.</p>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    // === CONFIGURE AQUI ===
+    const firebaseConfig = {
+      apiKey: "COLOQUE_AQUI",
+      authDomain: "COLOQUE_AQUI.firebaseapp.com",
+      projectId: "COLOQUE_AQUI",
+      storageBucket: "COLOQUE_AQUI.appspot.com",
+      messagingSenderId: "COLOQUE_AQUI",
+      appId: "COLOQUE_AQUI"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const rows = document.getElementById('rows');
+
+    // Orderna por pontos desc e tempo asc
+    const q = query(collection(db, "scores"), orderBy("score", "desc"), orderBy("totalTime", "asc"), limit(50));
+
+    onSnapshot(q, (snap) => {
+      rows.innerHTML = "";
+      let pos = 1;
+      snap.forEach(doc => {
+        const d = doc.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${pos++}</td>
+          <td>${d.name || "-"}</td>
+          <td>${d.score ?? 0}</td>
+          <td>${(d.totalTime ?? 0).toFixed ? d.totalTime.toFixed(1) : d.totalTime}</td>
+        `;
+        rows.appendChild(tr);
+      });
+    });
+  </script>
+</body>
+</html>
