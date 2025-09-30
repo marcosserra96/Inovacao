@@ -2,35 +2,50 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz EMR — Início</title>
-  <link rel="stylesheet" href="assets/styles.css" />
+  <link rel="stylesheet" href="assets/styles.css"/>
 </head>
 <body>
+  <div class="bg-gradient"></div>
+
+  <header class="hero">
+    <div class="brand">
+      <div class="logo-dot"></div>
+      <span>Quiz EMR</span>
+    </div>
+    <div class="hero-badge">Evento</div>
+  </header>
+
   <main class="container">
-    <h1>Quiz EMR</h1>
-    <p>Responda rápido e acerte para marcar mais pontos. 🎯</p>
+    <section class="card entrance">
+      <h1 class="title">Pronto para jogar? 🎯</h1>
+      <p class="subtitle">Responda rápido e acerte para pontuar mais. Visual azul → verde no estilo Energisa.</p>
 
-    <form id="start-form" class="card">
-      <label for="name">Seu nome</label>
-      <input id="name" type="text" placeholder="Ex.: Ana Souza" required />
-      <label for="email">Seu e-mail</label>
-      <input id="email" type="email" placeholder="nome@empresa.com" required />
+      <form id="start-form" class="form-grid">
+        <div class="field">
+          <label for="name">Seu nome</label>
+          <input id="name" type="text" placeholder="Ex.: Ana Souza" required/>
+        </div>
+        <div class="field">
+          <label for="email">Seu e-mail</label>
+          <input id="email" type="email" placeholder="nome@empresa.com" required/>
+        </div>
+        <button type="submit" class="btn primary stretch">Começar agora</button>
+      </form>
 
-      <button type="submit" class="btn">Começar</button>
-    </form>
-
-    <p class="muted">Ao iniciar, você concorda em aparecer no ranking do evento.</p>
+      <p class="muted center">Ao iniciar, você concorda em aparecer no ranking do evento.</p>
+    </section>
   </main>
 
+  <footer class="footer"><div class="foot-gradient"></div></footer>
+
   <script>
-    document.getElementById('start-form').addEventListener('submit', (e) => {
+    document.getElementById('start-form').addEventListener('submit', (e)=>{
       e.preventDefault();
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
       if(!name || !email) return;
-
-      // Encaminha para o quiz com os dados na URL (simples e rápido para MVP)
       const params = new URLSearchParams({ name, email });
       window.location.href = `quiz.html?${params.toString()}`;
     });
