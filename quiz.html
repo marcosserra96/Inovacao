@@ -83,4 +83,87 @@
     // Firestore: cria sessão
     (async ()=>{
       try{
-        const r = await addDoc(collection
+        const r = await addDoc(collection(db,"sessions"),{ name:player.name, email:player.email, startedAt:serverTimestamp() });
+        sessionId = r.id;
+      }catch(e){ console.error(e); }
+    })();
+
+    function setProgress(){ progress.style.width = Math.round((idx/QUESTIONS.length)*100) + "%"; }
+
+    function startQuestion(){
+      setProgress();
+      const q = QUESTIONS[idx];
+      qCount.textContent = `Pergunta ${idx+1} de ${QUESTIONS.length}`;
+      qTitle.textContent = q.title;
+      qOptions.innerHTML = "";
+      qFeedback.textContent = "";
+      nextBtn.disabled = true; canAnswer = true;
+
+      q.options.forEach((opt,i)=>{
+        const btn = document.createElement('button');
+        btn.className = "option";
+        btn.innerHTML = `<div class="bullet">${i+1}</div><div>${opt}</div>`;
+        btn.onclick = ()=>answer(i);
+        qOptions.appendChild(btn);
+      });
+
+      questionStart = performance.now();
+      if (anim) cancelAnimationFrame(anim);
+      const tick = ()=>{
+        const s = (performance.now()-questionStart)/1000;
+        qTime.textContent = `⏱ ${s.toFixed(1)}s`;
+        anim = requestAnimationFrame(tick);
+      };
+      anim = requestAnimationFrame(tick);
+    }
+
+    function answer(index){
+      if(!canAnswer) return;
+      canAnswer = false;
+      cancelAnimationFrame(anim);
+
+      const elapsed = (performance.now()-questionStart)/1000;
+      totalTime += elapsed;
+
+      const q = QUESTIONS[idx];
+      const correct = index === q.answerIndex;
+      const score = computeScore(correct, elapsed);
+      totalScore += score;
+
+      qFeedback.textContent = correct ? `✔️ Correto! +${score} pontos` : `❌ Errado. +0 pontos`;
+      qsa('.option').forEach((b,i)=>{
+        b.disabled = true;
+        b.classList.remove('selected');
+        if(i===q.answerIndex) b.classList.add('success');
+        if(i===index && i!==q.answerIndex) b.classList.add('danger');
+      });
+      nextBtn.disabled = false;
+    }
+
+    nextBtn.addEventListener('click', ()=>{
+      idx++;
+      if(idx < QUESTIONS.length){
+        startQuestion();
+      } else {
+        setProgress();
+        qs('section.card').style.display = 'none';
+        finalBox.style.display = 'block';
+        totalScoreEl.textContent = totalScore;
+        totalTimeEl.textContent = `${totalTime.toFixed(1)}s`;
+      }
+    });
+
+    qs('#send-btn')?.addEventListener('click', async ()=>{
+      try{
+        await addDoc(collection(db,"scores"),{
+          sessionId, name:player.name, email:player.email,
+          score: totalScore, totalTime: Math.round(totalTime*100)/100, createdAt: serverTimestamp()
+        });
+        location.href = "leaderboard.html";
+      }catch(e){ alert("Falha ao enviar. Tente novamente."); }
+    });
+
+    startQuestion();
+  </script>
+</body>
+</html>
