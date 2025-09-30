@@ -1,141 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quiz - Perguntas</title>
-  <link rel="stylesheet" href="assets/styles.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz EMR - Jogo</title>
+  <link rel="stylesheet" href="assets/styles.css"/>
+  <script type="module" src="js/quiz.js" defer></script>
 </head>
 <body>
-  <header class="header">
-    <div class="brand">
-      <span class="logo-dot"></span>
-      <span class="title">Quiz EMR</span>
-    </div>
-    <div class="badge">Perguntas</div>
+  <header class="navbar">
+    <div class="logo">🔵 Quiz EMR</div>
+    <nav><a href="index.html">Ranking</a></nav>
   </header>
 
-  <main class="container">
-    <section class="card">
-      <h2 id="q-title">Carregando pergunta...</h2>
-      <div id="q-options"></div>
-      <div class="progress"><div id="progress"></div></div>
-      <div id="q-time" style="margin-top:10px;font-weight:bold;"></div>
+  <main>
+    <section class="card" id="quiz-container">
+      <h2 id="question-title">Carregando...</h2>
+      <ul id="options-list"></ul>
+      <div class="progress-bar"><div id="progress"></div></div>
+      <p class="timer">⏱ <span id="timer">0.0s</span></p>
+    </section>
+
+    <section class="card hidden" id="result-container">
+      <h2>Resultado</h2>
+      <p>Pontuação: <span id="final-score"></span></p>
+      <p>Tempo total: <span id="final-time"></span></p>
     </section>
   </main>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { QUESTIONS, computeScore } from "./js/questions.js?v=3"; // 👈 força cache novo
-
-    // 🔧 Configuração Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
-      authDomain: "inovacao-emr.firebaseapp.com",
-      projectId: "inovacao-emr",
-      storageBucket: "inovacao-emr.firebasestorage.app",
-      messagingSenderId: "1075399271811",
-      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
-      measurementId: "G-8CTLMNCZJN"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-
-    // Elementos
-    const qs=(s)=>document.querySelector(s), qsa=(s)=>document.querySelectorAll(s);
-    const qTitle=qs('#q-title'), qOptions=qs('#q-options');
-    const qCountEl=null; // se quiser contador extra
-    const prog=qs('#progress'), qTime=qs('#q-time');
-
-    // Dados do jogador (vindos da URL)
-    const params=new URLSearchParams(location.search);
-    const player={ name:params.get('name')||'Participante', email:params.get('email')||'' };
-
-    // Estado
-    let idx=0,totalScore=0,totalTime=0,start=0,raf=null,canAnswer=true,sessionId=null;
-
-    // Cria sessão
-    try{
-      const r=await addDoc(collection(db,"sessions"),{ name:player.name,email:player.email,startedAt:serverTimestamp() });
-      sessionId=r.id;
-    }catch(e){ console.warn("Sessão não criada:",e?.code,e?.message); }
-
-    function setProgress(){
-      if(!prog) return;
-      const pct=Math.round((idx/QUESTIONS.length)*100);
-      prog.style.width=pct+"%";
-    }
-
-    function renderQuestion(){
-      setProgress();
-      const q=QUESTIONS[idx];
-      qTitle.textContent=q.title;
-      qOptions.innerHTML="";
-      canAnswer=true;
-
-      q.options.forEach((opt,i)=>{
-        const b=document.createElement('button');
-        b.className="option";
-        b.innerHTML=`<div class="bullet">${i+1}</div><div>${opt}</div>`;
-        b.onclick=()=>answer(i);
-        qOptions.appendChild(b);
-      });
-
-      start=performance.now();
-      if(raf) cancelAnimationFrame(raf);
-      const tick=()=>{
-        if(qTime) qTime.textContent=`⏱ ${((performance.now()-start)/1000).toFixed(1)}s`;
-        raf=requestAnimationFrame(tick);
-      };
-      raf=requestAnimationFrame(tick);
-    }
-
-    function answer(i){
-      if(!canAnswer) return;
-      canAnswer=false;
-      cancelAnimationFrame(raf);
-
-      const elapsed=(performance.now()-start)/1000;
-      totalTime+=elapsed;
-
-      const q=QUESTIONS[idx];
-      const correct=i===q.answerIndex;
-      const pts=computeScore ? computeScore(correct,elapsed):(correct?1000:0);
-      totalScore+=pts;
-
-      qsa('.option').forEach((btn,ii)=>{
-        btn.disabled=true;
-        if(ii===q.answerIndex) btn.classList.add('success');
-        if(ii===i && ii!==q.answerIndex) btn.classList.add('danger');
-      });
-
-      setTimeout(()=>{
-        idx++;
-        if(idx<QUESTIONS.length){
-          renderQuestion();
-        }else{
-          finishAndSend();
-        }
-      },400);
-    }
-
-    async function finishAndSend(){
-      try{
-        await addDoc(collection(db,"scores"),{
-          sessionId,name:player.name,email:player.email,
-          score:totalScore,totalTime:Math.round(totalTime*100)/100,
-          createdAt:serverTimestamp()
-        });
-        location.href="leaderboard.html";
-      }catch(e){
-        console.error("Erro ao enviar score:",e?.code,e?.message);
-        alert("Falha ao enviar. Tente novamente.");
-      }
-    }
-
-    renderQuestion();
-  </script>
 </body>
 </html>
