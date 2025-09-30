@@ -1,168 +1,145 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Quiz EMR — Início</title>
 
-  <!-- seu CSS -->
-  <link rel="stylesheet" href="assets/styles.css?v=1"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css?v=2"/>
 
-  <!-- Inline minimal styles were removed; everything in assets/styles.css -->
+  <!-- favicons / meta -->
+  <meta name="theme-color" content="#071719" />
 </head>
 <body>
-  <header class="header" style="position:relative">
-    <div class="brand" id="brand" style="position:relative">
-      <span class="logo-dot" aria-hidden="true"></span>
-      <span class="title">Quiz EMR</span>
-
-      <!-- Hotspot invisível para abrir o modo dev (long-press) -->
-      <button id="dev-hotspot" class="dev-hidden-hotspot" aria-hidden="true" tabindex="-1"></button>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" id="brand-hotspot" title="Abrir modo dev (long-press ou Ctrl+Alt+D)">
+        <!-- subtle SVG mark -->
+        <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden><circle cx="12" cy="12" r="10" fill="var(--logo-dot)"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="title">Quiz EMR</div>
+        <div class="subtitle">Evento · Interativo</div>
+      </div>
     </div>
 
-    <div class="header-right">
+    <div class="actions">
+      <button id="theme-toggle" class="chip" aria-label="Alternar tema">🖥️ <span id="theme-label">Auto</span></button>
       <div class="badge">Evento</div>
-      <!-- Theme toggle -->
-      <button id="theme-toggle" class="theme-toggle" aria-label="Alternar tema">🖥️ <span style="margin-left:6px">Auto</span></button>
     </div>
   </header>
 
-  <main class="container">
-    <section class="card">
-      <div class="grid-home">
-        <!-- HERO -->
-        <div class="hero">
-          <h1>Pronto para jogar? 🎯</h1>
-          <p>Digite seu nome e <strong>escolha da lista oficial</strong> para participar.</p>
+  <main class="main container">
+    <section class="left">
+      <div class="card hero-card">
+        <h1>Pronto para jogar? <span class="accent">🎯</span></h1>
+        <p class="lead">Digite seu nome e escolha a partir da lista oficial para entrar no quiz.</p>
 
-          <form id="start-form" class="form" novalidate>
+        <form id="start-form" class="start-form" novalidate>
+          <label class="field">
+            <span class="field-label">Seu nome</span>
             <div class="autocomplete">
-              <input id="name" class="input" type="text" placeholder="Digite seu nome" required autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions" />
+              <input id="name" class="input" type="text" placeholder="Comece a digitar..." autocomplete="off" aria-autocomplete="list"/>
               <ul id="suggestions" class="typeahead" role="listbox" aria-label="Sugestões"></ul>
             </div>
+          </label>
 
-            <div class="actions-row">
-              <button id="start-btn" class="btn btn-pill btn-primary" type="submit" disabled>Começar agora</button>
-              <p id="loadMsg" class="muted" role="status">Carregando lista de participantes…</p>
-            </div>
-          </form>
+          <div class="row-between">
+            <button id="start-btn" class="btn btn-primary" type="submit" disabled>Começar agora</button>
+            <div class="small muted" id="loadMsg">Carregando participantes…</div>
+          </div>
+        </form>
 
-          <div class="qr" style="margin-top:12px;">
-            <img id="qr" alt="QR do jogo" width="120" height="120" />
-            <button id="copy" class="btn btn-pill" style="background:#e9f4f8;color:#0a4561; margin-left:8px;">Copiar link</button>
-            <span id="copied" class="muted" style="display:none; margin-left:8px;">Link copiado!</span>
+        <div class="qr-area">
+          <img id="qr" alt="QR do jogo" width="96" height="96"/>
+          <div class="qr-actions">
+            <button id="copy" class="btn">Copiar link</button>
+            <span id="copied" class="muted" style="display:none">Link copiado!</span>
           </div>
         </div>
+      </div>
 
-        <!-- RANKING -->
-        <aside class="side">
-          <h2>🏆 Ranking em tempo real</h2>
-          <table class="table" role="table" aria-label="Ranking">
-            <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
-            <tbody id="ranking-rows">
-              <tr><td colspan="4"><div class="skel"></div></td></tr>
-              <tr><td colspan="4"><div class="skel"></div></td></tr>
-              <tr><td colspan="4"><div class="skel"></div></td></tr>
-            </tbody>
-          </table>
-          <p class="muted">Mostrando os 10 melhores (desempate por tempo).</p>
-        </aside>
+      <div class="card info-card">
+        <h3>Como funciona</h3>
+        <ol class="muted">
+          <li>Escolha seu nome a partir da lista (ou ative “nome livre” no Dev).</li>
+          <li>Responda o quiz no app — pontuação e tempo são salvos automaticamente.</li>
+          <li>Ranking atualiza em tempo-real na lateral.</li>
+        </ol>
       </div>
     </section>
+
+    <aside class="right">
+      <div class="card ranking-card">
+        <div class="rank-head">
+          <h3>🏆 Ranking em tempo real</h3>
+          <div class="small muted">Top 10 • desempate por tempo</div>
+        </div>
+        <table class="table">
+          <thead><tr><th>#</th><th>Nome</th><th>P</th><th>Tempo</th></tr></thead>
+          <tbody id="ranking-rows">
+            <tr><td colspan="4"><div class="skel" style="height:72px"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </aside>
   </main>
 
-  <!-- Modal Dev -->
-  <dialog id="dev-modal" class="dev-modal" aria-modal="true">
-    <div class="dev-head">
-      <strong>⚙️ Modo Desenvolvedor</strong>
-      <button id="dev-close" title="Fechar" class="dev-close">✕</button>
-    </div>
+  <!-- dev modal -->
+  <dialog id="dev-modal" class="dev-modal">
+    <header class="dev-head">
+      <strong>⚙️ Modo Dev</strong>
+      <div>
+        <button id="dev-close" class="btn small">Fechar</button>
+      </div>
+    </header>
     <div class="dev-body">
-      <div class="muted">Ações rápidas (use com cuidado, especialmente <b>apagar scores</b>).</div>
-      <div class="dev-actions">
-        <button id="dev-reload-part">Recarregar participantes</button>
-        <button id="dev-toggle-free">Nome livre: <span id="dev-free-state">OFF</span></button>
-        <button id="dev-clear-cache">Limpar cache local</button>
-        <button id="dev-wipe" class="dev-danger">APAGAR TODOS os scores</button>
+      <div class="row">
+        <button id="dev-reload-part" class="btn">Recarregar participantes</button>
+        <button id="dev-toggle-free" class="btn">Nome livre: <span id="dev-free-state">OFF</span></button>
+      </div>
+      <div class="row">
+        <button id="dev-clear-cache" class="btn">Limpar cache</button>
+        <button id="dev-wipe" class="btn btn-danger">APAGAR TODOS (TEMP)</button>
       </div>
       <details>
         <summary>Debug</summary>
         <pre id="dev-debug" class="dev-debug"></pre>
       </details>
-      <div class="muted">Atalho: <code>Ctrl + Alt + D</code> ou pressionar 2s sobre a bolinha da logo.</div>
-    </div>
-    <div class="dev-foot">
-      <button id="dev-ok" class="btn btn-pill">OK</button>
     </div>
   </dialog>
 
-  <!-- Script principal -->
   <script type="module">
-    // ---------------------------
-    // IMPORTS (Firebase)
-    // ---------------------------
+    // ---- Imports ----
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import {
       getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs,
       deleteDoc, doc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    // ---------------------------
-    // THEME MANAGER (auto/light/dark)
-    // ---------------------------
+    // ---- Theme manager (auto/dark/light) ----
     (function(){
-      const KEY = 'theme';
-      const root = document.documentElement;
-
-      function applyTheme(t){
-        if(t === 'auto'){
-          const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const KEY='theme'; const root=document.documentElement;
+      function apply(t){
+        if(t==='auto'){
+          const dark=window.matchMedia('(prefers-color-scheme: dark)').matches;
           root.setAttribute('data-theme', dark ? 'dark' : 'light');
-        } else {
-          root.setAttribute('data-theme', t);
-        }
-        const btn = document.getElementById('theme-toggle');
-        if(btn){
-          const label = t === 'auto' ? 'Auto' : (t === 'dark' ? 'Escuro' : 'Claro');
-          const ico = t === 'dark' ? '🌙' : (t === 'light' ? '☀️' : '🖥️');
-          btn.innerHTML = `<span class="ico">${ico}</span><span style="font-weight:600; margin-left:6px">${label}</span>`;
-          btn.title = `Tema: ${label} — clique para trocar`;
-        }
+        }else root.setAttribute('data-theme', t);
+        const btn=document.getElementById('theme-label');
+        if(btn) btn.textContent = t==='auto' ? 'Auto' : (t==='dark' ? 'Escuro' : 'Claro');
       }
-
-      function getSaved(){ return localStorage.getItem(KEY) || 'auto'; }
-      function saveTheme(t){ localStorage.setItem(KEY, t); }
-      function nextTheme(current){
-        if(current === 'auto') return 'dark';
-        if(current === 'dark') return 'light';
-        return 'auto';
-      }
-
-      const init = getSaved();
-      applyTheme(init);
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      mq.addEventListener?.('change', ()=> {
-        if(getSaved() === 'auto') applyTheme('auto');
-      });
-
-      window.themeManager = {
-        set: (t)=> { saveTheme(t); applyTheme(t); },
-        get: ()=> getSaved(),
-        toggle: ()=> { const n = nextTheme(getSaved()); saveTheme(n); applyTheme(n); }
-      };
-
-      document.addEventListener('DOMContentLoaded', ()=>{
-        const btn = document.getElementById('theme-toggle');
-        if(btn){
-          btn.addEventListener('click', ()=> window.themeManager.toggle());
-          applyTheme(getSaved());
-        }
-      });
+      function saved(){ return localStorage.getItem(KEY) || 'auto'; }
+      function save(t){ localStorage.setItem(KEY,t); }
+      function next(t){ return t==='auto' ? 'dark' : (t==='dark' ? 'light' : 'auto'); }
+      apply(saved());
+      const mq=window.matchMedia('(prefers-color-scheme: dark)');
+      mq.addEventListener?.('change', ()=> { if(saved()==='auto') apply('auto'); });
+      window.themeManager = { set:(t)=>{save(t);apply(t)}, toggle:()=>{const n=next(saved());save(n);apply(n)} };
+      document.addEventListener('DOMContentLoaded', ()=>{ const t=document.getElementById('theme-toggle'); if(t) t.onclick = ()=> themeManager.toggle(); });
     })();
 
-    // ---------------------------
-    // Firebase config (mantive o seu)
-    // ---------------------------
+    // ---- Firebase config (mantive o seu) ----
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -172,26 +149,10 @@
       appId: "1:1075399271811:web:f532f255d6a8f42b6",
       measurementId: "G-8CTLMNCZJN"
     };
-
     const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+    const db = getFirestore(app);
 
-    // ---------------------------
-    // Utils
-    // ---------------------------
-    async function sha256Hex(str){
-      const enc = new TextEncoder().encode(str);
-      const buf = await crypto.subtle.digest("SHA-256", enc);
-      const arr = Array.from(new Uint8Array(buf));
-      return arr.map(b=>b.toString(16).padStart(2,"0")).join("");
-    }
-    window.__hash = sha256Hex;
-    function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-    function norm(s){ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
-
-    // ---------------------------
-    // Estado e DOM refs
-    // ---------------------------
+    // ---- State & DOM ----
     let participants = [];
     let filtered = [], chosen=null, active=-1;
     let allowFreeName = false;
@@ -202,260 +163,151 @@
     const startBtn = document.getElementById('start-btn');
     const loadMsg  = document.getElementById('loadMsg');
     const rows = document.getElementById('ranking-rows');
+    const qr = document.getElementById('qr');
 
-    // dev modal refs
-    const devModal = document.getElementById('dev-modal');
-    const devFreeState = document.getElementById('dev-free-state');
-    const devDebug = document.getElementById('dev-debug');
-
-    function debug(msg){
-      if(!devDebug) return;
-      const time = new Date().toLocaleTimeString();
-      devDebug.textContent = `[${time}] ${msg}\n` + (devDebug.textContent||"");
-    }
-    function updateFreeNameBadge(){
-      devFreeState.textContent = allowFreeName ? 'ON' : 'OFF';
-      devFreeState.style.color = allowFreeName ? '#59C085' : 'inherit';
-    }
-
-    // ---------------------------
-    // Carrega participantes (data/participants.json)
-    // ---------------------------
+    // ---- load participants ----
     async function loadParticipants(){
-      const tryPaths = ["data/participants.json","participants.json","data/participants.json?v=1"];
-      for (const p of tryPaths){
+      const tryPaths = ['data/participants.json','participants.json'];
+      for(const p of tryPaths){
         try{
-          const res = await fetch(`${p}?v=${Date.now()}`);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          if (Array.isArray(data.participants) && data.participants.length){
-            participants = data.participants;
+          const r = await fetch(`${p}?v=${Date.now()}`);
+          if(!r.ok) throw new Error(r.status);
+          const d = await r.json();
+          if(Array.isArray(d.participants) && d.participants.length){
+            participants = d.participants;
             participantsLoaded = true;
-            loadMsg.textContent = `Lista carregada (${participants.length}).`;
+            loadMsg.textContent = `Lista carregada (${participants.length})`;
             startBtn.disabled = false;
-            debug(`participants de: ${p} — ${participants.length} itens`);
+            console.log('participants from',p,participants.length);
             return;
           }
-        }catch(e){
-          debug(`Falhou ${p}: ${e.message||e}`);
-        }
+        }catch(e){ console.warn('participants failed',p,e); }
       }
-      participants = [];
-      participantsLoaded = false;
-      loadMsg.textContent = "Não encontrei a lista de participantes.";
+      participantsLoaded=false;
+      loadMsg.textContent = 'Não encontrei a lista de participantes.';
       startBtn.disabled = true;
+      participants=[];
     }
     loadParticipants();
 
-    // ---------------------------
-    // Autocomplete
-    // ---------------------------
+    // ---- autocomplete ----
+    const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
     function filterNames(q){
       const n = norm(q);
-      if (n.length < 1) return [];
-      return (participants||[])
-        .map(p => ({...p,score: norm(p.name).includes(n)?1:0}))
-        .filter(x => x.score>0)
-        .slice(0,8);
+      if(n.length<1) return [];
+      return participants.filter(p=>norm(p.name).includes(n)).slice(0,8);
     }
-
     function renderSuggestions(list){
       sugEl.innerHTML='';
       if(!list.length){ hideSug(); return; }
       list.forEach((p,i)=>{
-        const li=document.createElement('li');
-        li.role='option';
-        li.innerHTML = `<span class="n">${p.name}</span>${p.hint?`<span class="hint">${p.hint}</span>`:''}`;
+        const li = document.createElement('li'); li.role='option';
+        li.innerHTML = `<div class="s-left"><div class="name">${escapeHtml(p.name)}</div><div class="hint">${escapeHtml(p.hint||'')}</div></div>`;
         li.onclick = ()=> pick(i);
         sugEl.appendChild(li);
       });
-      sugEl.style.display='block';
-      nameEl.setAttribute('aria-expanded','true');
-      active=-1;
+      sugEl.style.display='block'; active=-1;
     }
-    function hideSug(){
-      sugEl.style.display='none';
-      nameEl.setAttribute('aria-expanded','false');
-      active=-1;
-    }
-    function pick(i){
-      const p = filtered[i]; if(!p) return;
-      nameEl.value = p.name;
-      chosen = p;
-      hideSug();
-    }
+    function hideSug(){ sugEl.style.display='none'; active=-1; }
+    function pick(i){ chosen = filtered[i]; if(!chosen) return; nameEl.value = chosen.name; hideSug(); }
+
+    let debounce;
+    nameEl.addEventListener('input', ()=>{
+      chosen=null; clearTimeout(debounce);
+      debounce = setTimeout(()=>{ filtered = filterNames(nameEl.value); renderSuggestions(filtered); }, 120);
+    });
+    nameEl.addEventListener('keydown', e=>{
+      if(sugEl.style.display==='block'){
+        if(e.key==='ArrowDown'){ e.preventDefault(); move(1); }
+        if(e.key==='ArrowUp'){ e.preventDefault(); move(-1); }
+        if(e.key==='Enter'){ e.preventDefault(); if(active>=0) pick(active); }
+        if(e.key==='Escape'){ e.preventDefault(); hideSug(); }
+      }
+    });
     function move(delta){
       const items = [...sugEl.children]; if(!items.length) return;
       active = (active + delta + items.length) % items.length;
-      items.forEach((li,idx)=> li.classList.toggle('active', idx===active));
+      items.forEach((li,i)=> li.classList.toggle('active', i===active));
       if(active>=0) items[active].scrollIntoView({block:'nearest'});
     }
+    document.addEventListener('click', e=>{ if(!e.target.closest('.autocomplete')) hideSug(); });
 
-    let debounce;
-    function onInput(){
-      chosen=null;
-      clearTimeout(debounce);
-      debounce = setTimeout(()=>{
-        filtered = filterNames(nameEl.value);
-        renderSuggestions(filtered);
-      },110);
-    }
-    nameEl.addEventListener('input', onInput);
-    nameEl.addEventListener('keydown', (e)=>{
-      if(sugEl.style.display==='block'){
-        if(e.key==='ArrowDown'){ e.preventDefault(); move(1); }
-        if(e.key==='ArrowUp'){   e.preventDefault(); move(-1); }
-        if(e.key==='Enter'){     e.preventDefault(); if(active>=0) pick(active); }
-        if(e.key==='Escape'){    e.preventDefault(); hideSug(); }
-      }
-    });
-    document.addEventListener('click', (e)=>{
-      if(!e.target.closest('.autocomplete')) hideSug();
-    });
-
-    // ---------------------------
-    // Submit
-    // ---------------------------
-    document.getElementById('start-form').addEventListener('submit',(e)=>{
+    // ---- submit ----
+    document.getElementById('start-form').addEventListener('submit', e=>{
       e.preventDefault();
-      if(!participantsLoaded){
-        alert("Aguarde carregar a lista de participantes.");
-        return;
-      }
-      if(!chosen && !allowFreeName){
-        alert("Selecione seu nome da lista oficial.");
-        return;
-      }
-      const person = chosen || { id: 'free-'+Date.now(), name: nameEl.value.trim() };
-      if(!person.name){ alert("Informe seu nome."); return; }
+      if(!participantsLoaded){ alert('Aguarde carregar a lista.'); return; }
+      if(!chosen && !allowFreeName){ alert('Selecione seu nome da lista oficial.'); return; }
+      const person = chosen || { id:'free-'+Date.now(), name: nameEl.value.trim() };
+      if(!person.name){ alert('Informe seu nome.'); return; }
       const qs = new URLSearchParams({ id: person.id, name: person.name }).toString();
       location.href = `quiz.html?${qs}`;
     });
 
-    // ---------------------------
-    // QR & Copiar link
-    // ---------------------------
-    const homeURL = (()=> {
-      const url = new URL(location.href);
-      const path = url.pathname.replace(/index\.html?$/i,'');
-      return url.origin + path;
-    })();
-    const qrURL   = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(homeURL)}`;
-    document.getElementById('qr').src = qrURL;
-    document.getElementById('copy').onclick = async ()=>{
-      await navigator.clipboard.writeText(homeURL);
-      const ok=document.getElementById('copied');
-      ok.style.display='inline'; setTimeout(()=>ok.style.display='none',1500);
-    };
+    // ---- QR and copy ----
+    const homeURL = (()=>{ const u=new URL(location.href); const p=u.pathname.replace(/index\.html?$/i,''); return u.origin + p; })();
+    qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(homeURL)}`;
+    document.getElementById('copy').onclick = async ()=>{ await navigator.clipboard.writeText(homeURL); const c=document.getElementById('copied'); c.style.display='inline'; setTimeout(()=>c.style.display='none',1500); };
 
-    // ---------------------------
-    // Ranking ao vivo (Firestore)
-    // ---------------------------
-    const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
-
+    // ---- ranking live ----
+    function fmt(t){ return Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : '-'; }
     function renderData(data){
-      rows.innerHTML="";
+      rows.innerHTML='';
       const top = data.slice(0,10);
-      if(!top.length){
-        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`;
-        return;
-      }
+      if(!top.length){ rows.innerHTML = `<tr><td colspan="4" class="muted">Sem resultados ainda</td></tr>`; return; }
       let pos=1;
       for(const d of top){
-        let medal=pos; if(pos===1)medal="🏆"; else if(pos===2)medal="🥈"; else if(pos===3)medal="🥉";
-        const tr=document.createElement('tr');
-        tr.innerHTML = `
-          <td>${medal}</td>
-          <td>${(d.name||"-").toString().slice(0,48)}</td>
-          <td><strong>${d.score ?? 0}</strong></td>
-          <td>${fmt(d.totalTime)}</td>`;
+        const medal = pos===1?'🏆':(pos===2?'🥈':(pos===3?'🥉':pos));
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${medal}</td><td class="col-name">${escapeHtml(d.name||'-')}</td><td><strong>${d.score??0}</strong></td><td>${fmt(d.totalTime)}</td>`;
         rows.appendChild(tr); pos++;
       }
     }
-
     async function startLive(){
       try{
-        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(10));
-        const snap  = await getDocs(baseQ);
-        const pre   = snap.docs.map(d=>d.data())
-                         .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+        const baseQ = query(collection(db,'scores'), orderBy('score','desc'), limit(10));
+        const snap = await getDocs(baseQ);
+        const pre = snap.docs.map(d=>d.data()).sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
         renderData(pre);
-
-        onSnapshot(baseQ, (s)=>{
-          const arr = s.docs.map(d=>d.data())
-                       .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
-          renderData(arr);
-        });
+        onSnapshot(baseQ, s=> { const arr = s.docs.map(d=>d.data()).sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9)); renderData(arr); });
       }catch(e){ console.error(e); }
     }
     startLive();
 
-    // ---------------------------
-    // Modo Dev (LIBERADO - SEM SENHA)
-    // ---------------------------
-    function openDev(){
-      devModal.showModal();
-      updateFreeNameBadge();
-    }
-    function closeDev(){ devModal.close(); }
+    // ---- dev modal (no-password for quick test, long-press or shortcut) ----
+    const devModal = document.getElementById('dev-modal');
+    const devDebug = document.getElementById('dev-debug');
+    const devFreeToggle = document.getElementById('dev-toggle-free');
+    const devFreeState = document.getElementById('dev-free-state');
+    function uFree(){ devFreeState.textContent = allowFreeName ? 'ON' : 'OFF'; devFreeState.style.color = allowFreeName ? 'var(--accent)' : ''; }
+    function logDev(m){ devDebug.textContent = new Date().toLocaleTimeString() + ' — ' + m + '\n' + devDebug.textContent; }
 
-    // long-press hotspot
-    const hotspot = document.getElementById('dev-hotspot');
-    let pressTimer=null;
-    hotspot.addEventListener('pointerdown', ()=>{
-      pressTimer = setTimeout(async ()=>{ openDev(); }, 2000);
-    });
-    ['pointerup','pointerleave','pointercancel'].forEach(ev=>{
-      hotspot.addEventListener(ev, ()=>{ clearTimeout(pressTimer); pressTimer=null; });
-    });
-
-    // shortcut
-    document.addEventListener('keydown', async (e)=>{
-      if(e.ctrlKey && e.altKey && (e.key==='d' || e.key==='D')){ openDev(); }
-    });
-
-    // modal buttons
-    document.getElementById('dev-close').onclick = closeDev;
-    document.getElementById('dev-ok').onclick = closeDev;
-
-    document.getElementById('dev-reload-part').onclick = async ()=>{
-      await loadParticipants();
-      alert("Participantes recarregados.");
-    };
-
-    document.getElementById('dev-toggle-free').onclick = ()=>{
-      allowFreeName = !allowFreeName;
-      updateFreeNameBadge();
-      alert(`Nome livre ${allowFreeName? 'ativado' : 'desativado'}.`);
-    };
-
-    document.getElementById('dev-clear-cache').onclick = ()=>{
-      try{ localStorage.clear(); sessionStorage.clear(); alert("Cache local limpo."); }catch(e){ alert("Falha: "+e.message); }
-    };
+    document.getElementById('dev-reload-part').onclick = async ()=>{ await loadParticipants(); alert('Participantes recarregados'); logDev('reloaded participants'); };
+    devFreeToggle.onclick = ()=>{ allowFreeName = !allowFreeName; uFree(); alert('Nome livre ' + (allowFreeName?'ativado':'desativado')); logDev('toggle free ' + allowFreeName); };
+    document.getElementById('dev-clear-cache').onclick = ()=>{ localStorage.clear(); sessionStorage.clear(); alert('Cache limpo'); logDev('cache cleared'); };
 
     document.getElementById('dev-wipe').onclick = async ()=>{
-      if(!confirm("ATENÇÃO — isso APAGARÁ TODOS os scores da coleção 'scores'. Continuar?")) return;
-      const word = prompt("Digite APAGAR para confirmar:");
-      if(!word || word.toUpperCase() !== "APAGAR"){ alert("Cancelado."); return; }
-
-      try {
-        const snap = await getDocs(collection(db, 'scores'));
-        if (snap.empty) { alert("Nenhum score encontrado."); return; }
-        let removed = 0;
-        for (const d of snap.docs) {
-          await deleteDoc(doc(db, 'scores', d.id));
-          removed++;
-          if (removed % 20 === 0) await sleep(30);
-        }
-        alert(`Removidos ${removed} documentos.`);
-        debug(`Removidos ${removed} docs de scores.`);
-      } catch (err) {
-        console.error("Erro ao apagar scores:", err);
-        alert("Erro ao apagar scores. Veja console para detalhes.");
-      }
+      if(!confirm('ATENÇÃO — isso APAGARÁ TODOS os scores. Continuar?')) return;
+      if(!confirm('Confirma novamente?')) return;
+      try{
+        const snap = await getDocs(collection(db,'scores'));
+        let n=0; for(const d of snap.docs){ await deleteDoc(doc(db,'scores', d.id)); n++; if(n%20===0) await new Promise(r=>setTimeout(r,30)); }
+        alert(`Removidos ${n}`);
+        logDev(`wipe removed ${n}`);
+      }catch(e){ console.error(e); alert('Erro (veja console)'); logDev('wipe error: '+e.message); }
     };
+
+    document.getElementById('dev-close').onclick = ()=> devModal.close();
+    // open dev: long-press or Ctrl+Alt+D
+    (function(){
+      const hs=document.getElementById('brand-hotspot');
+      let t;
+      hs.addEventListener('pointerdown', ()=> t = setTimeout(()=> devModal.showModal(), 1600));
+      ['pointerup','pointerleave','pointercancel'].forEach(ev => hs.addEventListener(ev, ()=> clearTimeout(t)));
+      document.addEventListener('keydown', e=> { if(e.ctrlKey && e.altKey && (e.key==='d' || e.key==='D')) devModal.showModal(); });
+    })();
+
+    // ---- helpers ----
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
   </script>
 </body>
 </html>
-
-
