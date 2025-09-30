@@ -196,3 +196,34 @@ button.primary:hover {
     margin-bottom: 0.5rem;
   }
 }
+
+/* Patch de compatibilidade para inputs/botões (força o visual) */
+input.input[type="text"],
+input.input[type="email"],
+.input {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none !important;
+  outline: none;
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  font-weight: 600;
+  color: #0a2e40;
+}
+
+button.btn,
+.btn.primary {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  border-radius: 18px;
+  background: #0f3f53;
+  color: #fff;
+  padding: 14px 18px;
+  font-weight: 900;
+  box-shadow: 0 6px 14px rgba(0,0,0,.18);
+  cursor: pointer;
+}
+
