@@ -3,12 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Quiz EMR — Início</title>
+  <title>Quiz Innovation Break — Início</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/styles.css?v=3">
 
-  <!-- meta -->
   <meta name="theme-color" content="#071719" />
 </head>
 <body>
@@ -21,7 +20,7 @@
           </svg>
         </button>
         <div class="brand-text">
-          <div class="title">Quiz EMR</div>
+          <div class="title">Quiz Innovation Break</div>
           <div class="subtitle">Evento • Interativo</div>
         </div>
       </div>
@@ -32,7 +31,7 @@
     </div>
   </header>
 
-  <main class="container main-grid">
+  <main class="container main-grid" style="margin-top:18px;">
     <!-- principal -->
     <section class="content-col">
       <div class="card hero">
@@ -46,28 +45,17 @@
             <ul id="suggestions" class="typeahead" role="listbox" aria-label="Sugestões"></ul>
           </div>
 
-          <div class="form-row">
+          <div class="form-row" style="margin-top:14px;">
             <button id="start-btn" class="btn primary" type="submit" disabled>Começar agora</button>
-            <div id="loadMsg" class="muted small">Carregando participantes…</div>
+            <div id="loadMsg" class="muted small" style="margin-left:8px;">Carregando participantes…</div>
           </div>
         </form>
-
-        <div class="qr-block">
-          <img id="qr" alt="QR do jogo" width="128" height="128" />
-          <div class="qr-actions">
-            <button id="copy" class="btn">Copiar link</button>
-            <span id="copied" class="muted small" style="display:none;margin-left:8px">Link copiado!</span>
-          </div>
-        </div>
       </div>
 
-      <div class="card info">
-        <h3>Como funciona</h3>
-        <ol class="muted">
-          <li>Escolha seu nome na lista (ou use “nome livre” no Dev).</li>
-          <li>Responda o quiz — pontuação e tempo são salvos automaticamente.</li>
-          <li>Ranking atualiza em tempo real na lateral.</li>
-        </ol>
+      <!-- kept a single info card for spacing / extras (optional) -->
+      <div class="card info" style="display:none;">
+        <h3>Observações</h3>
+        <p class="muted">Informações rápidas sobre o evento.</p>
       </div>
     </section>
 
@@ -122,7 +110,6 @@
           const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           root.setAttribute('data-theme', dark ? 'dark' : 'light');
         } else root.setAttribute('data-theme', t);
-        // update aria-label/icon if needed
       }
       function saved(){ return localStorage.getItem(KEY) || 'auto'; }
       function save(t){ localStorage.setItem(KEY,t); }
@@ -203,9 +190,9 @@
         li.onclick = ()=> pick(i);
         sugEl.appendChild(li);
       });
-      sugEl.style.display='block'; active = -1;
+      sugEl.style.display = 'block'; active = -1;
     }
-    function hideSug(){ sugEl.style.display='none'; active = -1; }
+    function hideSug(){ sugEl.style.display = 'none'; active = -1; }
     function pick(i){ chosen = filtered[i]; if(!chosen) return; nameEl.value = chosen.name; hideSug(); }
 
     let debounce;
@@ -240,11 +227,6 @@
       location.href = `quiz.html?${qs}`;
     });
 
-    // QR & Copy
-    const homeURL = (()=>{ const u = new URL(location.href); const p = u.pathname.replace(/index\.html?$/i,''); return u.origin + p; })();
-    el('qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(homeURL)}`;
-    el('copy').onclick = async ()=> { await navigator.clipboard.writeText(homeURL); const c = el('copied'); c.style.display='inline'; setTimeout(()=> c.style.display='none',1500); };
-
     // Ranking live
     function fmt(t){ return Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : '-' ; }
     function renderData(data){
@@ -273,10 +255,10 @@
     // Dev modal (no-password for quick tests)
     const devModal = el('dev-modal'), devDebug = el('dev-debug'), devFreeState = el('dev-free-state');
     function logDev(m){ devDebug.textContent = new Date().toLocaleTimeString() + ' – ' + m + '\n' + devDebug.textContent; }
-    el('dev-reload-part').onclick = async ()=> { await loadParticipants(); alert('Participantes recarregados'); logDev('reloaded participants'); };
-    el('dev-toggle-free').onclick = ()=> { allowFreeName = !allowFreeName; devFreeState.textContent = allowFreeName ? 'ON' : 'OFF'; alert('Nome livre ' + (allowFreeName? 'ativado':'desativado')); logDev('toggle free ' + allowFreeName); };
-    el('dev-clear-cache').onclick = ()=> { localStorage.clear(); sessionStorage.clear(); alert('Cache limpo'); logDev('cache cleared'); };
-    el('dev-wipe').onclick = async ()=> {
+    el('dev-reload-part').onclick = async () => { await loadParticipants(); alert('Participantes recarregados'); logDev('reloaded participants'); };
+    el('dev-toggle-free').onclick = () => { allowFreeName = !allowFreeName; devFreeState.textContent = allowFreeName ? 'ON' : 'OFF'; alert('Nome livre ' + (allowFreeName? 'ativado':'desativado')); logDev('toggle free ' + allowFreeName); };
+    el('dev-clear-cache').onclick = () => { localStorage.clear(); sessionStorage.clear(); alert('Cache limpo'); logDev('cache cleared'); };
+    el('dev-wipe').onclick = async () => {
       if(!confirm('ATENÇÃO — isso APAGARÁ TODOS os scores. Continuar?')) return;
       if(!confirm('Confirma novamente?')) return;
       try{
@@ -285,7 +267,7 @@
         alert(`Removidos ${n}`); logDev(`wipe removed ${n}`);
       }catch(e){ console.error(e); alert('Erro (veja console)'); logDev('wipe error: '+e.message); }
     };
-    el('dev-close').onclick = ()=> devModal.close();
+    el('dev-close').onclick = () => devModal.close();
 
     // open dev: long-press or Ctrl+Alt+D
     (function(){
