@@ -1,35 +1,131 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Placar — Quiz EMR</title>
-  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Placar — Quiz EMR</title>
+
+<style>
+  :root{
+    --teal:#009BC1; --green:#59C085; --ink:#0a4561; --dark:#0f3f53;
+    --bg:#F3F8FB; --card:#fff; --muted:#5E7D8C; --stroke:rgba(2,34,46,.08);
+    --halo: 0 0 0 6px rgba(0,155,193,.08), 0 0 0 12px rgba(0,155,193,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI", Inter, system-ui, -apple-system, Arial, sans-serif}
+
+  /* Header */
+  .wrap{max-width:1600px;margin:24px auto;padding:0 24px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .dot{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,var(--teal) 60%);
+       box-shadow:0 3px 10px rgba(0,0,0,.12)}
+  .title{font-size:28px;font-weight:900}
+  .badge{background:var(--dark);color:#fff;border-radius:999px;padding:8px 14px;font-weight:800}
+
+  /* Grid */
+  .grid{display:grid;grid-template-columns:1.35fr .95fr;gap:20px}
+  @media(max-width:1200px){.grid{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--stroke);border-radius:24px;box-shadow:0 10px 24px rgba(0,0,0,.06)}
+
+  /* Ranking */
+  .rank-card{padding:18px 18px 10px}
+  .rank-title{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:900;margin:4px 6px 8px}
+  .table{width:100%;border-collapse:separate;border-spacing:0 12px}
+  .table th{color:#507286;font-size:14px;text-align:left;font-weight:800}
+  .table td{background:#fff;padding:16px 14px;border-radius:16px;box-shadow:0 1px 5px rgba(0,0,0,.05);font-size:20px}
+  .table tr:hover td{background:#f5fbfe}
+  .muted{color:var(--muted);font-size:14px;margin:8px 6px 0}
+
+  /* medal colors */
+  #rows tr:nth-child(1) td:first-child{color:#d4af37;font-weight:900}
+  #rows tr:nth-child(2) td:first-child{color:#a9b2bd;font-weight:900}
+  #rows tr:nth-child(3) td:first-child{color:#cd7f32;font-weight:900}
+
+  /* Right column */
+  .side{display:flex;flex-direction:column;gap:20px}
+
+  /* QR block */
+  .qr-card{padding:20px;display:flex;gap:18px;align-items:center}
+  .qr-left{flex:0 0 auto;position:relative}
+  .qr-left::after{content:"";position:absolute;inset:-8px; border-radius:24px;
+    box-shadow: var(--halo); pointer-events:none}
+  .qr{width:360px;height:360px;border-radius:22px;border:8px solid #fff;box-shadow:0 10px 26px rgba(0,0,0,.12)}
+  .qr-pulse{position:absolute;inset:-16px;border-radius:28px;box-shadow:0 0 0 0 rgba(0,155,193,.25);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,155,193,.25)} 70%{box-shadow:0 0 0 28px rgba(0,155,193,0)} 100%{box-shadow:0 0 0 0 rgba(0,155,193,0)}}
+
+  .qr-right{flex:1}
+  .cta{font-size:28px;font-weight:900;margin:0 0 6px}
+  .desc{color:var(--muted);margin:0 0 16px;font-size:16px}
+  .link{display:inline-block;background:linear-gradient(90deg,var(--teal),var(--green));
+        color:#053142;padding:10px 14px;border-radius:999px;font-weight:900}
+  .copy{border:none;background:#eaf5f9;color:#0a4561;border-radius:999px;padding:10px 14px;font-weight:800;margin-left:8px;cursor:pointer}
+  .copied{display:none;color:#2d7a9b;font-weight:800;margin-left:10px}
+
+  /* Facts / curiosidades */
+  .facts-card{padding:20px 22px;background:#0b3a4f;color:#e8fbff;border:1px solid rgba(255,255,255,.08)}
+  .facts-title{font-size:18px;letter-spacing:.06em;text-transform:uppercase;color:#7fd0e1;font-weight:900;margin:0 0 6px}
+  .fact{font-size:20px;line-height:1.4;min-height:84px}
+  .fx-enter{animation:fadeSlide .6s ease}
+  @keyframes fadeSlide{0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)}}
+
+  /* skeletons */
+  .skel{height:48px;border-radius:14px;background:linear-gradient(90deg,#eef3f6 25%,#f6fafc 37%,#eef3f6 63%);background-size:400% 100%;animation:s 1.2s infinite linear}
+  @keyframes s{0%{background-position:100% 0}100%{background-position:0 0}}
+</style>
 </head>
 <body>
-  <section class="full board">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
-      <h1>🏆 Placar em tempo real</h1>
-      <div class="qr">
-        <img id="qr" alt="QR"/>
-        <div class="muted">Aponte a câmera e jogue</div>
-      </div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><span class="dot"></span><span class="title">Quiz EMR — Placar</span></div>
+      <div class="badge">Tela do evento</div>
     </div>
-    <table class="table">
-      <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
-      <tbody id="rows">
-        <tr><td colspan="4"><div class="skel"></div></td></tr>
-        <tr><td colspan="4"><div class="skel"></div></td></tr>
-        <tr><td colspan="4"><div class="skel"></div></td></tr>
-      </tbody>
-    </table>
-    <p class="muted">Top 10, desempate por menor tempo.</p>
-  </section>
+
+    <div class="grid">
+      <!-- Ranking -->
+      <section class="card rank-card">
+        <div class="rank-title">🏆 Ranking em tempo real</div>
+        <table class="table">
+          <thead><tr><th style="width:90px">#</th><th>Nome</th><th style="width:160px">Pontos</th><th style="width:160px">Tempo</th></tr></thead>
+          <tbody id="rows">
+            <tr><td colspan="4"><div class="skel"></div></td></tr>
+            <tr><td colspan="4"><div class="skel"></div></td></tr>
+            <tr><td colspan="4"><div class="skel"></div></td></tr>
+          </tbody>
+        </table>
+        <div class="muted">Top 10 (desempate por menor tempo).</div>
+      </section>
+
+      <!-- QR + Curiosidades -->
+      <aside class="side">
+        <section class="card qr-card">
+          <div class="qr-left">
+            <div class="qr-pulse"></div>
+            <img id="qr" class="qr" alt="QR para jogar"/>
+          </div>
+          <div class="qr-right">
+            <h3 class="cta">Aponte a câmera e participe!</h3>
+            <p class="desc">Abra o app de câmera do celular, mire no QR e entre no quiz. Vence quem acertar mais, no menor tempo. 🚀</p>
+            <a id="homeLink" class="link" target="_blank" rel="noopener">Abrir no celular</a>
+            <button id="copy" class="copy">Copiar link</button>
+            <span id="copied" class="copied">Link copiado!</span>
+          </div>
+        </section>
+
+        <section class="card facts-card">
+          <div class="facts-title">Curiosidades sobre inovação</div>
+          <div id="fact" class="fact fx-enter">Carregando curiosidades…</div>
+        </section>
+      </aside>
+    </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+    /* ===== Firebase config (o mesmo do jogo) ===== */
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -43,30 +139,74 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
+    /* ===== URL da home + QR + copiar ===== */
+    const home = (()=>{
+      // se estiver /placar.html, remove para apontar ao index da mesma pasta
+      const base = location.origin + location.pathname.replace(/placar\.html$/,'');
+      return base.endsWith('/') ? base : base + '/';
+    })();
+    const qr  = document.getElementById('qr');
+    const link= document.getElementById('homeLink');
+    qr.src    = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(home)}`;
+    link.href = home; link.textContent = new URL(home).host + new URL(home).pathname;
+
+    document.getElementById('copy').onclick = async ()=>{
+      await navigator.clipboard.writeText(home);
+      const c = document.getElementById('copied');
+      c.style.display='inline'; setTimeout(()=>c.style.display='none',1500);
+    };
+
+    /* ===== Ranking ===== */
     const rows = document.getElementById('rows');
-    const fmt  = t => Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
+    const fmt  = t => Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : '-';
 
     function render(d){
-      rows.innerHTML="";
+      rows.innerHTML = '';
       let pos=1;
       d.slice(0,10).forEach(x=>{
-        let medal=pos; if(pos===1)medal="🏆"; else if(pos===2)medal="🥈"; else if(pos===3)medal="🥉";
-        const tr=document.createElement('tr');
-        tr.innerHTML = `<td>${medal}</td><td>${(x.name||"-").slice(0,40)}</td><td><b>${x.score??0}</b></td><td>${fmt(x.totalTime)}</td>`;
-        rows.appendChild(tr); pos++;
+        let medal = pos; if(pos===1)medal='🏆'; else if(pos===2)medal='🥈'; else if(pos===3)medal='🥉';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="text-align:center;font-weight:900">${medal}</td>
+          <td>${(x.name||'-').toString().slice(0,40)}</td>
+          <td><b>${x.score ?? 0}</b></td>
+          <td>${fmt(x.totalTime)}</td>`;
+        rows.appendChild(tr);
+        pos++;
       });
     }
 
     const q = query(collection(db,"scores"), orderBy("score","desc"), limit(10));
     onSnapshot(q, snap=>{
       const arr = snap.docs.map(d=>d.data())
-                   .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+                    .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
       render(arr);
     });
 
-    // QR para home
-    const home = location.origin + (location.pathname.replace(/placar\.html$/, '') || '/');
-    document.getElementById('qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(home)}`;
+    /* ===== Curiosidades com rotação ===== */
+    const facts = [
+      "O termo “inovação disruptiva” foi popularizado por Clayton Christensen em 1995.",
+      "Design Thinking coloca o usuário no centro para resolver problemas complexos.",
+      "Falhar rápido e barato ajuda a aprender mais cedo — cultura de experimentação.",
+      "Pequenas melhorias contínuas (Kaizen) podem gerar grande impacto no longo prazo.",
+      "Adoção de IA generativa acelera prototipagem e personalização em escala.",
+      "Empresas ambidestras equilibram eficiência operacional e exploração de novos negócios.",
+      "Métricas de inovação incluem NPS, tempo-de-mercado e taxa de experimentos.",
+      "Ciclos curtos (sprints) reduzem risco e aproximam a solução do usuário real.",
+      "Hackathons revelam talentos ocultos e ideias que viram produtos de alto impacto.",
+      "Inovação não é só tecnologia: processos, modelos de negócio e cultura também contam."
+    ];
+    const elFact = document.getElementById('fact');
+    let i=0;
+    const showFact = ()=>{
+      elFact.classList.remove('fx-enter');
+      void elFact.offsetWidth; // reflow para reiniciar animação
+      elFact.textContent = facts[i % facts.length];
+      elFact.classList.add('fx-enter');
+      i++;
+    };
+    showFact();
+    setInterval(showFact, 5000); // troca a cada 5s
   </script>
 </body>
 </html>
