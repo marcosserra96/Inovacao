@@ -1,229 +1,51 @@
-/* ===============================
-   RESET E BASE
-================================= */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* Reset básico */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Segoe UI",Arial,sans-serif;background:#f7f9fa;color:#0a4561;}
 
-body {
-  font-family: "Segoe UI", Arial, sans-serif;
-  background: #f7f9fa;
-  color: #00334e;
-  line-height: 1.6;
-}
+/* Navbar */
+.navbar{display:flex;justify-content:space-between;align-items:center;
+  padding:16px 32px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+.logo{font-weight:700;color:#0a4561;}
 
-/* ===============================
-   CABEÇALHO
-================================= */
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-}
+/* Cards */
+.card{background:#fff;padding:28px;border-radius:24px;
+  box-shadow:0 3px 8px rgba(0,0,0,0.08);margin:24px auto;max-width:1100px;}
+.hero-title{font-size:1.8rem;font-weight:700;margin-bottom:12px;}
+.hero-text{margin-bottom:16px;}
+.muted{font-size:.9rem;color:#777;}
 
-header h1 {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #00334e;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+/* Inputs e Botões */
+.input{padding:14px;border:1px solid #ddd;border-radius:12px;font-size:1rem;}
+.btn{padding:14px;border:none;border-radius:14px;cursor:pointer;font-weight:600;}
+.btn.primary{background:#0f3f53;color:#fff;transition:.2s;}
+.btn.primary:hover{transform:translateY(-1px);filter:brightness(1.05);}
 
-header h1::before {
-  content: "●";
-  font-size: 1.2rem;
-  color: #00a3e0;
-}
+/* Layout Home */
+.home-grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:28px;}
+@media(max-width:992px){.home-grid{grid-template-columns:1fr;}}
 
-header button {
-  background: #00334e;
-  color: #fff;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 50px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.3s;
-}
+/* Form stack */
+.form-stack{display:grid;gap:12px;max-width:520px;}
+.form-stack .btn{width:100%;}
 
-header button:hover {
-  background: #007f62;
-}
+/* Tabela Ranking */
+.table{width:100%;border-collapse:collapse;}
+.table th,.table td{padding:10px 8px;text-align:left;}
+.table th{color:#0a4561;}
+.table-compact td:first-child,.table-compact th:first-child{text-align:center;}
+#ranking-rows tr:nth-child(1) td:first-child{color:#d4af37;font-weight:800;}
+#ranking-rows tr:nth-child(2) td:first-child{color:#a9b2bd;font-weight:800;}
+#ranking-rows tr:nth-child(3) td:first-child{color:#cd7f32;font-weight:800;}
+.table tr.me{background:#f1f8fb;}
 
-/* ===============================
-   CONTAINER PRINCIPAL
-================================= */
-.container {
-  max-width: 900px;
-  margin: 2rem auto;
-  padding: 1rem;
-}
+/* Quiz */
+#quiz-container h2{margin-bottom:16px;}
+#options-list{list-style:none;display:grid;gap:12px;}
+#options-list li{padding:16px;border-radius:14px;background:linear-gradient(90deg,#009BC1,#4CC38A);
+  color:#fff;font-weight:600;cursor:pointer;transition:.2s;}
+#options-list li:hover{filter:brightness(1.05);transform:translateY(-2px);}
 
-.card {
-  background: #fff;
-  padding: 2rem;
-  border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-/* ===============================
-   TÍTULOS
-================================= */
-h2 {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 1.5rem;
-  color: #00334e;
-}
-
-/* ===============================
-   OPÇÕES DE RESPOSTA
-================================= */
-.options {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.option {
-  display: flex;
-  align-items: center;
-  background: linear-gradient(90deg, #00a3e0, #00b67a);
-  color: #fff;
-  padding: 1rem;
-  border-radius: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: transform 0.2s, opacity 0.3s;
-}
-
-.option span {
-  background: rgba(0,0,0,0.2);
-  padding: 0.5rem 0.9rem;
-  border-radius: 50%;
-  margin-right: 0.8rem;
-}
-
-.option:hover {
-  transform: scale(1.02);
-  opacity: 0.9;
-}
-
-/* ===============================
-   BARRA DE PROGRESSO
-================================= */
-.progress {
-  margin-top: 2rem;
-  height: 10px;
-  background: #e6eef2;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 100%;
-  background: #00a3e0;
-  transition: width 0.3s ease;
-}
-
-/* ===============================
-   RESULTADOS E RANKING
-================================= */
-.result {
-  text-align: center;
-}
-
-.result h3 {
-  font-size: 1.4rem;
-  margin-bottom: 1rem;
-}
-
-button.primary {
-  background: #00a3e0;
-  border: none;
-  color: #fff;
-  padding: 0.8rem 1.5rem;
-  border-radius: 50px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-button.primary:hover {
-  background: #007f62;
-}
-
-/* ===============================
-   RESPONSIVIDADE
-================================= */
-@media (max-width: 768px) {
-  header {
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-
-  .card {
-    padding: 1.5rem;
-  }
-
-  h2 {
-    font-size: 1.2rem;
-  }
-
-  .option {
-    font-size: 0.95rem;
-    padding: 0.8rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .container {
-    margin: 1rem;
-  }
-
-  .option {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .option span {
-    margin-bottom: 0.5rem;
-  }
-}
-
-/* Patch de compatibilidade para inputs/botões (força o visual) */
-input.input[type="text"],
-input.input[type="email"],
-.input {
-  appearance: none;
-  -webkit-appearance: none;
-  border: none !important;
-  outline: none;
-  background: #fff;
-  border-radius: 16px;
-  padding: 14px 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.08);
-  font-weight: 600;
-  color: #0a2e40;
-}
-
-button.btn,
-.btn.primary {
-  appearance: none;
-  -webkit-appearance: none;
-  border: none;
-  border-radius: 18px;
-  background: #0f3f53;
-  color: #fff;
-  padding: 14px 18px;
-  font-weight: 900;
-  box-shadow: 0 6px 14px rgba(0,0,0,.18);
-  cursor: pointer;
-}
-
+/* Barra de progresso */
+.progress-bar{height:8px;background:#e0e9ed;border-radius:8px;margin-top:20px;}
+#progress{height:100%;width:0;background:#009BC1;border-radius:8px;transition:width .3s;}
+.timer{margin-top:8px;font-size:.9rem;}
