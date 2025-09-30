@@ -1,3 +1,4 @@
+// Edite suas perguntas aqui
 export const QUESTIONS = [
   {
     title: "O que significa NPS?",
@@ -15,20 +16,20 @@ export const QUESTIONS = [
     answerIndex: 1
   },
   {
-    title: "Qual medida favorece respostas rápidas?",
+    title: "Qual regra favorece respostas rápidas?",
     options: ["Somente acerto conta", "Tempo não importa", "Bônus por velocidade", "Penalidade por responder"],
     answerIndex: 2
   },
   {
-    title: "Para hospedar site estático grátis no GitHub você usa:",
+    title: "Para hospedar site estático grátis você usa:",
     options: ["GitHub Pages", "EC2", "IIS", "Nginx pago"],
     answerIndex: 0
   }
 ];
 
-// Pontuação: 1000 por acerto + bônus por velocidade (até 500)
+// Pontuação: 1000 por acerto + bônus por velocidade (até 600; decai ~1 a cada 80ms)
 export function computeScore(correct, elapsedSeconds) {
   if (!correct) return 0;
-  const bonus = Math.max(0, 500 - Math.floor((elapsedSeconds * 1000) / 100)); // -1 por 100ms
+  const bonus = Math.max(0, 600 - Math.floor((elapsedSeconds * 1000) / 80));
   return 1000 + bonus;
 }
