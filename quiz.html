@@ -51,7 +51,7 @@
   import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
   import { QUESTIONS, computeScore } from "./js/questions.js";
 
-  // 🔧 SEU firebaseConfig (mantenha o seu)
+  // 🔧 Seu config (o mesmo que já funciona no ranking):
   const firebaseConfig = {
     apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
     authDomain: "inovacao-emr.firebaseapp.com",
@@ -67,34 +67,33 @@
 
   // Elements
   const qs=(s)=>document.querySelector(s), qsa=(s)=>document.querySelectorAll(s);
-  const qCount=qs('#q-count'), qTitle=qs('#q-title')||qs('#question'), qOptions=qs('#q-options')||qs('#options');
-  const qFeedback=qs('#q-feedback')||document.createElement('div'), nextBtn=qs('#next-btn');
-  const progress=qs('#progress')||qs('#progress-bar'), qTime=qs('#q-time')||document.createElement('div');
-  const finalBox=qs('#final'), totalScoreEl=qs('#total-score')||document.createElement('span'), totalTimeEl=qs('#total-time')||document.createElement('span');
-  const playerPill=qs('#player-pill');
+  const qCount=qs('#q-count')||qs('.pill');        // depende do seu HTML atual
+  const qTitle=qs('#q-title') || qs('#question');
+  const qOptions=qs('#q-options') || qs('#options');
+  const progress=qs('#progress') || qs('#progress-bar');
+  const qTime=qs('#q-time');
 
   const params = new URLSearchParams(location.search);
-  const player = { name: params.get('name')||'Participante', email: params.get('email')||'' };
-  if (playerPill) playerPill.textContent = player.name;
+  const player = { name: params.get('name') || 'Participante', email: params.get('email') || '' };
+  const playerPill = qs('#player-pill'); if (playerPill) playerPill.textContent = player.name;
 
   // Estado
-  let idx=0, totalScore=0, totalTime=0, questionStart=0, canAnswer=true, anim=null, sessionId=null;
+  let idx=0, totalScore=0, totalTime=0, questionStart=0, anim=null, canAnswer=true, sessionId=null;
 
-  // 🔹 Cria sessão no início (não é obrigatório, mas útil)
+  // Sessão (opcional)
   try {
-    const r = await addDoc(collection(db,"sessions"),{
-      name:player.name, email:player.email, startedAt:serverTimestamp()
+    const ref = await addDoc(collection(db, "sessions"), {
+      name: player.name, email: player.email, startedAt: serverTimestamp()
     });
-    sessionId = r.id;
+    sessionId = ref.id;
     console.log("Sessão criada:", sessionId);
   } catch (e) {
-    console.error("Erro criando sessão:", e.code, e.message);
+    console.warn("Sessão não criada:", e.code, e.message);
   }
 
   function setProgress(){
-    if(!progress) return;
+    if (!progress) return;
     const pct = Math.round((idx/QUESTIONS.length)*100);
-    // barra fluida (div progress-bar) ou width (div#progress)
     progress.style.width = pct + "%";
   }
 
@@ -104,16 +103,14 @@
     if (qCount) qCount.textContent = `Pergunta ${idx+1} de ${QUESTIONS.length}`;
     qTitle.textContent = q.title;
     qOptions.innerHTML = "";
-    if (qFeedback) qFeedback.textContent = "";
-    if (nextBtn) nextBtn.disabled = true;
     canAnswer = true;
 
     q.options.forEach((opt,i)=>{
-      const btn = document.createElement('button');
-      btn.className = "option";
-      btn.innerHTML = `<div class="bullet">${i+1}</div><div>${opt}</div>`;
-      btn.onclick = ()=>answer(i);
-      qOptions.appendChild(btn);
+      const b = document.createElement('button');
+      b.className = "option";
+      b.innerHTML = `<div class="bullet">${i+1}</div><div>${opt}</div>`;
+      b.onclick = ()=>answer(i);
+      qOptions.appendChild(b);
     });
 
     questionStart = performance.now();
@@ -127,7 +124,7 @@
   }
 
   function answer(index){
-    if(!canAnswer) return;
+    if (!canAnswer) return;
     canAnswer = false;
     cancelAnimationFrame(anim);
 
@@ -139,41 +136,35 @@
     const score = computeScore(correct, elapsed);
     totalScore += score;
 
-    if (qFeedback) qFeedback.textContent = correct ? `✔️ Correto! +${score} pontos` : `❌ Errado. +0 pontos`;
     qsa('.option').forEach((b,i)=>{
       b.disabled = true;
       b.classList.remove('selected');
-      if(i===q.answerIndex) b.classList.add('success');
-      if(i===index && i!==q.answerIndex) b.classList.add('danger');
+      if (i === q.answerIndex) b.classList.add('success');
+      if (i === index && i !== q.answerIndex) b.classList.add('danger');
     });
 
-    // Próxima pergunta OU finalizar automaticamente
-    setTimeout(() => {
+    // Próxima pergunta ou finaliza e envia automaticamente
+    setTimeout(()=>{
       idx++;
       if (idx < QUESTIONS.length) {
         startQuestion();
       } else {
-        finalizeAndSend(); // 🔥 envia automático ao terminar
+        finalizeAndSend();
       }
-    }, 450); // pequena pausa para o usuário ver o feedback
+    }, 400);
   }
 
   async function finalizeAndSend(){
-    // mostra o resultado brevemente (se existir a seção final)
-    if (finalBox) {
-      totalScoreEl.textContent = totalScore;
-      totalTimeEl.textContent = `${totalTime.toFixed(1)}s`;
-      finalBox.style.display = 'block';
-    }
-
     try {
-      const ref = await addDoc(collection(db,"scores"),{
-        sessionId, name:player.name, email:player.email,
-        score: totalScore, totalTime: Math.round(totalTime*100)/100,
+      const r = await addDoc(collection(db, "scores"), {
+        sessionId,
+        name: player.name,
+        email: player.email,
+        score: totalScore,
+        totalTime: Math.round(totalTime*100)/100,
         createdAt: serverTimestamp()
       });
-      console.log("Score enviado! id:", ref.id);
-      // vai direto para o ranking
+      console.log("Score enviado:", r.id);
       location.href = "leaderboard.html";
     } catch (e) {
       console.error("Erro ao enviar score:", e.code, e.message);
@@ -181,9 +172,10 @@
     }
   }
 
-  // Inicia
+  // Start
   startQuestion();
 </script>
+
 
 </body>
 </html>
