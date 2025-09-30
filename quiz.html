@@ -4,29 +4,31 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Quiz EMR — Jogo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/styles.css?v=2"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css?v=3">
+  <!-- marked (markdown) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
   <header class="topbar small">
-    <div class="brand">
-      <div class="logo" aria-hidden><svg width="28" height="28" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--logo-dot)"/></svg></div>
-      <div class="brand-text"><div class="title">Quiz EMR</div><div class="subtitle">Boa sorte!</div></div>
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden><svg width="28" height="28" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--logo-dot)"/></svg></div>
+        <div class="brand-text"><div class="title">Quiz EMR</div><div class="subtitle">Boa sorte!</div></div>
+      </div>
+      <div class="actions"><div id="player" class="muted">Carregando...</div></div>
     </div>
-    <div class="actions"><div id="player" class="muted">Carregando...</div></div>
   </header>
 
   <main class="container">
     <section class="card quiz-card">
       <div id="question-wrap">
         <h2 id="q-title" class="q-title">Pergunta</h2>
-        <div id="q-body" class="q-body muted">(A pergunta será carregada aqui — suporta **negrito**, *itálico*, `código`, listas e links.)</div>
-
+        <div id="q-body" class="q-body muted">(carregando...)</div>
         <div id="options" class="options"></div>
-
         <div class="quiz-controls">
           <button id="prev" class="btn">Anterior</button>
-          <button id="submit" class="btn btn-primary">Confirmar / Próximo</button>
+          <button id="submit" class="btn primary">Confirmar / Próximo</button>
         </div>
       </div>
 
@@ -54,58 +56,25 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // small markdown -> HTML renderer (safe-ish: escape then allow basic syntax)
-    function mdToHtml(md){
-      if(!md) return '';
-      // escape
-      let s = String(md).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      // code blocks (``` ... ``` ) - convert to <pre><code>
-      s = s.replace(/```([\s\S]*?)```/g,(m,c)=> `<pre class="codeblock"><code>${c.replace(/</g,'&lt;')}</code></pre>`);
-      // inline code
-      s = s.replace(/`([^`]+)`/g,(m,c)=> `<code class="inline">${c}</code>`);
-      // headings
-      s = s.replace(/^### (.*)$/gm,'<h3>$1</h3>');
-      s = s.replace(/^## (.*)$/gm,'<h2>$1</h2>');
-      s = s.replace(/^# (.*)$/gm,'<h1>$1</h1>');
-      // bold/italic
-      s = s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
-      s = s.replace(/\*([^*]+)\*/g,'<em>$1</em>');
-      // links [text](url)
-      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-      // unordered lists
-      s = s.replace(/(^|\n)[\*\-] (.+?)(?=\n|$)/g, '$1<li>$2</li>');
-      s = s.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-      // paragraphs
-      s = s.replace(/\n{2,}/g,'</p><p>');
-      // wrap in p tags if not already block
-      if(!/^<(h|ul|pre|blockquote)/i.test(s)) s = '<p>'+s+'</p>';
-      return s;
-    }
-
-    // read URL params
+    // url params
     const params = new URLSearchParams(location.search);
     const playerId = params.get('id') || ('guest-'+Date.now());
     const playerName = params.get('name') || 'Convidado';
     document.getElementById('player').textContent = playerName;
 
-    // load questions (simple JSON file)
+    // load questions
     let questions = [];
     async function loadQuestions(){
       try{
         const r = await fetch('data/questions.json?v=1');
         const j = await r.json();
-        if(Array.isArray(j.questions) && j.questions.length) questions = j.questions;
-        else questions = [];
-      }catch(e){ console.warn('questions load failed',e); questions=[]; }
+        if(Array.isArray(j.questions)) questions = j.questions;
+      }catch(e){ console.warn(e); questions=[]; }
     }
     await loadQuestions();
 
-    // quiz state
-    let idx = 0;
-    let score = 0;
-    let startTime = null;
-    let questionStart = null;
-
+    // state
+    let idx=0, score=0, startTime=null, questionStart=null;
     const qTitle = document.getElementById('q-title');
     const qBody = document.getElementById('q-body');
     const optionsEl = document.getElementById('options');
@@ -113,26 +82,29 @@
     const statScore = document.getElementById('stat-score');
     const statTime = document.getElementById('stat-time');
 
+    function renderMarkdown(md){
+      // marked is safe if we sanitize — we will escape by default and allow basic tags
+      const html = marked.parse(md || '');
+      return html;
+    }
+
     function renderQuestion(i){
       const q = questions[i];
       if(!q){ qTitle.textContent = 'Fim'; qBody.innerHTML = '<p>Não há mais perguntas.</p>'; optionsEl.innerHTML=''; return; }
       qTitle.textContent = `Q${i+1}. ${q.title || ''}`;
-      qBody.innerHTML = mdToHtml(q.body || '');
-      // options (supports choices array or free text)
+      qBody.innerHTML = renderMarkdown(q.body || '');
       optionsEl.innerHTML = '';
       if(Array.isArray(q.choices) && q.choices.length){
         q.choices.forEach((c,ci)=>{
           const btn = document.createElement('button');
           btn.className = 'opt';
           btn.type = 'button';
-          btn.innerHTML = mdToHtml(c.text || c);
+          btn.innerHTML = (typeof c === 'string') ? renderMarkdown(c) : renderMarkdown(c.text || '');
           btn.onclick = ()=> selectOption(ci);
           optionsEl.appendChild(btn);
         });
       } else {
-        // free text
-        const ta = document.createElement('textarea'); ta.className='free';
-        ta.placeholder = 'Digite sua resposta...';
+        const ta = document.createElement('textarea'); ta.className='free'; ta.placeholder='Digite sua resposta...';
         optionsEl.appendChild(ta);
       }
       statQ.textContent = `${i+1}/${questions.length}`;
@@ -141,7 +113,6 @@
     }
 
     function selectOption(ci){
-      // highlight selection
       [...optionsEl.children].forEach((el,ii)=> el.classList.toggle('sel', ii===ci));
       optionsEl.dataset.selected = ci;
     }
@@ -152,45 +123,37 @@
       statTime.textContent = `${elapsed.toFixed(1)}s`;
     }
 
-    document.getElementById('prev').onclick = ()=>{
-      if(idx>0) { idx--; renderQuestion(idx); updateStats(); }
-    };
+    document.getElementById('prev').onclick = ()=> { if(idx>0){ idx--; renderQuestion(idx); updateStats(); } };
 
     document.getElementById('submit').onclick = async ()=>{
       const q = questions[idx];
-      let correct=false;
-      let timeSpent = (performance.now() - questionStart)/1000;
-      // scoring: if question has answer index
+      if(!q) return;
+      const timeSpent = (performance.now() - questionStart)/1000;
+      let correct = false;
       if(Array.isArray(q.choices) && q.choices.length){
         const sel = parseInt(optionsEl.dataset.selected);
         if(!Number.isFinite(sel)) { alert('Escolha uma opção.'); return; }
-        if(q.choices[sel] && (q.choices[sel].correct || q.choices[sel].correct===true)) correct=true;
+        const choice = q.choices[sel];
+        if(choice && ((typeof choice === 'object' && choice.correct) || choice === true || choice === 'true')) correct = !!(choice.correct || (choice === true));
       } else if(q.answer){
-        // free text compare (simple)
         const val = (optionsEl.querySelector('textarea')?.value || '').trim().toLowerCase();
-        if(val && q.answer.trim().toLowerCase() === val) correct=true;
+        if(val && q.answer.trim().toLowerCase() === val) correct = true;
       }
       if(correct) score += (q.points ?? 1);
-      // move next
       idx++;
       updateStats();
       if(idx >= questions.length){
-        // finished: send to Firestore
         const totalTime = (Date.now() - startTime)/1000;
         try{
           await addDoc(collection(db,'scores'), { name: playerName, id: playerId, score, totalTime, createdAt: serverTimestamp() });
-          alert(`Fim! Sua pontuação: ${score} pontos. Tempo: ${totalTime.toFixed(1)}s`);
-        }catch(e){
-          console.error('save score failed',e);
-          alert(`Fim! Não foi possível salvar localmente (ver console). Pontos: ${score}`);
-        }
+          alert(`Fim! Pontuação: ${score} • Tempo: ${totalTime.toFixed(1)}s`);
+        }catch(e){ console.error('save failed',e); alert(`Fim! (não foi possível salvar: veja console). Pontos: ${score}`); }
         renderQuestion(idx);
       } else {
         renderQuestion(idx);
       }
     };
 
-    // init
     renderQuestion(0);
     updateStats();
   </script>
