@@ -1,181 +1,141 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quiz EMR — Perguntas</title>
-  <link rel="stylesheet" href="assets/styles.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz - Perguntas</title>
+  <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body>
-  <div class="header">
+  <header class="header">
     <div class="brand">
-      <div class="logo-dot"></div><div class="title">Quiz EMR</div>
+      <span class="logo-dot"></span>
+      <span class="title">Quiz EMR</span>
     </div>
-    <div class="badge" id="player-pill">Jogador</div>
-  </div>
+    <div class="badge">Perguntas</div>
+  </header>
 
-  <main class="container narrow">
-    <div class="topbar">
-      <div class="pill" id="q-count">Pergunta —</div>
-      <div class="progress"><div class="bar" id="progress"></div></div>
-      <div class="pill" id="q-time">⏱ 0.0s</div>
-      <a class="btn ghost" href="leaderboard.html">Ranking</a>
-    </div>
-
+  <main class="container">
     <section class="card">
-      <h2 class="q-title" id="q-title"></h2>
-      <div class="options" id="q-options"></div>
-
-      <div class="grid" style="grid-template-columns: 1fr auto; align-items:center; margin-top:12px;">
-        <div class="feedback" id="q-feedback"></div>
-        <div class="actions">
-          <button class="btn primary" id="next-btn" disabled>Próxima</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="card" id="final" style="display:none">
-      <h2>Resultado</h2>
-      <div class="grid two">
-        <div><strong>Pontuação:</strong> <span id="total-score">0</span></div>
-        <div><strong>Tempo total:</strong> <span id="total-time">0.0s</span></div>
-      </div>
-      <div style="margin-top:12px;">
-        <button class="btn primary" id="send-btn">Enviar e ver Ranking</button>
-      </div>
+      <h2 id="q-title">Carregando pergunta...</h2>
+      <div id="q-options"></div>
+      <div class="progress"><div id="progress"></div></div>
+      <div id="q-time" style="margin-top:10px;font-weight:bold;"></div>
     </section>
   </main>
 
-<script type="module">
-  import { QUESTIONS, computeScore } from "./js/questions.js?v=2";
-  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-  import { QUESTIONS, computeScore } from "./js/questions.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { QUESTIONS, computeScore } from "./js/questions.js?v=3"; // 👈 força cache novo
 
-  // 🔧 Seu config (o mesmo que já funciona no ranking):
-  const firebaseConfig = {
-  apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
-  authDomain: "inovacao-emr.firebaseapp.com",
-  projectId: "inovacao-emr",
-  storageBucket: "inovacao-emr.firebasestorage.app",
-  messagingSenderId: "1075399271811",
-  appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
-  measurementId: "G-8CTLMNCZJN"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-
-  // Elements
-  const qs=(s)=>document.querySelector(s), qsa=(s)=>document.querySelectorAll(s);
-  const qCount=qs('#q-count')||qs('.pill');        // depende do seu HTML atual
-  const qTitle=qs('#q-title') || qs('#question');
-  const qOptions=qs('#q-options') || qs('#options');
-  const progress=qs('#progress') || qs('#progress-bar');
-  const qTime=qs('#q-time');
-
-  const params = new URLSearchParams(location.search);
-  const player = { name: params.get('name') || 'Participante', email: params.get('email') || '' };
-  const playerPill = qs('#player-pill'); if (playerPill) playerPill.textContent = player.name;
-
-  // Estado
-  let idx=0, totalScore=0, totalTime=0, questionStart=0, anim=null, canAnswer=true, sessionId=null;
-
-  // Sessão (opcional)
-  try {
-    const ref = await addDoc(collection(db, "sessions"), {
-      name: player.name, email: player.email, startedAt: serverTimestamp()
-    });
-    sessionId = ref.id;
-    console.log("Sessão criada:", sessionId);
-  } catch (e) {
-    console.warn("Sessão não criada:", e.code, e.message);
-  }
-
-  function setProgress(){
-    if (!progress) return;
-    const pct = Math.round((idx/QUESTIONS.length)*100);
-    progress.style.width = pct + "%";
-  }
-
-  function startQuestion(){
-    setProgress();
-    const q = QUESTIONS[idx];
-    if (qCount) qCount.textContent = `Pergunta ${idx+1} de ${QUESTIONS.length}`;
-    qTitle.textContent = q.title;
-    qOptions.innerHTML = "";
-    canAnswer = true;
-
-    q.options.forEach((opt,i)=>{
-      const b = document.createElement('button');
-      b.className = "option";
-      b.innerHTML = `<div class="bullet">${i+1}</div><div>${opt}</div>`;
-      b.onclick = ()=>answer(i);
-      qOptions.appendChild(b);
-    });
-
-    questionStart = performance.now();
-    if (anim) cancelAnimationFrame(anim);
-    const tick = ()=>{
-      const s = (performance.now()-questionStart)/1000;
-      if (qTime) qTime.textContent = `⏱ ${s.toFixed(1)}s`;
-      anim = requestAnimationFrame(tick);
+    // 🔧 Configuração Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
     };
-    anim = requestAnimationFrame(tick);
-  }
 
-  function answer(index){
-    if (!canAnswer) return;
-    canAnswer = false;
-    cancelAnimationFrame(anim);
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
 
-    const elapsed = (performance.now()-questionStart)/1000;
-    totalTime += elapsed;
+    // Elementos
+    const qs=(s)=>document.querySelector(s), qsa=(s)=>document.querySelectorAll(s);
+    const qTitle=qs('#q-title'), qOptions=qs('#q-options');
+    const qCountEl=null; // se quiser contador extra
+    const prog=qs('#progress'), qTime=qs('#q-time');
 
-    const q = QUESTIONS[idx];
-    const correct = index === q.answerIndex;
-    const score = computeScore(correct, elapsed);
-    totalScore += score;
+    // Dados do jogador (vindos da URL)
+    const params=new URLSearchParams(location.search);
+    const player={ name:params.get('name')||'Participante', email:params.get('email')||'' };
 
-    qsa('.option').forEach((b,i)=>{
-      b.disabled = true;
-      b.classList.remove('selected');
-      if (i === q.answerIndex) b.classList.add('success');
-      if (i === index && i !== q.answerIndex) b.classList.add('danger');
-    });
+    // Estado
+    let idx=0,totalScore=0,totalTime=0,start=0,raf=null,canAnswer=true,sessionId=null;
 
-    // Próxima pergunta ou finaliza e envia automaticamente
-    setTimeout(()=>{
-      idx++;
-      if (idx < QUESTIONS.length) {
-        startQuestion();
-      } else {
-        finalizeAndSend();
-      }
-    }, 400);
-  }
+    // Cria sessão
+    try{
+      const r=await addDoc(collection(db,"sessions"),{ name:player.name,email:player.email,startedAt:serverTimestamp() });
+      sessionId=r.id;
+    }catch(e){ console.warn("Sessão não criada:",e?.code,e?.message); }
 
-  async function finalizeAndSend(){
-    try {
-      const r = await addDoc(collection(db, "scores"), {
-        sessionId,
-        name: player.name,
-        email: player.email,
-        score: totalScore,
-        totalTime: Math.round(totalTime*100)/100,
-        createdAt: serverTimestamp()
-      });
-      console.log("Score enviado:", r.id);
-      location.href = "leaderboard.html";
-    } catch (e) {
-      console.error("Erro ao enviar score:", e.code, e.message);
-      alert("Falha ao enviar. Tente novamente.");
+    function setProgress(){
+      if(!prog) return;
+      const pct=Math.round((idx/QUESTIONS.length)*100);
+      prog.style.width=pct+"%";
     }
-  }
 
-  // Start
-  startQuestion();
-</script>
+    function renderQuestion(){
+      setProgress();
+      const q=QUESTIONS[idx];
+      qTitle.textContent=q.title;
+      qOptions.innerHTML="";
+      canAnswer=true;
 
+      q.options.forEach((opt,i)=>{
+        const b=document.createElement('button');
+        b.className="option";
+        b.innerHTML=`<div class="bullet">${i+1}</div><div>${opt}</div>`;
+        b.onclick=()=>answer(i);
+        qOptions.appendChild(b);
+      });
 
+      start=performance.now();
+      if(raf) cancelAnimationFrame(raf);
+      const tick=()=>{
+        if(qTime) qTime.textContent=`⏱ ${((performance.now()-start)/1000).toFixed(1)}s`;
+        raf=requestAnimationFrame(tick);
+      };
+      raf=requestAnimationFrame(tick);
+    }
+
+    function answer(i){
+      if(!canAnswer) return;
+      canAnswer=false;
+      cancelAnimationFrame(raf);
+
+      const elapsed=(performance.now()-start)/1000;
+      totalTime+=elapsed;
+
+      const q=QUESTIONS[idx];
+      const correct=i===q.answerIndex;
+      const pts=computeScore ? computeScore(correct,elapsed):(correct?1000:0);
+      totalScore+=pts;
+
+      qsa('.option').forEach((btn,ii)=>{
+        btn.disabled=true;
+        if(ii===q.answerIndex) btn.classList.add('success');
+        if(ii===i && ii!==q.answerIndex) btn.classList.add('danger');
+      });
+
+      setTimeout(()=>{
+        idx++;
+        if(idx<QUESTIONS.length){
+          renderQuestion();
+        }else{
+          finishAndSend();
+        }
+      },400);
+    }
+
+    async function finishAndSend(){
+      try{
+        await addDoc(collection(db,"scores"),{
+          sessionId,name:player.name,email:player.email,
+          score:totalScore,totalTime:Math.round(totalTime*100)/100,
+          createdAt:serverTimestamp()
+        });
+        location.href="leaderboard.html";
+      }catch(e){
+        console.error("Erro ao enviar score:",e?.code,e?.message);
+        alert("Falha ao enviar. Tente novamente.");
+      }
+    }
+
+    renderQuestion();
+  </script>
 </body>
 </html>
