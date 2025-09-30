@@ -2,20 +2,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Todo mundo pode criar sessão (somente CREATE)
+    // Somente CREATE em sessões
     match /sessions/{docId} {
       allow create: if true;
       allow read, update, delete: if false;
     }
 
-    // Placar: permitir CREATE e READ (para ver ranking), negar updates/deletes
+    // Scores: CREATE e READ (ranking); sem updates/deletes
     match /scores/{scoreId} {
       allow create: if true;
-      allow read: if true; // ranking público do evento
+      allow read: if true;
       allow update, delete: if false;
     }
 
-    // Bloquear todo o resto por padrão
+    // Bloqueia o resto
     match /{document=**} {
       allow read, write: if false;
     }
