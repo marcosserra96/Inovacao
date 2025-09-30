@@ -1,177 +1,198 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quiz EMR — Perguntas</title>
-  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
-  <!-- Confetti -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quiz EMR — Jogo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css?v=2"/>
 </head>
 <body>
-  <header class="header">
+  <header class="topbar small">
     <div class="brand">
-      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
+      <div class="logo" aria-hidden><svg width="28" height="28" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--logo-dot)"/></svg></div>
+      <div class="brand-text"><div class="title">Quiz EMR</div><div class="subtitle">Boa sorte!</div></div>
     </div>
-    <div class="badge">Perguntas</div>
+    <div class="actions"><div id="player" class="muted">Carregando...</div></div>
   </header>
 
-  <section class="card quiz-wrap">
-    <!-- top -->
-    <div class="topbar">
-      <span id="q-count" class="pill">Pergunta 1</span>
-      <div class="progress"><div id="progress" class="bar"></div></div>
-      <span id="q-time" class="timer">⏱ 0.0s</span>
-    </div>
+  <main class="container">
+    <section class="card quiz-card">
+      <div id="question-wrap">
+        <h2 id="q-title" class="q-title">Pergunta</h2>
+        <div id="q-body" class="q-body muted">(A pergunta será carregada aqui — suporta **negrito**, *itálico*, `código`, listas e links.)</div>
 
-    <h2 id="q-title" class="q-title">Carregando…</h2>
-    <div id="q-options"></div>
-  </section>
+        <div id="options" class="options"></div>
+
+        <div class="quiz-controls">
+          <button id="prev" class="btn">Anterior</button>
+          <button id="submit" class="btn btn-primary">Confirmar / Próximo</button>
+        </div>
+      </div>
+
+      <aside class="summary">
+        <div class="stat"><div class="stat-num" id="stat-q">0</div><div class="stat-label">Pergunta</div></div>
+        <div class="stat"><div class="stat-num" id="stat-score">0</div><div class="stat-label">Pontos</div></div>
+        <div class="stat"><div class="stat-num" id="stat-time">0.0s</div><div class="stat-label">Tempo</div></div>
+      </aside>
+    </section>
+  </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { QUESTIONS, computeScore } from "./js/questions.js?v=dev";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
       projectId: "inovacao-emr",
       storageBucket: "inovacao-emr.firebasestorage.app",
       messagingSenderId: "1075399271811",
-      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      appId: "1:1075399271811:web:f532f255d6a8f42b6",
       measurementId: "G-8CTLMNCZJN"
     };
-
     const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+    const db = getFirestore(app);
 
-    // util
-    const $ = s => document.querySelector(s);
+    // small markdown -> HTML renderer (safe-ish: escape then allow basic syntax)
+    function mdToHtml(md){
+      if(!md) return '';
+      // escape
+      let s = String(md).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // code blocks (``` ... ``` ) - convert to <pre><code>
+      s = s.replace(/```([\s\S]*?)```/g,(m,c)=> `<pre class="codeblock"><code>${c.replace(/</g,'&lt;')}</code></pre>`);
+      // inline code
+      s = s.replace(/`([^`]+)`/g,(m,c)=> `<code class="inline">${c}</code>`);
+      // headings
+      s = s.replace(/^### (.*)$/gm,'<h3>$1</h3>');
+      s = s.replace(/^## (.*)$/gm,'<h2>$1</h2>');
+      s = s.replace(/^# (.*)$/gm,'<h1>$1</h1>');
+      // bold/italic
+      s = s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+      s = s.replace(/\*([^*]+)\*/g,'<em>$1</em>');
+      // links [text](url)
+      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+      // unordered lists
+      s = s.replace(/(^|\n)[\*\-] (.+?)(?=\n|$)/g, '$1<li>$2</li>');
+      s = s.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+      // paragraphs
+      s = s.replace(/\n{2,}/g,'</p><p>');
+      // wrap in p tags if not already block
+      if(!/^<(h|ul|pre|blockquote)/i.test(s)) s = '<p>'+s+'</p>';
+      return s;
+    }
+
+    // read URL params
     const params = new URLSearchParams(location.search);
-    const player = {
-      name:  params.get('name')  || 'Participante',
-      email: (params.get('email')|| '').trim()
+    const playerId = params.get('id') || ('guest-'+Date.now());
+    const playerName = params.get('name') || 'Convidado';
+    document.getElementById('player').textContent = playerName;
+
+    // load questions (simple JSON file)
+    let questions = [];
+    async function loadQuestions(){
+      try{
+        const r = await fetch('data/questions.json?v=1');
+        const j = await r.json();
+        if(Array.isArray(j.questions) && j.questions.length) questions = j.questions;
+        else questions = [];
+      }catch(e){ console.warn('questions load failed',e); questions=[]; }
+    }
+    await loadQuestions();
+
+    // quiz state
+    let idx = 0;
+    let score = 0;
+    let startTime = null;
+    let questionStart = null;
+
+    const qTitle = document.getElementById('q-title');
+    const qBody = document.getElementById('q-body');
+    const optionsEl = document.getElementById('options');
+    const statQ = document.getElementById('stat-q');
+    const statScore = document.getElementById('stat-score');
+    const statTime = document.getElementById('stat-time');
+
+    function renderQuestion(i){
+      const q = questions[i];
+      if(!q){ qTitle.textContent = 'Fim'; qBody.innerHTML = '<p>Não há mais perguntas.</p>'; optionsEl.innerHTML=''; return; }
+      qTitle.textContent = `Q${i+1}. ${q.title || ''}`;
+      qBody.innerHTML = mdToHtml(q.body || '');
+      // options (supports choices array or free text)
+      optionsEl.innerHTML = '';
+      if(Array.isArray(q.choices) && q.choices.length){
+        q.choices.forEach((c,ci)=>{
+          const btn = document.createElement('button');
+          btn.className = 'opt';
+          btn.type = 'button';
+          btn.innerHTML = mdToHtml(c.text || c);
+          btn.onclick = ()=> selectOption(ci);
+          optionsEl.appendChild(btn);
+        });
+      } else {
+        // free text
+        const ta = document.createElement('textarea'); ta.className='free';
+        ta.placeholder = 'Digite sua resposta...';
+        optionsEl.appendChild(ta);
+      }
+      statQ.textContent = `${i+1}/${questions.length}`;
+      questionStart = performance.now();
+      if(!startTime) startTime = Date.now();
+    }
+
+    function selectOption(ci){
+      // highlight selection
+      [...optionsEl.children].forEach((el,ii)=> el.classList.toggle('sel', ii===ci));
+      optionsEl.dataset.selected = ci;
+    }
+
+    function updateStats(){
+      statScore.textContent = score;
+      const elapsed = (Date.now() - startTime)/1000;
+      statTime.textContent = `${elapsed.toFixed(1)}s`;
+    }
+
+    document.getElementById('prev').onclick = ()=>{
+      if(idx>0) { idx--; renderQuestion(idx); updateStats(); }
     };
 
-    // ===== Persistência local =====
-    const SESSION_KEY = `quiz-emr:${player.email||'anon'}`;
-    function loadState(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||{}}catch{return {}} }
-    function saveState(p){ localStorage.setItem(SESSION_KEY, JSON.stringify({ ...loadState(), ...p })); }
-    function clearState(){ localStorage.removeItem(SESSION_KEY); }
-
-    let state = loadState();
-    if (!state.startedAt){
-      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0, answers:[] };
-      saveState(state);
-    }
-
-    // embaralhar
-    const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
-    let QS = shuffle(QUESTIONS).map(q => ({ ...q, options: shuffle(q.options.slice()) }));
-
-    // estado
-    const QTIME = 20; // segundos por pergunta
-    let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
-    let startTs=0, tickId=null, remaining=QTIME;
-
-    const elCount=$('#q-count'), elBar=$('#progress'), elTimer=$('#q-time'), elTitle=$('#q-title'), elOpts=$('#q-options');
-
-    function setProgress(){
-      elBar.style.width = `${Math.round((idx/QS.length)*100)}%`;
-      elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
-    }
-
-    function render(){
-      setProgress();
-      const q = QS[idx];
-      elTitle.textContent = q.title;
-      elOpts.innerHTML = "";
-
-      q.options.forEach((text,i)=>{
-        const b=document.createElement('button');
-        b.className='option';
-        b.innerHTML = `<div class="bullet">${i+1}</div><div>${text}</div>`;
-        b.onclick = ()=> answer(i);
-        elOpts.appendChild(b);
-      });
-
-      // timer
-      remaining = QTIME;
-      startTs = performance.now();
-      if (tickId) cancelAnimationFrame(tickId);
-      const tick=()=>{
-        const passed=(performance.now()-startTs)/1000;
-        const left=Math.max(0,QTIME-passed);
-        remaining=left;
-        elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
-        if (left<=0){ lockOptions(); next(false,QTIME); return; }
-        tickId=requestAnimationFrame(tick);
-      };
-      tickId=requestAnimationFrame(tick);
-    }
-
-    function lockOptions(){ [...elOpts.querySelectorAll('.option')].forEach(b=>b.disabled=true); }
-
-    function answer(i){
-      lockOptions();
-      const used=Math.min(QTIME,(performance.now()-startTs)/1000);
-      const q=QS[idx];
-      const correct=(i===q.answerIndex);
-      const pts=computeScore?computeScore(correct,used):(correct?1000:0);
-      totalScore+=pts; totalTime+=used;
-
-      [...elOpts.children].forEach((btn,ii)=>{
-        if (ii===q.answerIndex) btn.classList.add('success');
-        if (ii===i && ii!==q.answerIndex) btn.classList.add('danger');
-      });
-
-      saveState({ idx, totalScore, totalTime });
-      setTimeout(()=> next(true,used),380);
-    }
-
-    function next(){
-      if (tickId) cancelAnimationFrame(tickId);
+    document.getElementById('submit').onclick = async ()=>{
+      const q = questions[idx];
+      let correct=false;
+      let timeSpent = (performance.now() - questionStart)/1000;
+      // scoring: if question has answer index
+      if(Array.isArray(q.choices) && q.choices.length){
+        const sel = parseInt(optionsEl.dataset.selected);
+        if(!Number.isFinite(sel)) { alert('Escolha uma opção.'); return; }
+        if(q.choices[sel] && (q.choices[sel].correct || q.choices[sel].correct===true)) correct=true;
+      } else if(q.answer){
+        // free text compare (simple)
+        const val = (optionsEl.querySelector('textarea')?.value || '').trim().toLowerCase();
+        if(val && q.answer.trim().toLowerCase() === val) correct=true;
+      }
+      if(correct) score += (q.points ?? 1);
+      // move next
       idx++;
-      saveState({ idx, totalScore, totalTime });
-      if (idx<QS.length) { render(); return; }
-      finalize();
-    }
-
-    async function finalize(){
-      const emailId=(player.email||'anon').toLowerCase();
-      const ref=doc(db,"scores",emailId);
-      try{
-        const prev=await getDoc(ref);
-        const newData={
-          name:player.name,
-          email:player.email,
-          score:Math.round(totalScore),
-          totalTime:Math.round(totalTime*10)/10,
-          updatedAt:serverTimestamp()
-        };
-        let canWrite=true;
-        if (prev.exists()){
-          const p=prev.data();
-          canWrite=(newData.score>(p.score||0)) || (newData.score===(p.score||0) && (newData.totalTime||9e9)<(p.totalTime||9e9));
+      updateStats();
+      if(idx >= questions.length){
+        // finished: send to Firestore
+        const totalTime = (Date.now() - startTime)/1000;
+        try{
+          await addDoc(collection(db,'scores'), { name: playerName, id: playerId, score, totalTime, createdAt: serverTimestamp() });
+          alert(`Fim! Sua pontuação: ${score} pontos. Tempo: ${totalTime.toFixed(1)}s`);
+        }catch(e){
+          console.error('save score failed',e);
+          alert(`Fim! Não foi possível salvar localmente (ver console). Pontos: ${score}`);
         }
-        if (canWrite) await setDoc(ref,newData);
+        renderQuestion(idx);
+      } else {
+        renderQuestion(idx);
+      }
+    };
 
-        confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
-
-        clearState(); // 🔑 limpa sessão
-        const me=encodeURIComponent(player.email||'');
-        setTimeout(()=> location.href=`index.html?me=${me}`,900);
-      }catch(err){ console.error(err); alert("Falha ao enviar sua pontuação."); }
-    }
-
-    // protege contra refresh acidental
-    window.addEventListener('beforeunload',e=>{
-      if (idx<QS.length){ e.preventDefault(); e.returnValue=''; }
-    });
-
-    render();
+    // init
+    renderQuestion(0);
+    updateStats();
   </script>
 </body>
 </html>
