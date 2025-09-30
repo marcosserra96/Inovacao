@@ -6,21 +6,34 @@
   <title>Quiz EMR — Início</title>
   <link rel="stylesheet" href="assets/styles.css?v=dev"/>
   <style>
-    /* Sugestões */
+    .autocomplete{ position:relative; }
+
     .typeahead{
-      list-style:none;margin:8px 0 0;padding:0;
-      border:1px solid rgba(0,0,0,.08); border-radius:12px;
-      background:#fff; max-height:220px; overflow:auto;
-      box-shadow:0 8px 24px rgba(0,0,0,.08);
-      position:absolute; width:100%; z-index:10;
+      position:absolute; top:calc(100% + 6px); left:0; right:0;
+      z-index:50;
+      list-style:none; margin:0; padding:6px;
+      max-height:240px; overflow:auto;
+      background:#0b2f39;
+      color:#e7f6fb;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      box-shadow:0 14px 28px rgba(0,0,0,.18), 0 10px 10px rgba(0,0,0,.12);
     }
     .typeahead li{
-      padding:10px 12px; cursor:pointer;
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px; padding:10px 12px; cursor:pointer; border-radius:10px;
     }
-    .typeahead li:hover, .typeahead li.active{
-      background:#e9f4f8
+    .typeahead li .n{ font-weight:700; color:#e7f6fb; }
+    .typeahead li .hint{ font-size:.85rem; opacity:.75; color:#cde7ef; }
+
+    .typeahead li:hover,
+    .typeahead li.active{
+      background:rgba(255,255,255,.06);
     }
-    .muted{ font-size:.85rem; color:#555 }
+
+    @media (max-width:640px){
+      .typeahead{ max-height:50vh; }
+    }
   </style>
 </head>
 <body>
@@ -38,15 +51,14 @@
         <h1>Pronto para jogar? 🎯</h1>
         <p>Digite seu nome e escolha da lista oficial para participar.</p>
 
-        <form id="start-form" class="form" novalidate style="position:relative">
-          <input id="name" class="input" type="text" placeholder="Digite seu nome" required autocomplete="off"/>
-          <ul id="suggestions" class="typeahead" style="display:none"></ul>
-          <button id="start-btn" class="btn btn-pill btn-primary" type="submit">Começar agora</button>
+        <form id="start-form" class="form">
+          <div class="autocomplete">
+            <input id="name" class="input" type="text" placeholder="Digite seu nome" required autocomplete="off"/>
+            <ul id="suggestions" class="typeahead" role="listbox" aria-label="Sugestões" style="display:none"></ul>
+          </div>
+          <button class="btn btn-pill btn-primary" type="submit">Começar agora</button>
         </form>
 
-        <p class="muted" style="margin:10px 0 6px">Somente nomes da lista oficial podem jogar.</p>
-
-        <!-- QR + Copiar link -->
         <div class="qr">
           <img id="qr" alt="QR do jogo"/>
           <button id="copy" class="btn btn-pill" style="background:#e9f4f8;color:#0a4561">Copiar link</button>
@@ -60,7 +72,9 @@
         <table class="table">
           <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
           <tbody id="ranking-rows">
-            <tr><td colspan="4" class="muted" style="padding:14px;">Carregando…</td></tr>
+            <tr><td colspan="4"><div class="skel"></div></td></tr>
+            <tr><td colspan="4"><div class="skel"></div></td></tr>
+            <tr><td colspan="4"><div class="skel"></div></td></tr>
           </tbody>
         </table>
         <p class="muted">Mostrando os 10 melhores (desempate por tempo).</p>
@@ -72,7 +86,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    // 🔑 MESMO CONFIG do quiz
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -86,97 +99,108 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    const nameEl = document.getElementById('name');
-    const sugEl  = document.getElementById('suggestions');
-    let participants = [], filtered = [], chosen=null;
-
-    // Carrega lista oficial
+    // Participantes
+    let participants = [];
     async function loadParticipants(){
       try{
-        const res = await fetch("data/participants.json?_="+Date.now());
-        const json = await res.json();
-        participants = json.participants || [];
-      }catch(e){ console.error("Erro ao carregar participantes", e); }
+        const res = await fetch("participants.json?v="+Date.now());
+        const data = await res.json();
+        participants = data.participants || [];
+      }catch(e){ console.error("Erro ao carregar participants.json", e); }
     }
     loadParticipants();
 
-    // Helpers
-    function norm(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
+    // -------- AUTOCOMPLETE ----------
+    const nameEl = document.getElementById('name');
+    const sugEl  = document.getElementById('suggestions');
+    let filtered = [], chosen=null, active=-1;
+    function norm(s){ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
     function filterNames(q){
       const n = norm(q);
-      return participants.filter(p => norm(p.name).includes(n)).slice(0,8);
+      if (n.length<2) return [];
+      return (participants||[])
+        .map(p=>({...p,score:norm(p.name).includes(n)?1:0}))
+        .filter(x=>x.score>0).slice(0,8);
     }
     function renderSuggestions(list){
-      sugEl.innerHTML="";
-      if(!list.length){ sugEl.style.display='none'; return; }
-      list.forEach((p)=>{
+      sugEl.innerHTML=''; if(!list.length){hideSug(); return;}
+      list.forEach((p,i)=>{
         const li=document.createElement('li');
-        li.textContent=p.name;
-        li.onclick=()=>{ nameEl.value=p.name; chosen=p; sugEl.style.display='none'; };
+        li.role='option';
+        li.innerHTML=`<span class="n">${p.name}</span>${p.hint?`<span class="hint">${p.hint}</span>`:''}`;
+        li.onclick=()=>pick(i);
         sugEl.appendChild(li);
       });
-      sugEl.style.display='block';
+      sugEl.style.display='block'; active=-1;
     }
-
-    nameEl.addEventListener('input',()=>{
-      chosen=null;
-      filtered=filterNames(nameEl.value);
-      renderSuggestions(filtered);
+    function hideSug(){ sugEl.style.display='none'; active=-1; }
+    function pick(i){ const p=filtered[i]; if(!p)return; nameEl.value=p.name; chosen=p; hideSug(); }
+    function move(delta){
+      const items=[...sugEl.children]; if(!items.length)return;
+      active=(active+delta+items.length)%items.length;
+      items.forEach((li,idx)=>li.classList.toggle('active', idx===active));
+      if(active>=0) items[active].scrollIntoView({block:'nearest'});
+    }
+    let debounce; function onInput(){
+      chosen=null; clearTimeout(debounce);
+      debounce=setTimeout(()=>{
+        filtered=filterNames(nameEl.value);
+        renderSuggestions(filtered);
+      },110);
+    }
+    nameEl.addEventListener('input', onInput);
+    nameEl.addEventListener('keydown', e=>{
+      if(sugEl.style.display==='block'){
+        if(e.key==='ArrowDown'){e.preventDefault();move(1);}
+        if(e.key==='ArrowUp'){e.preventDefault();move(-1);}
+        if(e.key==='Enter'){e.preventDefault();if(active>=0) pick(active);}
+        if(e.key==='Escape'){e.preventDefault();hideSug();}
+      }
+    });
+    document.addEventListener('click', e=>{
+      if(!e.target.closest('.autocomplete')) hideSug();
     });
 
-    // Submeter somente se escolheu da lista
+    // -------- FORM --------
     document.getElementById('start-form').addEventListener('submit',(e)=>{
       e.preventDefault();
-      if(!chosen){ alert("Selecione seu nome na lista oficial"); return; }
-      const qs = new URLSearchParams({ id:chosen.id, name:chosen.name }).toString();
-      location.href=`quiz.html?${qs}`;
+      if(!chosen){ alert("Escolha um participante válido da lista."); return; }
+      location.href = `quiz.html?${new URLSearchParams({name:chosen.name,id:chosen.id})}`;
     });
 
-    // ===== QR e copiar link =====
+    // -------- QR & Copy --------
     const homeURL = location.origin + location.pathname;
     const qrURL   = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(homeURL)}`;
     document.getElementById('qr').src = qrURL;
     document.getElementById('copy').onclick = async ()=>{
       await navigator.clipboard.writeText(homeURL);
-      const ok = document.getElementById('copied');
+      const ok=document.getElementById('copied');
       ok.style.display='inline'; setTimeout(()=>ok.style.display='none',1500);
     };
 
-    // ===== Ranking =====
-    const rows = document.getElementById('ranking-rows');
-    const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
-
+    // -------- Ranking --------
+    const rows=document.getElementById('ranking-rows');
+    const fmt=(t)=>Number.isFinite(+t)?`${(+t).toFixed(1)}s`:"-";
     function renderData(data){
-      rows.innerHTML = "";
-      const top = data.slice(0,10);
-      if(!top.length){
-        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`;
-        return;
-      }
+      rows.innerHTML="";
+      const top=data.slice(0,10);
+      if(!top.length){ rows.innerHTML=`<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`; return;}
       let pos=1;
       for(const d of top){
         let medal=pos; if(pos===1)medal="🏆"; else if(pos===2)medal="🥈"; else if(pos===3)medal="🥉";
         const tr=document.createElement('tr');
-        tr.innerHTML = `
-          <td>${medal}</td>
-          <td>${(d.name||"-").toString().slice(0,48)}</td>
-          <td><strong>${d.score ?? 0}</strong></td>
-          <td>${fmt(d.totalTime)}</td>`;
+        tr.innerHTML=`<td>${medal}</td><td>${(d.name||"-").toString().slice(0,48)}</td><td><strong>${d.score??0}</strong></td><td>${fmt(d.totalTime)}</td>`;
         rows.appendChild(tr); pos++;
       }
     }
-
     async function startLive(){
       try{
-        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(20));
-        const snap  = await getDocs(baseQ);
-        const pre   = snap.docs.map(d=>d.data())
-                         .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+        const baseQ=query(collection(db,"scores"),orderBy("score","desc"),limit(10));
+        const snap=await getDocs(baseQ);
+        const pre=snap.docs.map(d=>d.data()).sort((a,b)=>(b.score??0)-(a.score??0)||(a.totalTime??9e9)-(b.totalTime??9e9));
         renderData(pre);
-
-        onSnapshot(baseQ, (s)=>{
-          const arr = s.docs.map(d=>d.data())
-                       .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+        onSnapshot(baseQ,(s)=>{
+          const arr=s.docs.map(d=>d.data()).sort((a,b)=>(b.score??0)-(a.score??0)||(a.totalTime??9e9)-(b.totalTime??9e9));
           renderData(arr);
         });
       }catch(e){ console.error(e); }
