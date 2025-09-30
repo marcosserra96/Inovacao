@@ -1,211 +1,198 @@
-/* =========================================================
-   ENERGISA LIGHT THEME — Quiz (desktop + mobile)
-   ========================================================= */
-
-/* -------- Core Tokens -------- */
-:root{
-  --teal:  #009BC1;           /* azul Energisa */
-  --green: #59C085;           /* verde Energisa */
-  --blue:  #0a4561;           /* textos escuros */
-  --bg:    #f7f9fb;           /* fundo claro */
-  --card:  #ffffff;
-  --muted: #5e7d8c;
-  --stroke: rgba(0,0,0,.08);
-
-  /* Tipografia base */
-  --fs-xxl: 48px;
-  --fs-xl:  32px;
-  --fs-lg:  22px;
-  --fs-md:  16px;
-  --fs-sm:  14px;
-
-  --radius-lg: 28px;
-  --radius-md: 22px;
-  --radius-sm: 16px;
+/* ===============================
+   RESET E BASE
+================================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* -------- Reset básico -------- */
-*{ box-sizing:border-box }
-html,body{
-  margin:0; padding:0;
-  background:var(--bg); color:var(--blue);
-  font-family:"Segoe UI", Inter, Arial, system-ui, -apple-system;
-  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-}
-img{ max-width:100%; display:block }
-button{ font-family:inherit }
-
-/* -------- Layout -------- */
-.container{
-  max-width:1120px;
-  margin:0 auto 72px;
-  padding:0 16px;
-}
-.container.narrow{ max-width:960px }
-
-/* Header */
-.header{
-  max-width:1120px;
-  margin:24px auto 12px;
-  padding:0 16px;
-  display:flex; align-items:center; justify-content:space-between; gap:16px;
-}
-.brand{ display:flex; align-items:center; gap:12px }
-.brand .logo-dot{
-  width:18px; height:18px; border-radius:50%;
-  background:radial-gradient(circle at 30% 30%, #fff, var(--teal) 60%);
-  box-shadow:0 3px 10px rgba(0,0,0,.12);
-}
-.brand .title{ font-weight:800; font-size:26px; letter-spacing:.2px; color:var(--blue) }
-.badge{ padding:8px 14px; border-radius:999px; font-weight:700; background:#0f3f53; color:#fff }
-
-/* -------- Hero (index) -------- */
-.hero-card{
-  border-radius:var(--radius-lg);
-  padding:40px 32px;
-  background:linear-gradient(135deg, var(--teal), var(--green));
-  color:#fff;
-  box-shadow:0 16px 32px rgba(0,0,0,.12);
-}
-.hero-grid{
-  display:grid; gap:24px;
-  grid-template-columns:1.2fr 1fr 1.1fr; align-items:center;
-}
-.hero-title{ font-size:var(--fs-xxl); line-height:1.05; margin:0; font-weight:900 }
-.hero-text{ font-size:var(--fs-md); opacity:.95; margin:0 }
-
-/* -------- Cards -------- */
-.card{
-  background:var(--card);
-  border-radius:24px;
-  padding:28px;
-  box-shadow:0 8px 16px rgba(0,0,0,.08);
-  border:1px solid var(--stroke);
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #f7f9fa;
+  color: #00334e;
+  line-height: 1.6;
 }
 
-/* -------- Form / Inputs / Buttons -------- */
-.input{
-  width:100%;
-  padding:14px 16px;
-  border-radius:16px;
-  border:none;
-  background:#fff;
-  color:#0a2e40;
-  font-weight:600;
-  box-shadow:0 2px 8px rgba(0,0,0,.08);
+/* ===============================
+   CABEÇALHO
+================================= */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
-.input::placeholder{ color:#6b8a98 }
-.btn{
-  border:none; cursor:pointer; font-weight:900;
-  padding:14px 18px; border-radius:18px;
-  transition:transform .08s ease, box-shadow .2s ease, filter .2s ease;
-}
-.btn.primary{
-  background:#0f3f53; color:#fff;
-  box-shadow:0 6px 14px rgba(0,0,0,.18);
-}
-.btn.primary:hover{ transform:translateY(-1px); filter:brightness(1.02) }
-.btn.ghost{ background:#e9f3f7; color:#0f3f53 }
-.btn.full{ width:100% }
 
-/* -------- Quiz: Progress / Timer -------- */
-.topbar{
-  display:grid; grid-template-columns:auto 1fr auto auto; gap:14px;
-  align-items:center; margin:12px 0 18px;
+header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #00334e;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
-.pill{
-  background:#0f3f53; color:#fff; padding:8px 12px; border-radius:999px; font-weight:700
-}
-.progress{ height:12px; background:#deedf3; border:1px solid var(--stroke); border-radius:999px; overflow:hidden }
-.progress > #progress, .progress > .bar{
-  height:100%; width:0;
-  background:linear-gradient(90deg, var(--teal), var(--green));
-  border-radius:999px; transition:width .3s ease
-}
-#q-time{ color:#0f3f53; font-weight:800 }
 
-/* -------- Quiz: Opções -------- */
-#q-options, #options{
-  display:flex; flex-direction:column;
-  gap:14px; align-items:stretch;
+header h1::before {
+  content: "●";
+  font-size: 1.2rem;
+  color: #00a3e0;
 }
-.option{
-  width:100%;
-  display:flex; align-items:center; gap:14px;
-  padding:16px 20px;
-  border-radius:var(--radius-md);
-  border:none; appearance:none; -webkit-appearance:none;
-  background:linear-gradient(135deg, var(--teal), var(--green));
-  color:#052531; font-weight:800; text-align:left; cursor:pointer;
-  box-shadow:0 8px 16px rgba(0,0,0,.08);
-  white-space:normal; word-break:break-word; line-height:1.25;
+
+header button {
+  background: #00334e;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 50px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
 }
-.option .bullet{
-  flex:0 0 44px; height:44px; border-radius:14px;
-  display:grid; place-items:center; background:#0f3f53; color:#fff; font-size:18px;
+
+header button:hover {
+  background: #007f62;
 }
-.option:hover{ transform:translateY(-1px); box-shadow:0 12px 18px rgba(0,0,0,.12) }
-.option:disabled{ opacity:.92; cursor:default; transform:none }
-.option.success{ outline:3px solid #2ecc71 }
-.option.danger { outline:3px solid #ff6b6b }
 
-/* -------- Resultados -------- */
-.result-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin:8px 0 }
-.result-item{
-  background:#f3f8fa; border:1px solid var(--stroke); border-radius:16px; padding:12px
+/* ===============================
+   CONTAINER PRINCIPAL
+================================= */
+.container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 1rem;
 }
-.result-item .label{ display:block; color:var(--muted); font-size:12px; margin-bottom:6px }
-.result-item .value{ font-size:24px; font-weight:800 }
 
-/* -------- Leaderboard -------- */
-.table{ width:100%; border-collapse:collapse }
-.table th, .table td{ padding:14px 10px; border-bottom:1px solid var(--stroke); text-align:left }
-.table th{ color:var(--muted); font-weight:800 }
-.table tr:hover{ background:#f1f8fb }
-.rank-medal{ font-size:20px }
+.card {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
 
-/* -------- Utilities -------- */
-.center{ text-align:center }
-.muted{ color:var(--muted) }
+/* ===============================
+   TÍTULOS
+================================= */
+h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  color: #00334e;
+}
 
-/* =========================================================
+/* ===============================
+   OPÇÕES DE RESPOSTA
+================================= */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(90deg, #00a3e0, #00b67a);
+  color: #fff;
+  padding: 1rem;
+  border-radius: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.3s;
+}
+
+.option span {
+  background: rgba(0,0,0,0.2);
+  padding: 0.5rem 0.9rem;
+  border-radius: 50%;
+  margin-right: 0.8rem;
+}
+
+.option:hover {
+  transform: scale(1.02);
+  opacity: 0.9;
+}
+
+/* ===============================
+   BARRA DE PROGRESSO
+================================= */
+.progress {
+  margin-top: 2rem;
+  height: 10px;
+  background: #e6eef2;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #00a3e0;
+  transition: width 0.3s ease;
+}
+
+/* ===============================
+   RESULTADOS E RANKING
+================================= */
+.result {
+  text-align: center;
+}
+
+.result h3 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+button.primary {
+  background: #00a3e0;
+  border: none;
+  color: #fff;
+  padding: 0.8rem 1.5rem;
+  border-radius: 50px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+button.primary:hover {
+  background: #007f62;
+}
+
+/* ===============================
    RESPONSIVIDADE
-   ========================================================= */
+================================= */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
 
-/* --- Notebooks médios (<= 1200px) --- */
-@media (max-width: 1200px){
-  :root{ --fs-xxl:44px; --fs-xl:28px; --fs-lg:20px }
-  .container{ max-width:1000px }
+  .card {
+    padding: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+
+  .option {
+    font-size: 0.95rem;
+    padding: 0.8rem;
+  }
 }
 
-/* --- Tablets / pequenos notebooks (<= 992px) --- */
-@media (max-width: 992px){
-  :root{ --fs-xxl:40px; --fs-xl:26px; --fs-lg:19px }
-  .hero-grid{ grid-template-columns:1fr; }
-  .hero-card{ padding:28px 22px }
-}
+@media (max-width: 480px) {
+  .container {
+    margin: 1rem;
+  }
 
-/* --- Celulares grandes (<= 768px) --- */
-@media (max-width: 768px){
-  :root{ --fs-xxl:34px; --fs-xl:24px; --fs-lg:18px; --fs-md:15px }
-  .header{ padding:0 12px }
-  .brand .title{ font-size:22px }
-  .badge{ padding:6px 10px }
-  .card{ padding:20px }
-  .option{ padding:14px 16px; border-radius:18px }
-  .option .bullet{ flex-basis:40px; height:40px; border-radius:12px; font-size:16px }
-  .result-item .value{ font-size:20px }
-  .topbar{ grid-template-columns:1fr auto; gap:10px }
-  .topbar .pill:first-child{ order:-1; justify-self:start; margin-bottom:6px }
-  .progress{ grid-column:1 / -1 }
-}
+  .option {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-/* --- Celulares compactos (<= 420px) --- */
-@media (max-width: 420px){
-  :root{ --fs-xxl:28px; --fs-xl:22px; --fs-lg:17px; --fs-md:14px }
-  .header{ margin:16px auto 8px }
-  .hero-card{ border-radius:22px }
-  .option{ gap:12px }
-  .option .bullet{ flex-basis:36px; height:36px; font-size:15px }
-  .btn{ padding:12px 14px; border-radius:16px }
+  .option span {
+    margin-bottom: 0.5rem;
+  }
 }
