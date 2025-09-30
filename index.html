@@ -4,68 +4,51 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz EMR — Início</title>
-  <link rel="stylesheet" href="assets/styles.css?v=10"/>
+  <link rel="stylesheet" href="assets/styles.css?v=9"/>
 </head>
 <body>
-  <header class="navbar" style="display:flex;justify-content:space-between;align-items:center;padding:16px 32px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);">
-    <div class="logo" style="font-weight:800;color:#0a4561;display:flex;align-items:center;gap:10px">
-      <span style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,#009BC1 60%);display:inline-block"></span>
-      Quiz EMR
+  <header class="header">
+    <div class="brand">
+      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
     </div>
-    <a href="quiz.html" class="btn-pill small" style="text-decoration:none;background:#0f3f53;color:#fff;padding:8px 14px;border-radius:999px;font-weight:700">Evento</a>
+    <div class="badge">Evento</div>
   </header>
 
-  <main>
-    <section class="card modern-card" style="border:1px solid rgba(0,0,0,.06);overflow:hidden;max-width:1200px;margin:24px auto">
-      <div class="modern-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-        <!-- LEFT -->
-        <div class="hero-card" style="padding:40px 32px;background:linear-gradient(135deg,#009BC1,#59C085);color:#fff;">
-          <h1 class="hero-title" style="font-size:42px;font-weight:900;margin:0 0 8px">Pronto para jogar? 🎯</h1>
-          <p class="hero-sub" style="margin:0 0 18px;font-size:18px">Responda rápido e acerte para pontuar mais. Estilo Energisa, leve e moderno.</p>
+  <section class="card">
+    <div class="grid-home">
+      <!-- HERO (form) -->
+      <div class="hero">
+        <h1>Pronto para jogar? 🎯</h1>
+        <p>Responda rápido e acerte para pontuar mais. Visual claro com cartões no estilo Energisa.</p>
 
-          <form id="start-form" class="hero-form" style="display:grid;gap:12px;max-width:520px">
-            <input id="name"  class="input input-white" type="text"  placeholder="Seu nome" required
-                   style="background:#fff;border:none;padding:14px 16px;border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.12)"/>
-            <input id="email" class="input input-white" type="email" placeholder="Seu e-mail (empresa)" required
-                   style="background:#fff;border:none;padding:14px 16px;border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.12)"/>
-            <button class="btn btn-pill btn-energisa" type="submit"
-                    style="border:none;border-radius:999px;padding:14px 20px;font-weight:900;background:linear-gradient(90deg,#0f3f53,#0b3a4f);color:#fff;box-shadow:0 10px 20px rgba(0,0,0,.18);">
-              Começar agora
-            </button>
-          </form>
+        <form id="start-form" class="form">
+          <input id="name"  class="input" type="text"  placeholder="Seu nome" required/>
+          <input id="email" class="input" type="email" placeholder="Seu e-mail (empresa)" required/>
+          <button class="btn btn-pill btn-primary" type="submit">Começar agora</button>
+        </form>
 
-          <p class="muted" style="margin-top:10px;color:#e6f3f8">Ao iniciar, você concorda em aparecer no ranking do evento.</p>
-        </div>
-
-        <!-- RIGHT -->
-        <aside class="side-card" style="padding:28px;background:#fff">
-          <h2 class="side-title" style="margin:0 0 12px;font-size:22px;font-weight:900;color:#0a4561">🏆 Ranking em tempo real</h2>
-          <table class="table table-modern" style="width:100%;border-collapse:separate;border-spacing:0 10px">
-            <thead>
-              <tr>
-                <th style="text-align:left;color:#507286;font-size:13px">#</th>
-                <th style="text-align:left;color:#507286;font-size:13px">Nome</th>
-                <th style="text-align:left;color:#507286;font-size:13px">Pontos</th>
-                <th style="text-align:left;color:#507286;font-size:13px">Tempo</th>
-              </tr>
-            </thead>
-            <tbody id="ranking-rows">
-              <tr><td colspan="4" class="muted" style="padding:14px;color:#b58900">Carregando…</td></tr>
-            </tbody>
-          </table>
-          <p class="muted" style="color:#5e7d8c">Mostrando os 10 melhores (desempate por tempo).</p>
-        </aside>
+        <p class="muted" style="margin-top:10px">Ao iniciar, você concorda em aparecer no ranking do evento.</p>
       </div>
-    </section>
-  </main>
 
-  <!-- Script robusto: pré-carrega com getDocs e liga onSnapshot; exibe erro na tabela -->
+      <!-- RANKING -->
+      <aside class="side">
+        <h2>🏆 Ranking em tempo real</h2>
+        <table class="table">
+          <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
+          <tbody id="ranking-rows">
+            <tr><td colspan="4" class="muted" style="padding:14px;">Carregando…</td></tr>
+          </tbody>
+        </table>
+        <p class="muted">Desempate por menor tempo total.</p>
+      </aside>
+    </div>
+  </section>
+
   <script type="module">
-    import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs }
-      from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    // 🔑 MESMO config do quiz
+    // ⚙️ Mesmo projeto do quiz
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -79,72 +62,71 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // ➜ Form: abre quiz com nome/email
-    document.getElementById('start-form').addEventListener('submit', (e)=>{
+    // ➜ Navega para o quiz com nome/email
+    document.getElementById('start-form').addEventListener('submit',(e)=>{
       e.preventDefault();
       const name  = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
       if(!name || !email) return;
-      const qs = new URLSearchParams({name, email}).toString();
+      const qs = new URLSearchParams({ name, email }).toString();
       location.href = `quiz.html?${qs}`;
     });
 
-    // ---------- Ranking ----------
     const rows = document.getElementById('ranking-rows');
-    const fmt  = t => Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
+    const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
 
-    function render(data){
+    function renderData(data){
       rows.innerHTML = "";
-      const top = data.slice(0,10);
-      if(!top.length){
+      if (!data.length){
         rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`;
         return;
       }
       let pos = 1;
-      top.forEach(d=>{
+      data.forEach(d=>{
         let medal = pos;
         if (pos===1) medal="🏆"; else if (pos===2) medal="🥈"; else if (pos===3) medal="🥉";
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td style="background:#fff;border-radius:12px 0 0 12px;padding:12px 10px">${medal}</td>
-          <td style="background:#fff;padding:12px 10px">${(d.name||"-").toString().slice(0,48)}</td>
-          <td style="background:#fff;padding:12px 10px"><strong>${d.score ?? 0}</strong></td>
-          <td style="background:#fff;border-radius:0 12px 12px 0;padding:12px 10px">${fmt(d.totalTime)}</td>
+          <td>${medal}</td>
+          <td>${(d.name||"-").toString().slice(0,48)}</td>
+          <td><strong>${d.score ?? 0}</strong></td>
+          <td>${fmt(d.totalTime)}</td>
         `;
         rows.appendChild(tr);
         pos++;
       });
     }
 
-    async function startRanking(){
+    // 🔴 Fallback robusto: tenta getDocs primeiro (mostra já algo),
+    // depois liga o onSnapshot; se der erro, mostra mensagem clara.
+    async function startLive(){
       try{
-        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(10));
-
-        // Pré-carrega (evita ficar só “Carregando…”)
+        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(20));
+        // pré-carrega (caso onSnapshot demore)
         const snap = await getDocs(baseQ);
-        const pre = snap.docs.map(d=>d.data())
-          .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
-        render(pre);
+        const pre = [];
+        snap.forEach(d=>pre.push(d.data()));
+        pre.sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+        renderData(pre);
 
-        // Tempo real
-        onSnapshot(baseQ, (live)=>{
-          const arr = live.docs.map(d=>d.data())
-            .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
-          render(arr);
-        }, (err)=>{
-          console.error("onSnapshot:", err);
+        onSnapshot(baseQ, (s)=>{
+          const arr=[]; s.forEach(d=>arr.push(d.data()));
+          arr.sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+          renderData(arr);
+        }, (e)=>{
+          console.error("onSnapshot error:", e?.code, e?.message);
           rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">
-            Erro ao carregar ranking (${err?.code || "desconhecido"}). Verifique as <b>regras do Firestore</b> e o <b>firebaseConfig</b>.
+            Erro ao carregar ranking (${e?.code||"desconhecido"}). Verifique as <b>Regras do Firestore</b> e o <b>firebaseConfig</b>.
           </td></tr>`;
         });
-      }catch(err){
-        console.error("getDocs:", err);
+      }catch(e){
+        console.error("getDocs error:", e?.code, e?.message);
         rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">
-          Erro ao consultar ranking (${err?.code || "desconhecido"}). Tente em aba anônima ou confira as regras.
+          Erro ao consultar ranking (${e?.code||"desconhecido"}).
         </td></tr>`;
       }
     }
-    startRanking();
+    startLive();
   </script>
 </body>
 </html>
