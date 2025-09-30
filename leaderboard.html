@@ -23,47 +23,84 @@
     </section>
   </main>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    /* COLE SEU firebaseConfig AQUI */
-    const firebaseConfig = {
-  apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
-  authDomain: "inovacao-emr.firebaseapp.com",
-  projectId: "inovacao-emr",
-  storageBucket: "inovacao-emr.firebasestorage.app",
-  messagingSenderId: "1075399271811",
-  appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
-  measurementId: "G-8CTLMNCZJN"
-    };
+  // 🔧 MESMO firebaseConfig DO QUIZ
+  const firebaseConfig = {
+    apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+    authDomain: "inovacao-emr.firebaseapp.com",
+    projectId: "inovacao-emr",
+    storageBucket: "inovacao-emr.firebasestorage.app",
+    messagingSenderId: "1075399271811",
+    appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+    measurementId: "G-8CTLMNCZJN"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
 
-    const rows = document.getElementById('rows');
-    const q = query(collection(db,"scores"), orderBy("score","desc"), orderBy("totalTime","asc"), limit(50));
+  const rows = document.getElementById('rows') || document.getElementById('ranking-list');
 
-    onSnapshot(q, snap=>{
+  async function loadRanking(){
+    try{
+      // Pega top 100 ordenado por score (desc) — SEM índice composto
+      const q = query(collection(db,"scores"), orderBy("score","desc"), limit(100));
+      const snap = await getDocs(q);
+
+      const data = [];
+      snap.forEach(doc => data.push(doc.data()));
+
+      // Desempate local por tempo (asc)
+      data.sort((a,b)=>{
+        if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
+        return (a.totalTime ?? Infinity) - (b.totalTime ?? Infinity);
+      });
+
+      if (!rows) return;
       rows.innerHTML = "";
-      let pos = 1;
-      snap.forEach(doc=>{
-        const d = doc.data();
-        let medal = pos;
-        if(pos===1) medal = "🏆";
-        else if(pos===2) medal = "🥈";
-        else if(pos===3) medal = "🥉";
+
+      if (data.length === 0) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="rank-medal">${medal}</td>
-          <td>${d.name || "-"}</td>
-          <td>${d.score ?? 0}</td>
-          <td>${(d.totalTime ?? 0).toFixed ? d.totalTime.toFixed(1) : d.totalTime}</td>
-        `;
+        tr.innerHTML = `<td colspan="4" style="padding:14px;color:#5e7d8c;">Sem resultados ainda.</td>`;
         rows.appendChild(tr);
+        console.warn("Ranking vazio: confira se a coleção 'scores' tem documentos e se o firebaseConfig é o mesmo do quiz.");
+        return;
+      }
+
+      let pos = 1;
+      data.forEach(d=>{
+        let medal = pos;
+        if (pos===1) medal="🏆"; else if (pos===2) medal="🥈"; else if (pos===3) medal="🥉";
+
+        // suporta tabela (#, Nome, Pontos, Tempo) ou <ol>
+        if (rows.tagName === "TBODY") {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="rank-medal">${medal}</td>
+            <td>${d.name || "-"}</td>
+            <td>${d.score ?? 0}</td>
+            <td>${(d.totalTime ?? 0).toFixed ? d.totalTime.toFixed(1) : d.totalTime}</td>
+          `;
+          rows.appendChild(tr);
+        } else {
+          const li = document.createElement('li');
+          li.textContent = `${medal} ${d.name || "-"} — ${d.score ?? 0} pts • ${d.totalTime ?? 0}s`;
+          rows.appendChild(li);
+        }
         pos++;
       });
-    });
-  </script>
+
+    }catch(e){
+      console.error("Erro carregando ranking:", e.code, e.message);
+      // Se aparecer um link "Create index" no console, você pode clicar e criar o índice composto
+      // e depois voltar para a versão com dois orderBy (score desc, totalTime asc) e onSnapshot.
+    }
+  }
+
+  loadRanking();
+</script>
+
 </body>
 </html>
