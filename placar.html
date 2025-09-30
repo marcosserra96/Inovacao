@@ -1,117 +1,127 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Placar — Quiz EMR</title>
-
 <style>
   :root{
-    --teal:#009BC1; --green:#59C085;
-    --dark:#0A1A1F; --text:#fff; --muted:#A8B8C0;
+    --ink:#eaf7fb; --muted:#9db4be;
+    --teal:#00a6c9; --green:#59c085; --dark:#0a1519; --panel:#0e1f25;
+    --gold:#ffd76a; --silver:#cfd4da; --bronze:#d18a49;
   }
   *{box-sizing:border-box}
-  html,body{
-    margin:0; padding:0; width:100%; height:100%;
-    font-family:"Segoe UI", Inter, sans-serif;
-    background: radial-gradient(circle at top left, var(--teal) -30%, transparent 70%),
-                radial-gradient(circle at bottom right, var(--green) -30%, transparent 70%),
-                var(--dark);
-    color:var(--text);
-    overflow:hidden;
-  }
+  html,body{height:100%;margin:0;background:var(--dark);color:var(--ink);
+    font-family: Inter, "Segoe UI", system-ui, -apple-system, Arial, sans-serif;overflow:hidden;}
 
-  .container{
-    width:100%; height:100%;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:space-between;
-    padding:20px;
+  /* bg animado sutil (LED friendly) */
+  .bg{
+    position:fixed; inset:-40% -40%;
+    background:
+      radial-gradient(1200px 1200px at 10% 0%, rgba(0,166,201,.18), transparent 60%),
+      radial-gradient(1200px 1200px at 100% 100%, rgba(89,192,133,.14), transparent 60%),
+      radial-gradient(900px 900px at 50% 50%, rgba(255,255,255,.03), transparent 70%),
+      linear-gradient(120deg,#0a1519,#0b1a21 60%,#0a1519);
+    animation: drift 18s linear infinite alternate;
+    filter: saturate(1.05);
+    z-index:0;
   }
+  @keyframes drift{to{transform:translate3d(-2%,1%,0) scale(1.02)}}
 
-  /* Ranking */
-  .ranking{
-    width:100%; text-align:center;
-  }
-  .ranking h1{
-    margin:0 0 12px; font-size:36px; font-weight:900;
-  }
-  .rank-list{
-    list-style:none; margin:0; padding:0;
-    display:flex; flex-direction:column; gap:10px;
-    max-width:100%;
-  }
-  .rank-item{
-    display:flex; justify-content:space-between; align-items:center;
-    padding:14px 20px; border-radius:14px;
-    font-size:22px; font-weight:700;
-    background:rgba(255,255,255,.05);
-  }
-  .rank-item span{flex:1;text-align:left}
-  .rank-pos{width:40px; text-align:center}
-  .gold{color:#FFD700}
-  .silver{color:#C0C0C0}
-  .bronze{color:#CD7F32}
+  .wrap{position:relative; z-index:1; width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:14px; gap:8px;}
 
-  /* Curiosidades */
-  .facts{
-    text-align:center; font-size:20px; font-weight:600;
-    min-height:80px; max-width:90%;
+  /* header compacto */
+  .top{
+    width:100%; display:flex; align-items:center; justify-content:space-between;
+    font-weight:900; letter-spacing:.02em;
   }
-  .fact{opacity:0; transition:opacity .6s ease}
-  .fact.active{opacity:1}
+  .title{font-size:28px}
+  .badges{display:flex; gap:8px}
+  .badge{background:#0f2730; border:1px solid rgba(255,255,255,.06); color:var(--muted);
+    padding:6px 10px; border-radius:999px; font-weight:800; font-size:13px}
 
-  /* QR */
-  .qr-block{
-    position:relative; display:flex; flex-direction:column; align-items:center;
+  /* ranking area */
+  .board{width:100%; flex:1; display:flex; flex-direction:column; align-items:stretch; gap:8px}
+  .board h1{margin:0 0 6px; text-align:center; font-size:34px; font-weight:900}
+  .list{display:flex; flex-direction:column; gap:10px; margin:0; padding:0; list-style:none}
+  .row{
+    display:grid; grid-template-columns:46px 1fr 120px; align-items:center;
+    gap:12px; background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.04));
+    border:1px solid rgba(255,255,255,.07); border-radius:16px; padding:12px 14px;
+    box-shadow: 0 2px 14px rgba(0,0,0,.22);
   }
-  .qr{
-    width:220px; height:220px; border-radius:20px;
-    border:6px solid #fff; box-shadow:0 0 20px rgba(0,0,0,.5);
-  }
-  .qr-pulse{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    width:260px; height:260px; border-radius:50%;
-    box-shadow:0 0 0 0 rgba(0,155,193,.4);
-    animation:pulse 2s infinite;
-  }
-  @keyframes pulse{
-    0%{box-shadow:0 0 0 0 rgba(0,155,193,.4)}
-    70%{box-shadow:0 0 0 30px rgba(0,155,193,0)}
-    100%{box-shadow:0 0 0 0 rgba(0,155,193,0)}
-  }
-  .cta{
-    margin-top:10px; font-size:18px; font-weight:800; color:var(--muted);
-  }
+  .pos{font-weight:900; font-size:22px; text-align:center; opacity:.9}
+  .name{font-weight:800; font-size:22px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .score{font-weight:900; font-size:22px; text-align:right}
+
+  /* barra de progresso (comparativa com o top) */
+  .meter{grid-column:2 / span 1; height:8px; background:#0c2a33; border-radius:999px; overflow:hidden; position:relative}
+  .meter>.bar{height:100%; width:0; background:linear-gradient(90deg,var(--teal),var(--green)); transition:width .4s ease}
+
+  /* medal tint */
+  .gold .pos,.gold .score{color:var(--gold)}
+  .silver .pos,.silver .score{color:var(--silver)}
+  .bronze .pos,.bronze .score{color:var(--bronze)}
+
+  /* destaque quando muda 1º lugar */
+  .glow{box-shadow:0 0 0 0 rgba(255,215,106,.55); animation:glow 1.2s ease}
+  @keyframes glow{0%{box-shadow:0 0 0 0 rgba(255,215,106,.55)}100%{box-shadow:0 0 0 26px rgba(255,215,106,0)}}
+
+  /* curiosidades */
+  .fact{min-height:54px; text-align:center; color:#d6eef5; font-weight:700; font-size:18px}
+  .fact .icon{margin-right:8px; opacity:.85}
+  .fade{opacity:0; transform:translateY(6px); transition:.5s ease}
+  .fade.show{opacity:1; transform:none}
+
+  /* QR bloco inferior */
+  .qrwrap{display:flex; flex-direction:column; align-items:center; gap:8px}
+  .qr{width:220px;height:220px;border-radius:18px;border:6px solid #fff; box-shadow:0 8px 28px rgba(0,0,0,.45)}
+  .pulse{position:absolute; width:250px; height:250px; border-radius:50%; box-shadow:0 0 0 0 rgba(0,166,201,.35); animation:pulse 2s infinite}
+  @keyframes pulse{70%{box-shadow:0 0 0 28px rgba(0,166,201,0)}}
+
+  /* layout quadrado */
+  .grid512{max-width:512px; max-height:512px; width:100vmin; height:100vmin; margin:auto}
+  @media (min-aspect-ratio: 1/1){ .grid512{height:100vh; width:100vh;} }
 </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Ranking -->
-    <div class="ranking">
-      <h1>🏆 TOP 5</h1>
-      <ul id="rank" class="rank-list">
-        <li class="rank-item"><div class="rank-pos">–</div><span>Carregando…</span><div>0</div></li>
-      </ul>
-    </div>
+<div class="bg"></div>
 
-    <!-- Curiosidades -->
-    <div class="facts">
-      <div id="fact-box" class="fact active">Carregando curiosidades…</div>
-    </div>
-
-    <!-- QR -->
-    <div class="qr-block">
-      <div class="qr-pulse"></div>
-      <img id="qr" class="qr" alt="QR para jogar"/>
-      <div class="cta">Aponte a câmera e participe!</div>
+<div class="wrap grid512">
+  <!-- topo -->
+  <div class="top">
+    <div class="title">🏆 TOP 5</div>
+    <div class="badges">
+      <div id="pcount" class="badge">0 participantes</div>
+      <div id="updated" class="badge">atualizado agora</div>
     </div>
   </div>
 
+  <!-- ranking -->
+  <div class="board">
+    <ul id="list" class="list">
+      <li class="row"><div class="pos">–</div><div class="name">Carregando…</div><div class="score">0</div></li>
+    </ul>
+
+    <!-- curiosidade -->
+    <div class="fact"><span class="icon">💡</span><span id="fact" class="fade show">Carregando curiosidades…</span></div>
+  </div>
+
+  <!-- QR -->
+  <div style="position:relative" class="qrwrap">
+    <div class="pulse"></div>
+    <img id="qr" class="qr" alt="QR para jogar">
+    <div style="color:var(--muted);font-weight:900">Aponte a câmera e participe</div>
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-  import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+  import { getFirestore, collection, query, orderBy, limit, onSnapshot, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  /* Firebase */
+  /* Firebase (mesmo app) */
   const firebaseConfig = {
     apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
     authDomain: "inovacao-emr.firebaseapp.com",
@@ -122,55 +132,94 @@
     measurementId: "G-8CTLMNCZJN"
   };
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  const db  = getFirestore(app);
 
-  /* Ranking */
-  const rankEl = document.getElementById('rank');
-  const fmt = t => Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : '-';
+  const listEl = document.getElementById('list');
+  const pcount = document.getElementById('pcount');
+  const updated= document.getElementById('updated');
 
-  function renderRank(data){
-    rankEl.innerHTML = "";
-    data.slice(0,5).forEach((p,i)=>{
-      let medal = "";
-      if(i===0) medal="gold"; else if(i===1) medal="silver"; else if(i===2) medal="bronze";
+  // QR aponta para a home do repositório
+  const home = location.origin + location.pathname.replace(/placar\.html$/,'');
+  document.getElementById('qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(home)}`;
+
+  function fmtTime(t){ return Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : '-' }
+
+  let lastTopEmail = null;
+
+  function renderList(arr){
+    listEl.innerHTML = '';
+    if(!arr.length){
+      listEl.innerHTML = `<li class="row"><div class="pos">–</div><div class="name">Sem resultados ainda</div><div class="score">0</div></li>`;
+      return;
+    }
+    const best = arr[0]?.score ?? 1;
+    arr.slice(0,5).forEach((x,i)=>{
       const li = document.createElement('li');
-      li.className = `rank-item ${medal}`;
-      li.innerHTML = `<div class="rank-pos">${i+1}</div><span>${p.name||"-"}</span><div>${p.score||0}</div>`;
-      rankEl.appendChild(li);
+      li.className = 'row';
+      if (i===0) li.classList.add('gold');
+      if (i===1) li.classList.add('silver');
+      if (i===2) li.classList.add('bronze');
+
+      const pct = Math.max(0, Math.min(1, (x.score||0)/best));
+      li.innerHTML = `
+        <div class="pos">${i+1}</div>
+        <div class="name">${(x.name||'-').toString().slice(0,40)}</div>
+        <div class="score">${x.score ?? 0}</div>
+        <div class="meter"><div class="bar" style="width:${pct*100}%"></div></div>
+      `;
+      listEl.appendChild(li);
     });
+
+    // anima “glow” quando 1º muda
+    const topEmail = (arr[0]?.email||'').toLowerCase();
+    if (lastTopEmail !== null && topEmail !== lastTopEmail){
+      listEl.firstElementChild.classList.add('glow');
+      setTimeout(()=>listEl.firstElementChild && listEl.firstElementChild.classList.remove('glow'), 1200);
+    }
+    lastTopEmail = topEmail;
+
+    // badges
+    updated.textContent = 'atualizado agora';
+    setTimeout(()=> updated.textContent = 'atualizado há alguns segundos', 3500);
   }
 
-  const q = query(collection(db,"scores"), orderBy("score","desc"), limit(5));
-  onSnapshot(q, snap=>{
+  // live top-5
+  const qTop = query(collection(db,"scores"), orderBy("score","desc"), limit(5));
+  onSnapshot(qTop, snap=>{
     const arr = snap.docs.map(d=>d.data())
-      .sort((a,b)=>(b.score??0)-(a.score??0)||(a.totalTime??9e9)-(b.totalTime??9e9));
-    renderRank(arr);
+      .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+    renderList(arr);
   });
 
-  /* Curiosidades */
-  const facts = [
-    "💡 Inovação disruptiva transforma mercados inteiros.",
-    "🚀 Hackathons aceleram ideias em apenas 48h.",
-    "🌍 Sustentabilidade é motor de inovação no setor elétrico.",
-    "🤖 IA generativa já auxilia na prototipagem de produtos.",
-    "📊 Dados são o novo combustível para decisões estratégicas."
-  ];
-  const factBox = document.getElementById("fact-box");
-  let idx=0;
-  function nextFact(){
-    factBox.classList.remove("active");
-    setTimeout(()=>{
-      factBox.textContent=facts[idx%facts.length];
-      factBox.classList.add("active");
-      idx++;
-    },400);
+  // contador de participantes (total docs na coleção)
+  async function refreshCount(){
+    try{
+      const coll = collection(db,"scores");
+      const snap = await getCountFromServer(coll);
+      const n = snap.data().count || 0;
+      pcount.textContent = `${n} participante${n===1?'':'s'}`;
+    }catch{ /* ignore */ }
   }
-  setInterval(nextFact,8000);
+  refreshCount(); setInterval(refreshCount, 15000);
 
-  /* QR */
-  const base = location.origin + location.pathname.replace(/placar\.html$/,'');
-  document.getElementById('qr').src =
-    `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(base)}`;
+  // curiosidades
+  const facts = [
+    "Dados são o novo combustível para decisões estratégicas.",
+    "Design Thinking resolve problemas com foco no usuário.",
+    "Falhar rápido e barato acelera o aprendizado.",
+    "IA generativa já cria protótipos e conteúdos em minutos.",
+    "Inovação também é processo, modelo de negócio e cultura.",
+  ];
+  const factEl = document.getElementById('fact');
+  let i=0;
+  function showFact(){
+    factEl.classList.remove('show');
+    setTimeout(()=>{
+      factEl.textContent = facts[i++ % facts.length];
+      factEl.classList.add('show');
+    }, 250);
+  }
+  showFact(); setInterval(showFact, 8000);
 </script>
 </body>
 </html>
