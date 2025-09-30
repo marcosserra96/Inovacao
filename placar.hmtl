@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Placar — Quiz EMR</title>
+  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
+</head>
+<body>
+  <section class="full board">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+      <h1>🏆 Placar em tempo real</h1>
+      <div class="qr">
+        <img id="qr" alt="QR"/>
+        <div class="muted">Aponte a câmera e jogue</div>
+      </div>
+    </div>
+    <table class="table">
+      <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
+      <tbody id="rows">
+        <tr><td colspan="4"><div class="skel"></div></td></tr>
+        <tr><td colspan="4"><div class="skel"></div></td></tr>
+        <tr><td colspan="4"><div class="skel"></div></td></tr>
+      </tbody>
+    </table>
+    <p class="muted">Top 10, desempate por menor tempo.</p>
+  </section>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    const rows = document.getElementById('rows');
+    const fmt  = t => Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
+
+    function render(d){
+      rows.innerHTML="";
+      let pos=1;
+      d.slice(0,10).forEach(x=>{
+        let medal=pos; if(pos===1)medal="🏆"; else if(pos===2)medal="🥈"; else if(pos===3)medal="🥉";
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${medal}</td><td>${(x.name||"-").slice(0,40)}</td><td><b>${x.score??0}</b></td><td>${fmt(x.totalTime)}</td>`;
+        rows.appendChild(tr); pos++;
+      });
+    }
+
+    const q = query(collection(db,"scores"), orderBy("score","desc"), limit(10));
+    onSnapshot(q, snap=>{
+      const arr = snap.docs.map(d=>d.data())
+                   .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+      render(arr);
+    });
+
+    // QR para home
+    const home = location.origin + (location.pathname.replace(/placar\.html$/, '') || '/');
+    document.getElementById('qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(home)}`;
+  </script>
+</body>
+</html>
