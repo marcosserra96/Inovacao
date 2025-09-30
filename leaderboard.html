@@ -7,25 +7,19 @@
   <link rel="stylesheet" href="assets/styles.css"/>
 </head>
 <body>
-  <div class="bg-gradient"></div>
-
-  <header class="topbar card">
-    <div class="brand sm">
-      <div class="logo-dot"></div>
-      <span>Ranking</span>
+  <div class="header">
+    <div class="brand">
+      <div class="logo-dot"></div><div class="title">Ranking</div>
     </div>
-    <a class="btn ghost" href="index.html">Novo Jogo</a>
-  </header>
+    <a class="btn ghost" href="index.html">Novo jogo</a>
+  </div>
 
   <main class="container narrow">
-    <section class="card entrance">
-      <table class="table pretty">
-        <thead>
-          <tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr>
-        </thead>
+    <section class="card">
+      <table class="table">
+        <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
-      <p class="muted center">Desempate por menor tempo total.</p>
     </section>
   </main>
 
@@ -33,31 +27,35 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    /* 🔧 COLE SEU firebaseConfig AQUI (o mesmo do quiz)
-    const firebaseConfig = { ... };
-    */
-    const firebaseConfig = window.firebaseConfig || firebaseConfig;
+    /* COLE SEU firebaseConfig AQUI */
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
     const rows = document.getElementById('rows');
-    const q = query(collection(db,"scores"),
-      orderBy("score","desc"), orderBy("totalTime","asc"), limit(50));
+    const q = query(collection(db,"scores"), orderBy("score","desc"), orderBy("totalTime","asc"), limit(50));
 
-    onSnapshot(q, (snap)=>{
+    onSnapshot(q, snap=>{
       rows.innerHTML = "";
       let pos = 1;
       snap.forEach(doc=>{
         const d = doc.data();
-        let rank = pos;
-        if(pos===1) rank = "🏆";
-        else if(pos===2) rank = "🥈";
-        else if(pos===3) rank = "🥉";
-
+        let medal = pos;
+        if(pos===1) medal = "🏆";
+        else if(pos===2) medal = "🥈";
+        else if(pos===3) medal = "🥉";
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${rank}</td>
+          <td class="rank-medal">${medal}</td>
           <td>${d.name || "-"}</td>
           <td>${d.score ?? 0}</td>
           <td>${(d.totalTime ?? 0).toFixed ? d.totalTime.toFixed(1) : d.totalTime}</td>
