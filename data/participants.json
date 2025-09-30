@@ -1,7 +1,10 @@
 {
   "participants": [
-    {"id": "marcos.serra", "name": "Marcos Serra"},
-    {"id": "bruno.farinazzo", "name": "Bruno Farinazzo"},
-    {"id": "carlos.guerson", "name": "Carlos Guerson"}
+    {"id":"p001","name":"Bruno Flores","hint":"Analista"},
+    {"id":"p002","name":"Carlos Guerson","hint":"Coord."},
+    {"id":"p003","name":"Marcos Serra","hint":"Técnico"},
+    {"id":"p004","name":"Mateus Pena","hint":"Supervisora"},
+    {"id":"p005","name":"Eduardo Mantovani","hint":"Operações"}
   ]
 }
+
