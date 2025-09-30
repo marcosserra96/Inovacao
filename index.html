@@ -4,122 +4,78 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz EMR — Início</title>
-  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
 
-  <style>
-    /* ============ Autocomplete ============ */
-    .autocomplete{ position:relative; }
-    .typeahead{
-      position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:50;
-      list-style:none; margin:0; padding:6px;
-      max-height:240px; overflow:auto;
-      background:#0b2f39; color:#e7f6fb;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:12px;
-      box-shadow:0 14px 28px rgba(0,0,0,.18), 0 10px 10px rgba(0,0,0,.12);
-      display:none;
-    }
-    .typeahead li{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:10px; padding:10px 12px; cursor:pointer; border-radius:10px;
-    }
-    .typeahead li .n{ font-weight:700; color:#e7f6fb; }
-    .typeahead li .hint{ font-size:.85rem; opacity:.75; color:#cde7ef; }
-    .typeahead li:hover, .typeahead li.active{ background:rgba(255,255,255,.06); }
+  <!-- seu CSS -->
+  <link rel="stylesheet" href="assets/styles.css?v=1"/>
 
-    /* Garante que nada corte o dropdown */
-    .card, .form, .hero { overflow: visible; }
-
-    @media (max-width:640px){
-      .typeahead{ max-height:50vh; }
-    }
-
-    /* ============ Dev Modal ============ */
-    .dev-hidden-hotspot{
-      position:absolute; inset:0; /* ocupa toda a área da brand */
-      background:transparent; border:none; padding:0; margin:0;
-      cursor:default; opacity:0; /* invisível */
-    }
-    dialog.dev-modal{
-      width:min(720px, 92vw);
-      border:none; border-radius:16px; padding:0; overflow:hidden;
-      box-shadow:0 20px 60px rgba(0,0,0,.45);
-      background:#09232a; color:#dff3f9;
-    }
-    .dev-modal::backdrop{ background:rgba(0,0,0,.45); }
-    .dev-head{ display:flex; align-items:center; justify-content:space-between;
-               padding:16px 18px; background:#0b2f39; border-bottom:1px solid rgba(255,255,255,.06); }
-    .dev-body{ padding:16px 18px; display:grid; gap:12px; }
-    .dev-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .dev-actions button{
-      padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.08);
-      background:#0e3c49; color:#e8f7fb; font-weight:600; cursor:pointer;
-    }
-    .dev-actions button:hover{ background:#0f4654; }
-    .dev-danger{ background:#4b1212 !important; border-color:#7a2222 !important; }
-    .dev-danger:hover{ background:#5a1616 !important; }
-
-    .dev-foot{ display:flex; justify-content:flex-end; gap:8px; padding:12px 18px; border-top:1px solid rgba(255,255,255,.06); }
-    .muted{ opacity:.8; font-size:.9rem; }
-
-    /* botão desabilitado até carregar a lista */
-    .btn[disabled]{ opacity:.6; cursor:not-allowed; }
-  </style>
+  <!-- Inline minimal styles were removed; everything in assets/styles.css -->
 </head>
 <body>
   <header class="header" style="position:relative">
     <div class="brand" id="brand" style="position:relative">
-      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
+      <span class="logo-dot" aria-hidden="true"></span>
+      <span class="title">Quiz EMR</span>
+
       <!-- Hotspot invisível para abrir o modo dev (long-press) -->
       <button id="dev-hotspot" class="dev-hidden-hotspot" aria-hidden="true" tabindex="-1"></button>
     </div>
-    <div class="badge">Evento</div>
+
+    <div class="header-right">
+      <div class="badge">Evento</div>
+      <!-- Theme toggle -->
+      <button id="theme-toggle" class="theme-toggle" aria-label="Alternar tema">🖥️ <span style="margin-left:6px">Auto</span></button>
+    </div>
   </header>
 
-  <section class="card">
-    <div class="grid-home">
-      <!-- HERO -->
-      <div class="hero">
-        <h1>Pronto para jogar? 🎯</h1>
-        <p>Digite seu nome e <strong>escolha da lista oficial</strong> para participar.</p>
+  <main class="container">
+    <section class="card">
+      <div class="grid-home">
+        <!-- HERO -->
+        <div class="hero">
+          <h1>Pronto para jogar? 🎯</h1>
+          <p>Digite seu nome e <strong>escolha da lista oficial</strong> para participar.</p>
 
-        <form id="start-form" class="form" novalidate>
-          <div class="autocomplete">
-            <input id="name" class="input" type="text" placeholder="Digite seu nome" required autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions" />
-            <ul id="suggestions" class="typeahead" role="listbox" aria-label="Sugestões"></ul>
+          <form id="start-form" class="form" novalidate>
+            <div class="autocomplete">
+              <input id="name" class="input" type="text" placeholder="Digite seu nome" required autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions" />
+              <ul id="suggestions" class="typeahead" role="listbox" aria-label="Sugestões"></ul>
+            </div>
+
+            <div class="actions-row">
+              <button id="start-btn" class="btn btn-pill btn-primary" type="submit" disabled>Começar agora</button>
+              <p id="loadMsg" class="muted" role="status">Carregando lista de participantes…</p>
+            </div>
+          </form>
+
+          <div class="qr" style="margin-top:12px;">
+            <img id="qr" alt="QR do jogo" width="120" height="120" />
+            <button id="copy" class="btn btn-pill" style="background:#e9f4f8;color:#0a4561; margin-left:8px;">Copiar link</button>
+            <span id="copied" class="muted" style="display:none; margin-left:8px;">Link copiado!</span>
           </div>
-          <button id="start-btn" class="btn btn-pill btn-primary" type="submit" disabled>Começar agora</button>
-          <p id="loadMsg" class="muted" role="status">Carregando lista de participantes…</p>
-        </form>
-
-        <div class="qr" style="margin-top:12px;">
-          <img id="qr" alt="QR do jogo" width="120" height="120" />
-          <button id="copy" class="btn btn-pill" style="background:#e9f4f8;color:#0a4561; margin-left:8px;">Copiar link</button>
-          <span id="copied" class="muted" style="display:none; margin-left:8px;">Link copiado!</span>
         </div>
-      </div>
 
-      <!-- RANKING -->
-      <aside class="side">
-        <h2>🏆 Ranking em tempo real</h2>
-        <table class="table">
-          <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
-          <tbody id="ranking-rows">
-            <tr><td colspan="4"><div class="skel"></div></td></tr>
-            <tr><td colspan="4"><div class="skel"></div></td></tr>
-            <tr><td colspan="4"><div class="skel"></div></td></tr>
-          </tbody>
-        </table>
-        <p class="muted">Mostrando os 10 melhores (desempate por tempo).</p>
-      </aside>
-    </div>
-  </section>
+        <!-- RANKING -->
+        <aside class="side">
+          <h2>🏆 Ranking em tempo real</h2>
+          <table class="table" role="table" aria-label="Ranking">
+            <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
+            <tbody id="ranking-rows">
+              <tr><td colspan="4"><div class="skel"></div></td></tr>
+              <tr><td colspan="4"><div class="skel"></div></td></tr>
+              <tr><td colspan="4"><div class="skel"></div></td></tr>
+            </tbody>
+          </table>
+          <p class="muted">Mostrando os 10 melhores (desempate por tempo).</p>
+        </aside>
+      </div>
+    </section>
+  </main>
 
   <!-- Modal Dev -->
-  <dialog id="dev-modal" class="dev-modal">
+  <dialog id="dev-modal" class="dev-modal" aria-modal="true">
     <div class="dev-head">
       <strong>⚙️ Modo Desenvolvedor</strong>
-      <button id="dev-close" title="Fechar" style="all:unset; cursor:pointer; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,.06)">✕</button>
+      <button id="dev-close" title="Fechar" class="dev-close">✕</button>
     </div>
     <div class="dev-body">
       <div class="muted">Ações rápidas (use com cuidado, especialmente <b>apagar scores</b>).</div>
@@ -131,75 +87,142 @@
       </div>
       <details>
         <summary>Debug</summary>
-        <pre id="dev-debug" style="white-space:pre-wrap; background:#0b2f39; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.08); max-height:200px; overflow:auto;"></pre>
+        <pre id="dev-debug" class="dev-debug"></pre>
       </details>
       <div class="muted">Atalho: <code>Ctrl + Alt + D</code> ou pressionar 2s sobre a bolinha da logo.</div>
     </div>
     <div class="dev-foot">
-      <button id="dev-ok" style="padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:#0e3c49; color:#e8f7fb; font-weight:600;">OK</button>
+      <button id="dev-ok" class="btn btn-pill">OK</button>
     </div>
   </dialog>
 
+  <!-- Script principal -->
   <script type="module">
+    // ---------------------------
+    // IMPORTS (Firebase)
+    // ---------------------------
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import {
       getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs,
       deleteDoc, doc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+    // ---------------------------
+    // THEME MANAGER (auto/light/dark)
+    // ---------------------------
+    (function(){
+      const KEY = 'theme';
+      const root = document.documentElement;
+
+      function applyTheme(t){
+        if(t === 'auto'){
+          const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          root.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } else {
+          root.setAttribute('data-theme', t);
+        }
+        const btn = document.getElementById('theme-toggle');
+        if(btn){
+          const label = t === 'auto' ? 'Auto' : (t === 'dark' ? 'Escuro' : 'Claro');
+          const ico = t === 'dark' ? '🌙' : (t === 'light' ? '☀️' : '🖥️');
+          btn.innerHTML = `<span class="ico">${ico}</span><span style="font-weight:600; margin-left:6px">${label}</span>`;
+          btn.title = `Tema: ${label} — clique para trocar`;
+        }
+      }
+
+      function getSaved(){ return localStorage.getItem(KEY) || 'auto'; }
+      function saveTheme(t){ localStorage.setItem(KEY, t); }
+      function nextTheme(current){
+        if(current === 'auto') return 'dark';
+        if(current === 'dark') return 'light';
+        return 'auto';
+      }
+
+      const init = getSaved();
+      applyTheme(init);
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      mq.addEventListener?.('change', ()=> {
+        if(getSaved() === 'auto') applyTheme('auto');
+      });
+
+      window.themeManager = {
+        set: (t)=> { saveTheme(t); applyTheme(t); },
+        get: ()=> getSaved(),
+        toggle: ()=> { const n = nextTheme(getSaved()); saveTheme(n); applyTheme(n); }
+      };
+
+      document.addEventListener('DOMContentLoaded', ()=>{
+        const btn = document.getElementById('theme-toggle');
+        if(btn){
+          btn.addEventListener('click', ()=> window.themeManager.toggle());
+          applyTheme(getSaved());
+        }
+      });
+    })();
+
+    // ---------------------------
+    // Firebase config (mantive o seu)
+    // ---------------------------
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
       projectId: "inovacao-emr",
       storageBucket: "inovacao-emr.firebasestorage.app",
       messagingSenderId: "1075399271811",
-      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      appId: "1:1075399271811:web:f532f255d6a8f42b6",
       measurementId: "G-8CTLMNCZJN"
     };
 
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    /* =====================
-       Utils / Segurança leve (MODO TESTE: SEM VALIDAÇÃO)
-       ===================== */
-    // deixe o DEV_HASH caso queira depois voltar a verificação; não usado abaixo
-    const DEV_HASH = "";
-
+    // ---------------------------
+    // Utils
+    // ---------------------------
     async function sha256Hex(str){
       const enc = new TextEncoder().encode(str);
       const buf = await crypto.subtle.digest("SHA-256", enc);
       const arr = Array.from(new Uint8Array(buf));
       return arr.map(b=>b.toString(16).padStart(2,"0")).join("");
     }
-    // helper exposto pra você gerar hash no console, se quiser
     window.__hash = sha256Hex;
-
     function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
     function norm(s){ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
 
-    /* =====================
-       Estado
-       ===================== */
+    // ---------------------------
+    // Estado e DOM refs
+    // ---------------------------
     let participants = [];
     let filtered = [], chosen=null, active=-1;
     let allowFreeName = false;
     let participantsLoaded = false;
 
-    /* =====================
-       DOM
-       ===================== */
     const nameEl = document.getElementById('name');
     const sugEl  = document.getElementById('suggestions');
     const startBtn = document.getElementById('start-btn');
     const loadMsg  = document.getElementById('loadMsg');
     const rows = document.getElementById('ranking-rows');
 
-    /* =====================
-       Carrega participantes
-       ===================== */
+    // dev modal refs
+    const devModal = document.getElementById('dev-modal');
+    const devFreeState = document.getElementById('dev-free-state');
+    const devDebug = document.getElementById('dev-debug');
+
+    function debug(msg){
+      if(!devDebug) return;
+      const time = new Date().toLocaleTimeString();
+      devDebug.textContent = `[${time}] ${msg}\n` + (devDebug.textContent||"");
+    }
+    function updateFreeNameBadge(){
+      devFreeState.textContent = allowFreeName ? 'ON' : 'OFF';
+      devFreeState.style.color = allowFreeName ? '#59C085' : 'inherit';
+    }
+
+    // ---------------------------
+    // Carrega participantes (data/participants.json)
+    // ---------------------------
     async function loadParticipants(){
-      const tryPaths = ["participants.json", "data/participants.json"];
+      const tryPaths = ["data/participants.json","participants.json","data/participants.json?v=1"];
       for (const p of tryPaths){
         try{
           const res = await fetch(`${p}?v=${Date.now()}`);
@@ -224,9 +247,9 @@
     }
     loadParticipants();
 
-    /* =====================
-       Autocomplete (nome)
-       ===================== */
+    // ---------------------------
+    // Autocomplete
+    // ---------------------------
     function filterNames(q){
       const n = norm(q);
       if (n.length < 1) return [];
@@ -290,9 +313,9 @@
       if(!e.target.closest('.autocomplete')) hideSug();
     });
 
-    /* =====================
-       Submit
-       ===================== */
+    // ---------------------------
+    // Submit
+    // ---------------------------
     document.getElementById('start-form').addEventListener('submit',(e)=>{
       e.preventDefault();
       if(!participantsLoaded){
@@ -309,11 +332,10 @@
       location.href = `quiz.html?${qs}`;
     });
 
-    /* =====================
-       QR & Copiar link
-       ===================== */
+    // ---------------------------
+    // QR & Copiar link
+    // ---------------------------
     const homeURL = (()=> {
-      // remove "index.html" do final se existir (melhor para GitHub Pages)
       const url = new URL(location.href);
       const path = url.pathname.replace(/index\.html?$/i,'');
       return url.origin + path;
@@ -326,9 +348,9 @@
       ok.style.display='inline'; setTimeout(()=>ok.style.display='none',1500);
     };
 
-    /* =====================
-       Ranking ao vivo
-       ===================== */
+    // ---------------------------
+    // Ranking ao vivo (Firestore)
+    // ---------------------------
     const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
 
     function renderData(data){
@@ -368,55 +390,31 @@
     }
     startLive();
 
-    /* =====================
-       Modo Dev (LIBERADO - SEM SENHA)
-       ===================== */
-    const devModal = document.getElementById('dev-modal');
-    const devFreeState = document.getElementById('dev-free-state');
-    const devDebug = document.getElementById('dev-debug');
-
-    function debug(msg){
-      if(!devDebug) return;
-      const time = new Date().toLocaleTimeString();
-      devDebug.textContent = `[${time}] ${msg}\n` + (devDebug.textContent||"");
-    }
-
-    function updateFreeNameBadge(){
-      devFreeState.textContent = allowFreeName ? 'ON' : 'OFF';
-      devFreeState.style.color = allowFreeName ? '#59C085' : '#e8f7fb';
-    }
-
-    // MODO TESTE: sempre retorna true -> abre o modal sem validação
-    async function askDevPassword(){
-      return true;
-    }
-
+    // ---------------------------
+    // Modo Dev (LIBERADO - SEM SENHA)
+    // ---------------------------
     function openDev(){
       devModal.showModal();
       updateFreeNameBadge();
     }
     function closeDev(){ devModal.close(); }
 
-    // Abertura por long-press na bolinha da logo (2s)
+    // long-press hotspot
     const hotspot = document.getElementById('dev-hotspot');
     let pressTimer=null;
     hotspot.addEventListener('pointerdown', ()=>{
-      pressTimer = setTimeout(async ()=>{
-        if(await askDevPassword()) openDev();
-      }, 2000);
+      pressTimer = setTimeout(async ()=>{ openDev(); }, 2000);
     });
     ['pointerup','pointerleave','pointercancel'].forEach(ev=>{
       hotspot.addEventListener(ev, ()=>{ clearTimeout(pressTimer); pressTimer=null; });
     });
 
-    // Atalho: Ctrl + Alt + D
+    // shortcut
     document.addEventListener('keydown', async (e)=>{
-      if(e.ctrlKey && e.altKey && (e.key==='d' || e.key==='D')){
-        if(await askDevPassword()) openDev();
-      }
+      if(e.ctrlKey && e.altKey && (e.key==='d' || e.key==='D')){ openDev(); }
     });
 
-    // Botões do modal
+    // modal buttons
     document.getElementById('dev-close').onclick = closeDev;
     document.getElementById('dev-ok').onclick = closeDev;
 
@@ -432,30 +430,32 @@
     };
 
     document.getElementById('dev-clear-cache').onclick = ()=>{
-      try{
-        localStorage.clear();
-        sessionStorage.clear();
-        alert("Cache local limpo (localStorage/sessionStorage).");
-      }catch(e){ alert("Falha ao limpar cache: "+e.message); }
+      try{ localStorage.clear(); sessionStorage.clear(); alert("Cache local limpo."); }catch(e){ alert("Falha: "+e.message); }
     };
 
     document.getElementById('dev-wipe').onclick = async ()=>{
-      if(!confirm("Tem certeza? Isso APAGARÁ TODOS os scores.")) return;
-      try{
-        const snap = await getDocs(collection(db,'scores'));
-        let n=0;
-        for(const d of snap.docs){
-          await deleteDoc(doc(db,'scores', d.id));
-          n++;
-          if(n%20===0) await sleep(20);
+      if(!confirm("ATENÇÃO — isso APAGARÁ TODOS os scores da coleção 'scores'. Continuar?")) return;
+      const word = prompt("Digite APAGAR para confirmar:");
+      if(!word || word.toUpperCase() !== "APAGAR"){ alert("Cancelado."); return; }
+
+      try {
+        const snap = await getDocs(collection(db, 'scores'));
+        if (snap.empty) { alert("Nenhum score encontrado."); return; }
+        let removed = 0;
+        for (const d of snap.docs) {
+          await deleteDoc(doc(db, 'scores', d.id));
+          removed++;
+          if (removed % 20 === 0) await sleep(30);
         }
-        alert(`Pronto. Removidos ${n} scores.`);
-      }catch(e){
-        alert("Erro ao apagar scores (verifique regras do Firestore). Detalhe no console.");
-        console.error(e);
+        alert(`Removidos ${removed} documentos.`);
+        debug(`Removidos ${removed} docs de scores.`);
+      } catch (err) {
+        console.error("Erro ao apagar scores:", err);
+        alert("Erro ao apagar scores. Veja console para detalhes.");
       }
     };
   </script>
 </body>
 </html>
+
 
