@@ -6,77 +6,79 @@
   <title>Quiz EMR — Início</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/styles.css?v=2"/>
+  <link rel="stylesheet" href="assets/styles.css?v=3">
 
-  <!-- favicons / meta -->
+  <!-- meta -->
   <meta name="theme-color" content="#071719" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
-      <div class="logo" id="brand-hotspot" title="Abrir modo dev (long-press ou Ctrl+Alt+D)">
-        <!-- subtle SVG mark -->
-        <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden><circle cx="12" cy="12" r="10" fill="var(--logo-dot)"/></svg>
+    <div class="topbar-inner container">
+      <div class="brand">
+        <button id="brand-hotspot" class="brand-logo" title="Abrir modo dev (long-press ou Ctrl+Alt+D)" aria-label="Logo">
+          <svg width="36" height="36" viewBox="0 0 24 24" aria-hidden focusable="false">
+            <circle cx="12" cy="12" r="10" fill="var(--logo-dot)"/>
+          </svg>
+        </button>
+        <div class="brand-text">
+          <div class="title">Quiz EMR</div>
+          <div class="subtitle">Evento • Interativo</div>
+        </div>
       </div>
-      <div class="brand-text">
-        <div class="title">Quiz EMR</div>
-        <div class="subtitle">Evento · Interativo</div>
-      </div>
-    </div>
 
-    <div class="actions">
-      <button id="theme-toggle" class="chip" aria-label="Alternar tema">🖥️ <span id="theme-label">Auto</span></button>
-      <div class="badge">Evento</div>
+      <div class="top-actions">
+        <button id="theme-toggle" class="icon-btn" aria-label="Alternar tema">🖥️</button>
+      </div>
     </div>
   </header>
 
-  <main class="main container">
-    <section class="left">
-      <div class="card hero-card">
+  <main class="container main-grid">
+    <!-- principal -->
+    <section class="content-col">
+      <div class="card hero">
         <h1>Pronto para jogar? <span class="accent">🎯</span></h1>
-        <p class="lead">Digite seu nome e escolha a partir da lista oficial para entrar no quiz.</p>
+        <p class="lead">Digite seu nome e escolha a partir da lista oficial para participar.</p>
 
-        <form id="start-form" class="start-form" novalidate>
-          <label class="field">
-            <span class="field-label">Seu nome</span>
-            <div class="autocomplete">
-              <input id="name" class="input" type="text" placeholder="Comece a digitar..." autocomplete="off" aria-autocomplete="list"/>
-              <ul id="suggestions" class="typeahead" role="listbox" aria-label="Sugestões"></ul>
-            </div>
-          </label>
+        <form id="start-form" class="form" novalidate>
+          <label class="label">Seu nome</label>
+          <div class="autocomplete">
+            <input id="name" class="input" type="text" placeholder="Comece a digitar..." autocomplete="off" aria-autocomplete="list" />
+            <ul id="suggestions" class="typeahead" role="listbox" aria-label="Sugestões"></ul>
+          </div>
 
-          <div class="row-between">
-            <button id="start-btn" class="btn btn-primary" type="submit" disabled>Começar agora</button>
-            <div class="small muted" id="loadMsg">Carregando participantes…</div>
+          <div class="form-row">
+            <button id="start-btn" class="btn primary" type="submit" disabled>Começar agora</button>
+            <div id="loadMsg" class="muted small">Carregando participantes…</div>
           </div>
         </form>
 
-        <div class="qr-area">
-          <img id="qr" alt="QR do jogo" width="96" height="96"/>
+        <div class="qr-block">
+          <img id="qr" alt="QR do jogo" width="128" height="128" />
           <div class="qr-actions">
             <button id="copy" class="btn">Copiar link</button>
-            <span id="copied" class="muted" style="display:none">Link copiado!</span>
+            <span id="copied" class="muted small" style="display:none;margin-left:8px">Link copiado!</span>
           </div>
         </div>
       </div>
 
-      <div class="card info-card">
+      <div class="card info">
         <h3>Como funciona</h3>
         <ol class="muted">
-          <li>Escolha seu nome a partir da lista (ou ative “nome livre” no Dev).</li>
-          <li>Responda o quiz no app — pontuação e tempo são salvos automaticamente.</li>
-          <li>Ranking atualiza em tempo-real na lateral.</li>
+          <li>Escolha seu nome na lista (ou use “nome livre” no Dev).</li>
+          <li>Responda o quiz — pontuação e tempo são salvos automaticamente.</li>
+          <li>Ranking atualiza em tempo real na lateral.</li>
         </ol>
       </div>
     </section>
 
-    <aside class="right">
-      <div class="card ranking-card">
-        <div class="rank-head">
+    <!-- lateral -->
+    <aside class="side-col">
+      <div class="card ranking">
+        <div class="ranking-head">
           <h3>🏆 Ranking em tempo real</h3>
-          <div class="small muted">Top 10 • desempate por tempo</div>
+          <div class="small muted">Top 10 · desempate por tempo</div>
         </div>
-        <table class="table">
+        <table class="table" aria-label="Ranking">
           <thead><tr><th>#</th><th>Nome</th><th>P</th><th>Tempo</th></tr></thead>
           <tbody id="ranking-rows">
             <tr><td colspan="4"><div class="skel" style="height:72px"></div></td></tr>
@@ -86,14 +88,12 @@
     </aside>
   </main>
 
-  <!-- dev modal -->
-  <dialog id="dev-modal" class="dev-modal">
-    <header class="dev-head">
+  <!-- dev modal (invisível até invocado) -->
+  <dialog id="dev-modal" class="dev-modal" aria-hidden="true">
+    <div class="dev-head">
       <strong>⚙️ Modo Dev</strong>
-      <div>
-        <button id="dev-close" class="btn small">Fechar</button>
-      </div>
-    </header>
+      <div><button id="dev-close" class="btn">Fechar</button></div>
+    </div>
     <div class="dev-body">
       <div class="row">
         <button id="dev-reload-part" class="btn">Recarregar participantes</button>
@@ -101,45 +101,43 @@
       </div>
       <div class="row">
         <button id="dev-clear-cache" class="btn">Limpar cache</button>
-        <button id="dev-wipe" class="btn btn-danger">APAGAR TODOS (TEMP)</button>
+        <button id="dev-wipe" class="btn danger">APAGAR TODOS (TEMP)</button>
       </div>
-      <details>
-        <summary>Debug</summary>
-        <pre id="dev-debug" class="dev-debug"></pre>
-      </details>
+      <details><summary>Debug</summary><pre id="dev-debug" class="dev-debug"></pre></details>
     </div>
   </dialog>
 
   <script type="module">
-    // ---- Imports ----
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import {
       getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs,
       deleteDoc, doc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    // ---- Theme manager (auto/dark/light) ----
+    // Theme manager (simple)
     (function(){
       const KEY='theme'; const root=document.documentElement;
       function apply(t){
         if(t==='auto'){
-          const dark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           root.setAttribute('data-theme', dark ? 'dark' : 'light');
-        }else root.setAttribute('data-theme', t);
-        const btn=document.getElementById('theme-label');
-        if(btn) btn.textContent = t==='auto' ? 'Auto' : (t==='dark' ? 'Escuro' : 'Claro');
+        } else root.setAttribute('data-theme', t);
+        // update aria-label/icon if needed
       }
       function saved(){ return localStorage.getItem(KEY) || 'auto'; }
       function save(t){ localStorage.setItem(KEY,t); }
       function next(t){ return t==='auto' ? 'dark' : (t==='dark' ? 'light' : 'auto'); }
       apply(saved());
-      const mq=window.matchMedia('(prefers-color-scheme: dark)');
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
       mq.addEventListener?.('change', ()=> { if(saved()==='auto') apply('auto'); });
       window.themeManager = { set:(t)=>{save(t);apply(t)}, toggle:()=>{const n=next(saved());save(n);apply(n)} };
-      document.addEventListener('DOMContentLoaded', ()=>{ const t=document.getElementById('theme-toggle'); if(t) t.onclick = ()=> themeManager.toggle(); });
+      document.addEventListener('DOMContentLoaded', ()=> {
+        const btn = document.getElementById('theme-toggle');
+        if(btn) btn.addEventListener('click', ()=> window.themeManager.toggle());
+      });
     })();
 
-    // ---- Firebase config (mantive o seu) ----
+    // Firebase config (kept)
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -152,29 +150,27 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // ---- State & DOM ----
-    let participants = [];
-    let filtered = [], chosen=null, active=-1;
-    let allowFreeName = false;
-    let participantsLoaded = false;
+    // Helpers
+    const el = id => document.getElementById(id);
+    const nameEl = el('name');
+    const sugEl = el('suggestions');
+    const startBtn = el('start-btn');
+    const loadMsg = el('loadMsg');
+    const rows = el('ranking-rows');
 
-    const nameEl = document.getElementById('name');
-    const sugEl  = document.getElementById('suggestions');
-    const startBtn = document.getElementById('start-btn');
-    const loadMsg  = document.getElementById('loadMsg');
-    const rows = document.getElementById('ranking-rows');
-    const qr = document.getElementById('qr');
+    // Participants loader
+    let participants = [], filtered = [], chosen = null, active = -1;
+    let allowFreeName = false, participantsLoaded = false;
 
-    // ---- load participants ----
     async function loadParticipants(){
       const tryPaths = ['data/participants.json','participants.json'];
       for(const p of tryPaths){
         try{
           const r = await fetch(`${p}?v=${Date.now()}`);
           if(!r.ok) throw new Error(r.status);
-          const d = await r.json();
-          if(Array.isArray(d.participants) && d.participants.length){
-            participants = d.participants;
+          const j = await r.json();
+          if(Array.isArray(j.participants) && j.participants.length){
+            participants = j.participants;
             participantsLoaded = true;
             loadMsg.textContent = `Lista carregada (${participants.length})`;
             startBtn.disabled = false;
@@ -183,22 +179,23 @@
           }
         }catch(e){ console.warn('participants failed',p,e); }
       }
-      participantsLoaded=false;
+      participants = [];
+      participantsLoaded = false;
       loadMsg.textContent = 'Não encontrei a lista de participantes.';
       startBtn.disabled = true;
-      participants=[];
     }
     loadParticipants();
 
-    // ---- autocomplete ----
     const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+
     function filterNames(q){
       const n = norm(q);
-      if(n.length<1) return [];
-      return participants.filter(p=>norm(p.name).includes(n)).slice(0,8);
+      if(n.length < 1) return [];
+      return participants.filter(p => norm(p.name).includes(n)).slice(0,8);
     }
+
     function renderSuggestions(list){
-      sugEl.innerHTML='';
+      sugEl.innerHTML = '';
       if(!list.length){ hideSug(); return; }
       list.forEach((p,i)=>{
         const li = document.createElement('li'); li.role='option';
@@ -206,17 +203,17 @@
         li.onclick = ()=> pick(i);
         sugEl.appendChild(li);
       });
-      sugEl.style.display='block'; active=-1;
+      sugEl.style.display='block'; active = -1;
     }
-    function hideSug(){ sugEl.style.display='none'; active=-1; }
+    function hideSug(){ sugEl.style.display='none'; active = -1; }
     function pick(i){ chosen = filtered[i]; if(!chosen) return; nameEl.value = chosen.name; hideSug(); }
 
     let debounce;
     nameEl.addEventListener('input', ()=>{
-      chosen=null; clearTimeout(debounce);
-      debounce = setTimeout(()=>{ filtered = filterNames(nameEl.value); renderSuggestions(filtered); }, 120);
+      chosen = null; clearTimeout(debounce);
+      debounce = setTimeout(()=> { filtered = filterNames(nameEl.value); renderSuggestions(filtered); }, 120);
     });
-    nameEl.addEventListener('keydown', e=>{
+    nameEl.addEventListener('keydown', (e)=>{
       if(sugEl.style.display==='block'){
         if(e.key==='ArrowDown'){ e.preventDefault(); move(1); }
         if(e.key==='ArrowUp'){ e.preventDefault(); move(-1); }
@@ -224,16 +221,16 @@
         if(e.key==='Escape'){ e.preventDefault(); hideSug(); }
       }
     });
+    document.addEventListener('click', (e)=> { if(!e.target.closest('.autocomplete')) hideSug(); });
+
     function move(delta){
       const items = [...sugEl.children]; if(!items.length) return;
       active = (active + delta + items.length) % items.length;
       items.forEach((li,i)=> li.classList.toggle('active', i===active));
       if(active>=0) items[active].scrollIntoView({block:'nearest'});
     }
-    document.addEventListener('click', e=>{ if(!e.target.closest('.autocomplete')) hideSug(); });
 
-    // ---- submit ----
-    document.getElementById('start-form').addEventListener('submit', e=>{
+    document.getElementById('start-form').addEventListener('submit', (e)=>{
       e.preventDefault();
       if(!participantsLoaded){ alert('Aguarde carregar a lista.'); return; }
       if(!chosen && !allowFreeName){ alert('Selecione seu nome da lista oficial.'); return; }
@@ -243,15 +240,15 @@
       location.href = `quiz.html?${qs}`;
     });
 
-    // ---- QR and copy ----
-    const homeURL = (()=>{ const u=new URL(location.href); const p=u.pathname.replace(/index\.html?$/i,''); return u.origin + p; })();
-    qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(homeURL)}`;
-    document.getElementById('copy').onclick = async ()=>{ await navigator.clipboard.writeText(homeURL); const c=document.getElementById('copied'); c.style.display='inline'; setTimeout(()=>c.style.display='none',1500); };
+    // QR & Copy
+    const homeURL = (()=>{ const u = new URL(location.href); const p = u.pathname.replace(/index\.html?$/i,''); return u.origin + p; })();
+    el('qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(homeURL)}`;
+    el('copy').onclick = async ()=> { await navigator.clipboard.writeText(homeURL); const c = el('copied'); c.style.display='inline'; setTimeout(()=> c.style.display='none',1500); };
 
-    // ---- ranking live ----
-    function fmt(t){ return Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : '-'; }
+    // Ranking live
+    function fmt(t){ return Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : '-' ; }
     function renderData(data){
-      rows.innerHTML='';
+      rows.innerHTML = '';
       const top = data.slice(0,10);
       if(!top.length){ rows.innerHTML = `<tr><td colspan="4" class="muted">Sem resultados ainda</td></tr>`; return; }
       let pos=1;
@@ -268,46 +265,38 @@
         const snap = await getDocs(baseQ);
         const pre = snap.docs.map(d=>d.data()).sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
         renderData(pre);
-        onSnapshot(baseQ, s=> { const arr = s.docs.map(d=>d.data()).sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9)); renderData(arr); });
+        onSnapshot(baseQ, s => { const arr = s.docs.map(d=>d.data()).sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9)); renderData(arr); });
       }catch(e){ console.error(e); }
     }
     startLive();
 
-    // ---- dev modal (no-password for quick test, long-press or shortcut) ----
-    const devModal = document.getElementById('dev-modal');
-    const devDebug = document.getElementById('dev-debug');
-    const devFreeToggle = document.getElementById('dev-toggle-free');
-    const devFreeState = document.getElementById('dev-free-state');
-    function uFree(){ devFreeState.textContent = allowFreeName ? 'ON' : 'OFF'; devFreeState.style.color = allowFreeName ? 'var(--accent)' : ''; }
-    function logDev(m){ devDebug.textContent = new Date().toLocaleTimeString() + ' — ' + m + '\n' + devDebug.textContent; }
-
-    document.getElementById('dev-reload-part').onclick = async ()=>{ await loadParticipants(); alert('Participantes recarregados'); logDev('reloaded participants'); };
-    devFreeToggle.onclick = ()=>{ allowFreeName = !allowFreeName; uFree(); alert('Nome livre ' + (allowFreeName?'ativado':'desativado')); logDev('toggle free ' + allowFreeName); };
-    document.getElementById('dev-clear-cache').onclick = ()=>{ localStorage.clear(); sessionStorage.clear(); alert('Cache limpo'); logDev('cache cleared'); };
-
-    document.getElementById('dev-wipe').onclick = async ()=>{
+    // Dev modal (no-password for quick tests)
+    const devModal = el('dev-modal'), devDebug = el('dev-debug'), devFreeState = el('dev-free-state');
+    function logDev(m){ devDebug.textContent = new Date().toLocaleTimeString() + ' – ' + m + '\n' + devDebug.textContent; }
+    el('dev-reload-part').onclick = async ()=> { await loadParticipants(); alert('Participantes recarregados'); logDev('reloaded participants'); };
+    el('dev-toggle-free').onclick = ()=> { allowFreeName = !allowFreeName; devFreeState.textContent = allowFreeName ? 'ON' : 'OFF'; alert('Nome livre ' + (allowFreeName? 'ativado':'desativado')); logDev('toggle free ' + allowFreeName); };
+    el('dev-clear-cache').onclick = ()=> { localStorage.clear(); sessionStorage.clear(); alert('Cache limpo'); logDev('cache cleared'); };
+    el('dev-wipe').onclick = async ()=> {
       if(!confirm('ATENÇÃO — isso APAGARÁ TODOS os scores. Continuar?')) return;
       if(!confirm('Confirma novamente?')) return;
       try{
         const snap = await getDocs(collection(db,'scores'));
         let n=0; for(const d of snap.docs){ await deleteDoc(doc(db,'scores', d.id)); n++; if(n%20===0) await new Promise(r=>setTimeout(r,30)); }
-        alert(`Removidos ${n}`);
-        logDev(`wipe removed ${n}`);
+        alert(`Removidos ${n}`); logDev(`wipe removed ${n}`);
       }catch(e){ console.error(e); alert('Erro (veja console)'); logDev('wipe error: '+e.message); }
     };
+    el('dev-close').onclick = ()=> devModal.close();
 
-    document.getElementById('dev-close').onclick = ()=> devModal.close();
     // open dev: long-press or Ctrl+Alt+D
     (function(){
-      const hs=document.getElementById('brand-hotspot');
-      let t;
-      hs.addEventListener('pointerdown', ()=> t = setTimeout(()=> devModal.showModal(), 1600));
+      const hs = el('brand-hotspot'); let t;
+      hs.addEventListener('pointerdown', ()=> t = setTimeout(()=> devModal.showModal(), 1400));
       ['pointerup','pointerleave','pointercancel'].forEach(ev => hs.addEventListener(ev, ()=> clearTimeout(t)));
-      document.addEventListener('keydown', e=> { if(e.ctrlKey && e.altKey && (e.key==='d' || e.key==='D')) devModal.showModal(); });
+      document.addEventListener('keydown', e => { if(e.ctrlKey && e.altKey && (e.key==='d' || e.key==='D')) devModal.showModal(); });
     })();
 
-    // ---- helpers ----
-    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+    // small helpers
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
   </script>
 </body>
 </html>
