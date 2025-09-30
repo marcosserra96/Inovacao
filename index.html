@@ -164,12 +164,9 @@
        Utils / Segurança leve
        ===================== */
     const DEV_HASH = "senha"; // troque!
-    async function sha256Hex(str){
-      const enc = new TextEncoder().encode(str);
-      const buf = await crypto.subtle.digest("SHA-256", enc);
-      const arr = Array.from(new Uint8Array(buf));
-      return arr.map(b=>b.toString(16).padStart(2,"0")).join("");
-    }
+async function askDevPassword(){ 
+  return true; 
+}
     // helper exposto pra você gerar hash no console
     window.__hash = sha256Hex;
 
