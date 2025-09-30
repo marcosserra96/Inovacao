@@ -3,29 +3,138 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quiz EMR - Jogo</title>
-  <link rel="stylesheet" href="assets/styles.css"/>
-  <script type="module" src="js/quiz.js" defer></script>
+  <title>Quiz EMR — Perguntas</title>
+  <link rel="stylesheet" href="assets/styles.css?v=7"/>
 </head>
 <body>
-  <header class="navbar">
-    <div class="logo">🔵 Quiz EMR</div>
-    <nav><a href="index.html">Ranking</a></nav>
+  <header class="header">
+    <div class="brand">
+      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
+    </div>
+    <div class="badge">Perguntas</div>
   </header>
 
-  <main>
-    <section class="card" id="quiz-container">
-      <h2 id="question-title">Carregando...</h2>
-      <ul id="options-list"></ul>
-      <div class="progress-bar"><div id="progress"></div></div>
-      <p class="timer">⏱ <span id="timer">0.0s</span></p>
-    </section>
+  <main class="card">
+    <div class="quiz-wrap">
+      <!-- Top bar -->
+      <div class="topbar">
+        <span id="q-count" class="pill">Pergunta 1</span>
+        <div class="progress"><div id="progress" class="bar"></div></div>
+        <span id="q-time" class="timer">⏱ 0.0s</span>
+      </div>
 
-    <section class="card hidden" id="result-container">
-      <h2>Resultado</h2>
-      <p>Pontuação: <span id="final-score"></span></p>
-      <p>Tempo total: <span id="final-time"></span></p>
-    </section>
+      <!-- Título e opções -->
+      <h2 id="q-title" class="q-title">Carregando…</h2>
+      <div id="q-options"></div>
+    </div>
   </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { QUESTIONS, computeScore } from "./js/questions.js?v=7"; // força versão nova
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    // elementos
+    const qs=s=>document.querySelector(s), qsa=s=>document.querySelectorAll(s);
+    const elCount=qs('#q-count'), elBar=qs('#progress'), elTime=qs('#q-time'), elTitle=qs('#q-title'), elOpts=qs('#q-options');
+
+    // jogador via URL
+    const params=new URLSearchParams(location.search);
+    const player={ name:params.get('name')||'Participante', email:params.get('email')||'' };
+
+    // estado
+    let idx=0, totalScore=0, totalTime=0, start=0, raf=null, canAnswer=true, sessionId=null;
+
+    // cria sessão (opcional)
+    try{
+      const r=await addDoc(collection(db,"sessions"),{ name:player.name,email:player.email,startedAt:serverTimestamp() });
+      sessionId=r.id;
+    }catch(e){ console.warn("Sessão não criada:",e?.code,e?.message); }
+
+    function setProgress(){
+      elBar.style.width = `${Math.round((idx/QUESTIONS.length)*100)}%`;
+      if (elCount) elCount.textContent=`Pergunta ${idx+1} de ${QUESTIONS.length}`;
+    }
+
+    function render(){
+      setProgress();
+      const q=QUESTIONS[idx];
+      elTitle.textContent=q.title;
+      elOpts.innerHTML="";
+      canAnswer=true;
+
+      q.options.forEach((opt,i)=>{
+        const b=document.createElement('button');
+        b.className="option";
+        b.innerHTML=`<div class="bullet">${i+1}</div><div>${opt}</div>`;
+        b.onclick=()=>answer(i);
+        elOpts.appendChild(b);
+      });
+
+      start=performance.now();
+      if(raf) cancelAnimationFrame(raf);
+      const tick=()=>{
+        elTime.textContent=`⏱ ${((performance.now()-start)/1000).toFixed(1)}s`;
+        raf=requestAnimationFrame(tick);
+      };
+      raf=requestAnimationFrame(tick);
+    }
+
+    function answer(i){
+      if(!canAnswer) return;
+      canAnswer=false;
+      cancelAnimationFrame(raf);
+
+      const elapsed=(performance.now()-start)/1000;
+      totalTime+=elapsed;
+
+      const q=QUESTIONS[idx];
+      const correct=i===q.answerIndex;
+      const pts = computeScore ? computeScore(correct,elapsed) : (correct?1000:0);
+      totalScore+=pts;
+
+      qsa('.option').forEach((btn,ii)=>{
+        btn.disabled=true;
+        if(ii===q.answerIndex) btn.classList.add('success');
+        if(ii===i && ii!==q.answerIndex) btn.classList.add('danger');
+      });
+
+      setTimeout(()=>{
+        idx++;
+        if(idx<QUESTIONS.length) render();
+        else finalize();
+      },380);
+    }
+
+    async function finalize(){
+      try{
+        await addDoc(collection(db,"scores"),{
+          sessionId, name:player.name, email:player.email,
+          score:totalScore, totalTime:Math.round(totalTime*100)/100,
+          createdAt:serverTimestamp()
+        });
+        // volta para a home (ranking ao vivo) após enviar
+        location.href="index.html";
+      }catch(e){
+        console.error("Erro ao enviar score:", e?.code, e?.message);
+        alert("Falha ao enviar. Tente novamente.");
+      }
+    }
+
+    render();
+  </script>
 </body>
 </html>
