@@ -1,0 +1,41 @@
+name: Atualizar photos.json (agendado)
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # roda a cada 5 minutos (mínimo do GitHub Actions)
+  workflow_dispatch:        # permite rodar manualmente pelo botão "Run workflow"
+
+permissions:
+  contents: write           # precisa para poder commitar de volta no repo
+
+jobs:
+  update-photos-json:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Rodar o script (gera/atualiza JSON e renomeia)
+        run: |
+          python update_photos.py --rename
+
+      - name: Commit & push se houve mudanças
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Verifica se o JSON mudou
+          if [[ -n "$(git status --porcelain photos/photos.json)" ]]; then
+            git add photos/photos.json
+            git commit -m "chore(photos): atualizar photos.json [skip ci]"
+            git push
+          else
+            echo "Sem mudanças no photos.json"
+          fi
