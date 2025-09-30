@@ -1,68 +1,136 @@
-:root{
-  --bg1:#003e57;
-  --bg2:#59c085;
-  --bg3:#f37021;
-  --ink:#eaf7fb;
-  --muted:#b8d0d7;
-  --gold:#ffd76a; --silver:#cfd4da; --bronze:#d18a49;
-}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz EMR — Início</title>
+  <link rel="stylesheet" href="assets/styles.css?v=1"/>
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
+    </div>
+    <div class="badge">Evento</div>
+  </header>
 
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%}
-body{
-  font-family: Inter, "Segoe UI", system-ui, Arial, sans-serif;
-  background: linear-gradient(135deg, var(--bg1), var(--bg2), var(--bg3));
-  color:var(--ink);
-  overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
+  <section class="card">
+    <div class="grid-home">
+      <!-- HERO (form) -->
+      <div class="hero">
+        <h1>Pronto para jogar? 🎯</h1>
+        <p>Responda rápido e acerte para pontuar mais. Visual claro com cartões no estilo Energisa.</p>
 
-.stage{width:100%; max-width:900px; text-align:center; padding:20px}
+        <form id="start-form" class="form">
+          <input id="name"  class="input" type="text"  placeholder="Seu nome" required/>
+          <input id="email" class="input" type="email" placeholder="Seu e-mail (empresa)" required/>
+          <button class="btn btn-pill btn-primary" type="submit">Começar agora</button>
+        </form>
 
-h1{font-size:2.4rem; margin-bottom:22px}
+        <p class="muted" style="margin-top:10px">
+          Ao iniciar, você concorda em aparecer no ranking do evento.
+        </p>
+      </div>
 
-.list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px}
-.item{
-  display:grid;
-  grid-template-columns: 40px 1fr 90px;
-  align-items:center;
-  background:rgba(0,0,0,0.25);
-  border-radius:14px;
-  padding:12px 16px;
-  font-size:1.2rem;
-  position:relative;
-}
-.item .meter{
-  position:absolute; left:0; right:0; bottom:0; height:6px;
-  background:rgba(255,255,255,0.08); border-radius:0 0 14px 14px; overflow:hidden;
-}
-.item .bar{height:100%; background:linear-gradient(90deg,#00c2ff,#59c085)}
+      <!-- RANKING -->
+      <aside class="side">
+        <h2>🏆 Ranking em tempo real</h2>
+        <table class="table">
+          <thead>
+            <tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr>
+          </thead>
+          <tbody id="ranking-rows">
+            <tr><td colspan="4" class="muted" style="padding:14px;">Carregando…</td></tr>
+          </tbody>
+        </table>
+        <p class="muted">Mostrando os 10 melhores (desempate por tempo).</p>
+      </aside>
+    </div>
+  </section>
 
-.gold{color:var(--gold); font-weight:700}
-.silver{color:var(--silver); font-weight:700}
-.bronze{color:var(--bronze); font-weight:700}
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-.fact{margin:28px 0 18px; font-size:1.1rem; color:var(--muted); min-height:28px}
-.fade{opacity:0; transition:opacity .3s}
-.fade.show{opacity:1}
+    // ⚙️ Firebase config (mesmo do jogo)
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
+    };
 
-.qrwrap{margin-top:20px; position:relative; display:inline-block}
-.qr{width:180px; height:180px; border-radius:12px; z-index:2; position:relative}
-.qrHalo{
-  position:absolute; top:50%; left:50%;
-  width:230px; height:230px;
-  margin:-115px 0 0 -115px;
-  border-radius:50%;
-  background:radial-gradient(circle,rgba(255,255,255,0.25),transparent 70%);
-  animation:pulse 2s infinite;
-  z-index:1;
-}
-.hint{margin-top:12px; font-size:0.95rem; color:var(--ink)}
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
 
-@keyframes pulse{
-  0%{transform:scale(.9); opacity:.6}
-  50%{transform:scale(1.1); opacity:1}
-  100%{transform:scale(.9); opacity:.6}
-}
+    // ➜ Redireciona para quiz.html com nome/email
+    document.getElementById('start-form').addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const name  = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      if(!name || !email) return;
+      const qs = new URLSearchParams({ name, email }).toString();
+      location.href = `quiz.html?${qs}`;
+    });
+
+    // === Ranking ===
+    const rows = document.getElementById('ranking-rows');
+    const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
+
+    function renderData(data){
+      rows.innerHTML = "";
+      if (!data.length){
+        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`;
+        return;
+      }
+      let pos = 1;
+      data.slice(0,10).forEach(d=>{
+        let medal = pos;
+        if (pos===1) medal="🏆"; else if (pos===2) medal="🥈"; else if (pos===3) medal="🥉";
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${medal}</td>
+          <td>${(d.name||"-").toString().slice(0,48)}</td>
+          <td><strong>${d.score ?? 0}</strong></td>
+          <td>${fmt(d.totalTime)}</td>
+        `;
+        rows.appendChild(tr);
+        pos++;
+      });
+    }
+
+    async function startLive(){
+      try{
+        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(20));
+        // Pré-carrega antes do onSnapshot
+        const snap = await getDocs(baseQ);
+        const pre = [];
+        snap.forEach(d=>pre.push(d.data()));
+        pre.sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+        renderData(pre);
+
+        // Live update
+        onSnapshot(baseQ, (s)=>{
+          const arr=[]; s.forEach(d=>arr.push(d.data()));
+          arr.sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+          renderData(arr);
+        }, (e)=>{
+          console.error("onSnapshot error:", e?.code, e?.message);
+          rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">
+            Erro ao carregar ranking (${e?.code||"desconhecido"}).
+          </td></tr>`;
+        });
+      }catch(e){
+        console.error("getDocs error:", e?.code, e?.message);
+        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">
+          Erro ao consultar ranking (${e?.code||"desconhecido"}).
+        </td></tr>`;
+      }
+    }
+    startLive();
+  </script>
+</body>
+</html>
