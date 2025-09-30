@@ -46,124 +46,144 @@
     </section>
   </main>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { QUESTIONS, computeScore } from "./js/questions.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+  import { QUESTIONS, computeScore } from "./js/questions.js";
 
-    /* COLE SEU firebaseConfig AQUI */
-    const firebaseConfig = {
-      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
-      authDomain: "inovacao-emr.firebaseapp.com",
-      projectId: "inovacao-emr",
-      storageBucket: "inovacao-emr.firebasestorage.app",
-      messagingSenderId: "1075399271811",
-      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
-      measurementId: "G-8CTLMNCZJN"
-    };
+  // 🔧 SEU firebaseConfig (mantenha o seu)
+  const firebaseConfig = {
+    apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+    authDomain: "inovacao-emr.firebaseapp.com",
+    projectId: "inovacao-emr",
+    storageBucket: "inovacao-emr.firebasestorage.app",
+    messagingSenderId: "1075399271811",
+    appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+    measurementId: "G-8CTLMNCZJN"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
 
-    // Elements
-    const qs=(s)=>document.querySelector(s), qsa=(s)=>document.querySelectorAll(s);
-    const qCount=qs('#q-count'), qTitle=qs('#q-title'), qOptions=qs('#q-options'),
-          qFeedback=qs('#q-feedback'), nextBtn=qs('#next-btn'),
-          progress=qs('#progress'), qTime=qs('#q-time'),
-          finalBox=qs('#final'), totalScoreEl=qs('#total-score'), totalTimeEl=qs('#total-time'),
-          playerPill=qs('#player-pill');
+  // Elements
+  const qs=(s)=>document.querySelector(s), qsa=(s)=>document.querySelectorAll(s);
+  const qCount=qs('#q-count'), qTitle=qs('#q-title')||qs('#question'), qOptions=qs('#q-options')||qs('#options');
+  const qFeedback=qs('#q-feedback')||document.createElement('div'), nextBtn=qs('#next-btn');
+  const progress=qs('#progress')||qs('#progress-bar'), qTime=qs('#q-time')||document.createElement('div');
+  const finalBox=qs('#final'), totalScoreEl=qs('#total-score')||document.createElement('span'), totalTimeEl=qs('#total-time')||document.createElement('span');
+  const playerPill=qs('#player-pill');
 
-    const params = new URLSearchParams(location.search);
-    const player = { name: params.get('name')||'Participante', email: params.get('email')||'' };
-    playerPill.textContent = player.name;
+  const params = new URLSearchParams(location.search);
+  const player = { name: params.get('name')||'Participante', email: params.get('email')||'' };
+  if (playerPill) playerPill.textContent = player.name;
 
-    // State
-    let idx=0, totalScore=0, totalTime=0, questionStart=0, canAnswer=true, anim=null, sessionId=null;
+  // Estado
+  let idx=0, totalScore=0, totalTime=0, questionStart=0, canAnswer=true, anim=null, sessionId=null;
 
-    // Firestore: cria sessão
-    (async ()=>{
-      try{
-        const r = await addDoc(collection(db,"sessions"),{ name:player.name, email:player.email, startedAt:serverTimestamp() });
-        sessionId = r.id;
-      }catch(e){ console.error(e); }
-    })();
+  // 🔹 Cria sessão no início (não é obrigatório, mas útil)
+  try {
+    const r = await addDoc(collection(db,"sessions"),{
+      name:player.name, email:player.email, startedAt:serverTimestamp()
+    });
+    sessionId = r.id;
+    console.log("Sessão criada:", sessionId);
+  } catch (e) {
+    console.error("Erro criando sessão:", e.code, e.message);
+  }
 
-    function setProgress(){ progress.style.width = Math.round((idx/QUESTIONS.length)*100) + "%"; }
+  function setProgress(){
+    if(!progress) return;
+    const pct = Math.round((idx/QUESTIONS.length)*100);
+    // barra fluida (div progress-bar) ou width (div#progress)
+    progress.style.width = pct + "%";
+  }
 
-    function startQuestion(){
-      setProgress();
-      const q = QUESTIONS[idx];
-      qCount.textContent = `Pergunta ${idx+1} de ${QUESTIONS.length}`;
-      qTitle.textContent = q.title;
-      qOptions.innerHTML = "";
-      qFeedback.textContent = "";
-      nextBtn.disabled = true; canAnswer = true;
+  function startQuestion(){
+    setProgress();
+    const q = QUESTIONS[idx];
+    if (qCount) qCount.textContent = `Pergunta ${idx+1} de ${QUESTIONS.length}`;
+    qTitle.textContent = q.title;
+    qOptions.innerHTML = "";
+    if (qFeedback) qFeedback.textContent = "";
+    if (nextBtn) nextBtn.disabled = true;
+    canAnswer = true;
 
-      q.options.forEach((opt,i)=>{
-        const btn = document.createElement('button');
-        btn.className = "option";
-        btn.innerHTML = `<div class="bullet">${i+1}</div><div>${opt}</div>`;
-        btn.onclick = ()=>answer(i);
-        qOptions.appendChild(btn);
-      });
+    q.options.forEach((opt,i)=>{
+      const btn = document.createElement('button');
+      btn.className = "option";
+      btn.innerHTML = `<div class="bullet">${i+1}</div><div>${opt}</div>`;
+      btn.onclick = ()=>answer(i);
+      qOptions.appendChild(btn);
+    });
 
-      questionStart = performance.now();
-      if (anim) cancelAnimationFrame(anim);
-      const tick = ()=>{
-        const s = (performance.now()-questionStart)/1000;
-        qTime.textContent = `⏱ ${s.toFixed(1)}s`;
-        anim = requestAnimationFrame(tick);
-      };
+    questionStart = performance.now();
+    if (anim) cancelAnimationFrame(anim);
+    const tick = ()=>{
+      const s = (performance.now()-questionStart)/1000;
+      if (qTime) qTime.textContent = `⏱ ${s.toFixed(1)}s`;
       anim = requestAnimationFrame(tick);
-    }
+    };
+    anim = requestAnimationFrame(tick);
+  }
 
-    function answer(index){
-      if(!canAnswer) return;
-      canAnswer = false;
-      cancelAnimationFrame(anim);
+  function answer(index){
+    if(!canAnswer) return;
+    canAnswer = false;
+    cancelAnimationFrame(anim);
 
-      const elapsed = (performance.now()-questionStart)/1000;
-      totalTime += elapsed;
+    const elapsed = (performance.now()-questionStart)/1000;
+    totalTime += elapsed;
 
-      const q = QUESTIONS[idx];
-      const correct = index === q.answerIndex;
-      const score = computeScore(correct, elapsed);
-      totalScore += score;
+    const q = QUESTIONS[idx];
+    const correct = index === q.answerIndex;
+    const score = computeScore(correct, elapsed);
+    totalScore += score;
 
-      qFeedback.textContent = correct ? `✔️ Correto! +${score} pontos` : `❌ Errado. +0 pontos`;
-      qsa('.option').forEach((b,i)=>{
-        b.disabled = true;
-        b.classList.remove('selected');
-        if(i===q.answerIndex) b.classList.add('success');
-        if(i===index && i!==q.answerIndex) b.classList.add('danger');
-      });
-      nextBtn.disabled = false;
-    }
+    if (qFeedback) qFeedback.textContent = correct ? `✔️ Correto! +${score} pontos` : `❌ Errado. +0 pontos`;
+    qsa('.option').forEach((b,i)=>{
+      b.disabled = true;
+      b.classList.remove('selected');
+      if(i===q.answerIndex) b.classList.add('success');
+      if(i===index && i!==q.answerIndex) b.classList.add('danger');
+    });
 
-    nextBtn.addEventListener('click', ()=>{
+    // Próxima pergunta OU finalizar automaticamente
+    setTimeout(() => {
       idx++;
-      if(idx < QUESTIONS.length){
+      if (idx < QUESTIONS.length) {
         startQuestion();
       } else {
-        setProgress();
-        qs('section.card').style.display = 'none';
-        finalBox.style.display = 'block';
-        totalScoreEl.textContent = totalScore;
-        totalTimeEl.textContent = `${totalTime.toFixed(1)}s`;
+        finalizeAndSend(); // 🔥 envia automático ao terminar
       }
-    });
+    }, 450); // pequena pausa para o usuário ver o feedback
+  }
 
-    qs('#send-btn')?.addEventListener('click', async ()=>{
-      try{
-        await addDoc(collection(db,"scores"),{
-          sessionId, name:player.name, email:player.email,
-          score: totalScore, totalTime: Math.round(totalTime*100)/100, createdAt: serverTimestamp()
-        });
-        location.href = "leaderboard.html";
-      }catch(e){ alert("Falha ao enviar. Tente novamente."); }
-    });
+  async function finalizeAndSend(){
+    // mostra o resultado brevemente (se existir a seção final)
+    if (finalBox) {
+      totalScoreEl.textContent = totalScore;
+      totalTimeEl.textContent = `${totalTime.toFixed(1)}s`;
+      finalBox.style.display = 'block';
+    }
 
-    startQuestion();
-  </script>
+    try {
+      const ref = await addDoc(collection(db,"scores"),{
+        sessionId, name:player.name, email:player.email,
+        score: totalScore, totalTime: Math.round(totalTime*100)/100,
+        createdAt: serverTimestamp()
+      });
+      console.log("Score enviado! id:", ref.id);
+      // vai direto para o ranking
+      location.href = "leaderboard.html";
+    } catch (e) {
+      console.error("Erro ao enviar score:", e.code, e.message);
+      alert("Falha ao enviar. Tente novamente.");
+    }
+  }
+
+  // Inicia
+  startQuestion();
+</script>
+
 </body>
 </html>
