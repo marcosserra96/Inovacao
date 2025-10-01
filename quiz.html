@@ -2,32 +2,46 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <!-- Anti-zoom iOS + notch -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"/>
   <title>Quiz EMR — Perguntas</title>
+
+  <!-- Estilos globais -->
   <link rel="stylesheet" href="assets/styles.css?v=2"/>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Anti-zoom iOS (garante fonte >=16px em inputs/botões) -->
+  <style>
+    html { -webkit-text-size-adjust: 100%; }
+    input, select, textarea, button { font-size: 16px; } /* evita zoom no foco no iPhone */
+    /* opcional: evita “double-tap zoom” em botões/links */
+    button, a { touch-action: manipulation; }
+  </style>
+
+  <!-- Confetti -->
+  <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 </head>
 <body>
   <header class="header">
     <div class="brand">
-      <img src="assets/logo.jpg" alt="Logo do evento" class="logo-img"/>
+      <img src="assets/logo.jpg" alt="Logo do evento" class="logo-img" />
       <span class="title">Quiz EMR</span>
     </div>
   </header>
 
   <section class="card quiz-wrap">
+    <!-- Topo -->
     <div class="topbar">
       <span id="q-count" class="pill">Pergunta 1</span>
       <div class="progress"><div id="progress" class="bar"></div></div>
-      <span id="q-time" class="timer">⏱ 0.0s</span>
+      <span id="q-time" class="timer" role="status" aria-live="polite">⏱ 0.0s</span>
     </div>
 
     <h2 id="q-title" class="q-title">Carregando…</h2>
     <div id="q-options"></div>
 
-    <!-- Intersticial: Prepare-se -->
+    <!-- Intersticial 3-2-1 -->
     <div id="interstitial" class="inter-wrap" aria-hidden="true">
-      <div class="inter-card">
+      <div class="inter-card" role="dialog" aria-live="assertive" aria-label="Próxima pergunta em breve">
         <p class="inter-title">Prepare-se</p>
         <div class="inter-count"><span id="inter-num">3</span></div>
         <p class="inter-sub">Próxima pergunta em instantes…</p>
@@ -39,12 +53,311 @@
       <div class="timeup-pulse">⏰ Tempo esgotado!</div>
     </div>
 
-    <!-- Overlay Resposta -->
-    <div id="answer-overlay" class="answer-wrap" aria-hidden="true">
-      <div class="answer-card"><span id="answer-msg"></span></div>
+    <!-- Overlay Resultado -->
+    <div id="result" class="result-wrap" aria-hidden="true">
+      <div id="result-card" class="result-card">
+        <span id="result-emoji" aria-hidden="true">✅</span>
+        <p id="result-text" class="result-text">Acertou!</p>
+      </div>
     </div>
   </section>
 
-  <script type="module" src="assets/quiz.js?v=2"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { QUESTIONS, computeScore as SCORE_FN } from "./js/questions.js?v=dev";
+
+    // ========== Firebase ==========
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    // ========== Config ==========
+    const QTIME = 20;                  // segundos por pergunta
+    const INTER_FIRST   = 3;           // contagem antes da primeira
+    const INTER_BETWEEN = 3;           // contagem entre as demais
+    const HAPTICS = false;             // vibre no Android se quiser
+
+    // ========== Estado ==========
+    const $ = s => document.querySelector(s);
+    const params = new URLSearchParams(location.search);
+    const player = {
+      id:   params.get('id')   || 'anon',
+      name: params.get('name') || 'Participante'
+    };
+
+    const VERSION="v2";
+    const SESSION_KEY = `quiz-emr:${VERSION}:${player.id}`;
+    const loadState = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || {}; } catch { return {}; } };
+    const saveState = (p) => localStorage.setItem(SESSION_KEY, JSON.stringify({ ...loadState(), ...p }));
+    const clearState = () => localStorage.removeItem(SESSION_KEY);
+
+    let state = loadState();
+    if (!state.startedAt){
+      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0, answers:[], times:[] };
+      saveState(state);
+    }
+
+    // Embaralha sem seed
+    const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+    let QS = shuffle(QUESTIONS).map(q => ({ ...q, options: shuffle(q.options.slice()) }));
+
+    // DOM refs
+    const elCount=$('#q-count'), elBar=$('#progress'), elTimer=$('#q-time'), elTitle=$('#q-title'), elOpts=$('#q-options');
+    const interWrap = $('#interstitial'), interNum = $('#inter-num');
+    const resultWrap=$('#result'), resultCard=$('#result-card'), resultEmoji=$('#result-emoji'), resultText=$('#result-text');
+    const quizCard = document.querySelector('.quiz-wrap');
+    const timeupEl = $('#timeup');
+
+    // Timer & locks
+    let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
+    let tickId=null, startTs=0, remaining=QTIME;
+    let paused=false, pauseStart=0, pausedTotal=0;
+    let questionLocked=false;  // evita clique + timeout
+    let interLock=false;       // bloqueia teclas durante intersticial/overlay
+    let finalizing=false;
+
+    // Pausa justa ao perder foco
+    document.addEventListener('visibilitychange', ()=>{
+      if (document.hidden){ paused=true; pauseStart=performance.now(); }
+      else if (paused){ paused=false; pausedTotal += performance.now()-pauseStart; }
+    });
+
+    // ===== Intersticial 3-2-1 =====
+    function haptic(){ if (HAPTICS && 'vibrate' in navigator) navigator.vibrate(20); }
+    function showIntermission(seconds){
+      interLock = true;
+      return new Promise(resolve=>{
+        interWrap.classList.add('show');
+        interWrap.setAttribute('aria-hidden','false');
+        let n = seconds;
+        interNum.textContent = n;
+        const iv = setInterval(()=>{
+          n -= 1;
+          if (n <= 0){
+            clearInterval(iv);
+            interWrap.classList.remove('show');
+            interWrap.setAttribute('aria-hidden','true');
+            interLock = false;
+            resolve();
+            return;
+          }
+          haptic();
+          interNum.textContent = n;
+        }, 1000);
+      });
+    }
+
+    // ===== Resultado (Acertou/Errou) =====
+    function showResult(correct){
+      interLock = true;
+      resultCard.classList.remove('ok','bad');
+      if (correct){
+        resultCard.classList.add('ok');
+        resultEmoji.textContent = '✅';
+        resultText.textContent  = 'Acertou!';
+      }else{
+        resultCard.classList.add('bad');
+        resultEmoji.textContent = '✗';
+        resultText.textContent  = 'Errou';
+      }
+      resultWrap.classList.add('show');
+      resultWrap.setAttribute('aria-hidden','false');
+      return new Promise(r=>{
+        setTimeout(()=>{
+          resultWrap.classList.remove('show');
+          resultWrap.setAttribute('aria-hidden','true');
+          interLock = false;
+          r();
+        }, 900);
+      });
+    }
+
+    // ===== UI & Timer =====
+    function setProgress(){
+      elBar.style.width = `${Math.round((idx/QS.length)*100)}%`;
+      elCount.textContent = `Pergunta ${Math.min(idx+1, QS.length)} de ${QS.length}`;
+    }
+    function lockOptions(){ [...elOpts.querySelectorAll('.option')].forEach(b=>b.disabled=true); }
+    function cancelTick(){ if (tickId){ cancelAnimationFrame(tickId); tickId=null; } }
+
+    function render(){
+      questionLocked=false;
+      setProgress();
+      const q = QS[idx];
+      elTitle.textContent = q.title;
+      elOpts.innerHTML = "";
+
+      q.options.forEach((text,i)=>{
+        const b=document.createElement('button');
+        b.className='option';
+        b.innerHTML = `<div class="bullet">${i+1}</div><div>${text}</div>`;
+        b.setAttribute('aria-label', `Alternativa ${i+1}: ${text}`);
+        b.onclick = ()=> answer(i);
+        elOpts.appendChild(b);
+      });
+
+      paused=false; pausedTotal=0;
+      remaining = QTIME;
+      startTs = performance.now();
+      cancelTick();
+      const tick=()=>{
+        const passed=(performance.now()-startTs - pausedTotal)/1000;
+        const left=Math.max(0,QTIME-passed);
+        remaining=left;
+        elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
+        if (left<=0){ onTimeUp(); return; }
+        tickId=requestAnimationFrame(tick);
+      };
+      tickId=requestAnimationFrame(tick);
+    }
+
+    // Teclado 1–4 (somente quando não há overlay)
+    document.addEventListener('keydown', (e)=>{
+      if (interLock || questionLocked) return;
+      if (['1','2','3','4'].includes(e.key)){
+        const n = Number(e.key)-1;
+        const btn = elOpts.children[n];
+        if (btn && !btn.disabled) btn.click();
+      }
+    });
+
+    // ===== Registrar fim por tempo =====
+    function onTimeUp(){
+      if (questionLocked) return;
+      questionLocked = true;
+      cancelTick();
+      lockOptions();
+
+      // animação curto: overlay + shake
+      timeupEl.classList.add('show');
+      timeupEl.setAttribute('aria-hidden','false');
+      quizCard.classList.add('shake');
+      setTimeout(()=>{
+        timeupEl.classList.remove('show');
+        timeupEl.setAttribute('aria-hidden','true');
+        quizCard.classList.remove('shake');
+      }, 800);
+
+      const q=QS[idx];
+      const used = QTIME;
+      const correct = false;
+      const pts = (SCORE_FN ? SCORE_FN(correct, used) : 0);
+      totalScore += pts;
+      totalTime  += used;
+
+      state.answers[idx] = -1;  // sem resposta
+      state.times[idx]   = used;
+
+      // destaca correta
+      [...elOpts.children].forEach((btn,ii)=>{
+        if (ii===q.answerIndex) btn.classList.add('success');
+      });
+
+      saveState({ idx, totalScore, totalTime, answers: state.answers, times: state.times });
+
+      // feedback -> contagem -> próxima
+      setTimeout(async ()=>{
+        await showResult(false);
+        await goNext();
+      }, 380);
+    }
+
+    // ===== Registrar resposta do usuário =====
+    function answer(i){
+      if (questionLocked || interLock) return;
+      questionLocked = true;
+      lockOptions();
+      cancelTick();
+
+      const used=Math.min(QTIME,(performance.now()-startTs - pausedTotal)/1000);
+      const q=QS[idx];
+      const correct=(i===q.answerIndex);
+      const pts=(SCORE_FN?SCORE_FN(correct,used):(correct?1000:0));
+      totalScore+=pts; totalTime+=used;
+
+      state.answers[idx] = i;
+      state.times[idx]   = used;
+
+      [...elOpts.children].forEach((btn,ii)=>{
+        if (ii===q.answerIndex) btn.classList.add('success');
+        if (ii===i && ii!==q.answerIndex) btn.classList.add('danger');
+      });
+
+      saveState({ idx, totalScore, totalTime, answers: state.answers, times: state.times });
+
+      setTimeout(async ()=>{
+        await showResult(correct);
+        await goNext();
+      }, 380);
+    }
+
+    // ===== Avançar com intersticial consistente =====
+    async function goNext(){
+      // incrementa índice, decide se finaliza, e se não, mostra contagem e renderiza
+      idx++;
+      saveState({ idx, totalScore, totalTime });
+
+      if (idx < QS.length){
+        await showIntermission(INTER_BETWEEN);
+        render();
+      } else {
+        finalize();
+      }
+    }
+
+    // ===== Finalização segura =====
+    async function finalize(){
+      if (finalizing) return; finalizing=true;
+      try{
+        const ref=doc(db,"scores", String(player.id).toLowerCase());
+        const prev=await getDoc(ref);
+        const newData={
+          name:player.name,
+          score:Math.round(totalScore),
+          totalTime:Math.round(totalTime*10)/10,
+          updatedAt:serverTimestamp()
+        };
+        let canWrite=true;
+        if (prev.exists()){
+          const p=prev.data();
+          canWrite=(newData.score>(p.score||0)) ||
+                   (newData.score===(p.score||0) && (newData.totalTime||9e9)<(p.totalTime||9e9));
+        }
+        if (canWrite) await setDoc(ref,newData);
+
+        if (window.confetti) window.confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
+
+        clearState();
+        const me=encodeURIComponent(String(player.id)||'');
+        setTimeout(()=> location.href=`index.html?me=${me}`,900);
+      }catch(err){
+        console.error(err);
+        alert("Falha ao enviar sua pontuação.");
+      }
+    }
+
+    // ===== Boot: intersticial antes da 1ª e render =====
+    (async ()=>{
+      // Garante arrays presentes em state
+      state.answers = state.answers || [];
+      state.times   = state.times   || [];
+      await showIntermission(INTER_FIRST);
+      render();
+    })();
+
+    // Protege contra refresh acidental
+    window.addEventListener('beforeunload',e=>{
+      if (idx<QS.length){ e.preventDefault(); e.returnValue=''; }
+    });
+  </script>
 </body>
 </html>
