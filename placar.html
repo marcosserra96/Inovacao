@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Placar — Innovation Break</title>
+  <link rel="stylesheet" href="assets/styles.css?v=1"/>
+</head>
+<body>
+  <main class="stage">
+    <section class="center">
+      <h1>🏆 TOP 5</h1>
+
+      <ul id="list" class="list">
+        <li class="item"><span>–</span><span>Carregando…</span><span>0</span></li>
+      </ul>
+
+      <p class="fact"><span id="fact" class="fade show">💡 Curiosidade aparecerá aqui…</span></p>
+
+      <div class="qrwrap">
+        <div class="qrHalo"></div>
+        <img id="qr" class="qr" alt="QR para participar">
+        <p class="hint">📲 Aponte a câmera e participe!</p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    // === Firebase (mesmo projeto do jogo) ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    // === Ranking em tempo real ===
+    const listEl = document.getElementById('list');
+    function renderList(arr){
+      listEl.innerHTML = '';
+      if (!arr.length){
+        listEl.innerHTML = `<li class="item"><span>–</span><span>Sem resultados ainda</span><span>0</span></li>`;
+        return;
+      }
+      const best = arr[0]?.score ?? 1;
+      arr.slice(0,5).forEach((p,i)=>{
+        const row = document.createElement('li');
+        row.className = 'item';
+        if (i===0) row.classList.add('gold');
+        if (i===1) row.classList.add('silver');
+        if (i===2) row.classList.add('bronze');
+        const pct = Math.max(0, Math.min(1, (p.score||0)/best));
+        row.innerHTML = `
+          <span>${i+1}</span>
+          <span class="name">${(p.name||'-').toString().slice(0,40)}</span>
+          <span class="score">${p.score ?? 0}</span>
+          <div class="meter"><div class="bar" style="width:${pct*100}%"></div></div>
+        `;
+        listEl.appendChild(row);
+      });
+    }
+    onSnapshot(query(collection(db,"scores"), orderBy("score","desc"), limit(5)), snap=>{
+      const arr=[]; snap.forEach(d=>arr.push(d.data()));
+      arr.sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+      renderList(arr);
+    });
+
+    // === Curiosidades ===
+    const facts = [
+      "Dados são o novo combustível para decisões estratégicas.",
+      "Design Thinking resolve problemas com foco no usuário.",
+      "Inovação disruptiva cria novos mercados.",
+      "Pequenas melhorias geram grandes resultados no longo prazo.",
+      "IA generativa acelera prototipagem e teste de ideias."
+    ];
+    const factEl = document.getElementById('fact'); let fi=0;
+    function nextFact(){ factEl.classList.remove('show'); setTimeout(()=>{ factEl.textContent = "💡 " + facts[fi++%facts.length]; factEl.classList.add('show'); }, 250); }
+    nextFact(); setInterval(nextFact, 8000);
+
+    // === QR com brilho/halo (pulsando) ===
+    const HOME = new URL('./index.html', location.href).toString();
+    const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(HOME)}`;
+    document.getElementById('qr').src = qrURL;
+  </script>
+</body>
+</html>

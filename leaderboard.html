@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz EMR — Ranking</title>
+  <link rel="stylesheet" href="assets/styles.css"/>
+</head>
+<body>
+  <!-- Cabeçalho padrão -->
+  <header class="header">
+    <div class="brand">
+      <span class="logo-dot"></span>
+      <span class="title">Quiz EMR</span>
+    </div>
+    <div class="badge">Ranking</div>
+  </header>
+
+  <main class="container narrow">
+    <section class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+        <h2 style="margin:0;">🏆 Ranking geral</h2>
+        <a href="index.html" class="btn ghost">Novo jogo</a>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:70px;">#</th>
+            <th>Nome</th>
+            <th style="width:120px;">Pontos</th>
+            <th style="width:120px;">Tempo</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <!-- linhas renderizadas via JS -->
+        </tbody>
+      </table>
+
+      <p id="hint" class="muted" style="margin-top:12px;">Desempate por menor tempo total.</p>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    // 🔧 MESMO config do quiz
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    const rows = document.getElementById('rows');
+    const hint = document.getElementById('hint');
+
+    function fmtTime(t){
+      if (typeof t === "number") return `${t.toFixed(1)}s`;
+      const n = Number(t);
+      return Number.isFinite(n) ? `${n.toFixed(1)}s` : "-";
+    }
+
+    async function loadRanking(){
+      rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Carregando…</td></tr>`;
+      try{
+        // pega top 100 por score (desc) — sem índice composto
+        const q = query(collection(db,"scores"), orderBy("score","desc"), limit(100));
+        const snap = await getDocs(q);
+
+        const data = [];
+        snap.forEach(doc => data.push(doc.data()));
+
+        // desempata local por tempo (asc)
+        data.sort((a,b)=>{
+          const sa = a.score ?? 0, sb = b.score ?? 0;
+          if (sb !== sa) return sb - sa;
+          const ta = Number(a.totalTime ?? Infinity);
+          const tb = Number(b.totalTime ?? Infinity);
+          return ta - tb;
+        });
+
+        rows.innerHTML = "";
+        if (data.length === 0){
+          rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`;
+          return;
+        }
+
+        let pos = 1;
+        for (const d of data){
+          let medal = pos;
+          if (pos === 1) medal = "🏆";
+          else if (pos === 2) medal = "🥈";
+          else if (pos === 3) medal = "🥉";
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="rank-medal">${medal}</td>
+            <td>${(d.name || "-").toString().slice(0,48)}</td>
+            <td><strong>${d.score ?? 0}</strong></td>
+            <td>${fmtTime(d.totalTime)}</td>
+          `;
+          rows.appendChild(tr);
+          pos++;
+        }
+
+        // dica opcional: se quiser tempo real com dois orderBy, crie o índice composto
+        hint.innerHTML = `Desempate por menor tempo total. <span class="muted">(atualiza a cada visita)</span>`;
+
+      }catch(e){
+        console.error("Erro carregando ranking:", e?.code, e?.message);
+        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Erro ao carregar ranking. Tente novamente.</td></tr>`;
+      }
+    }
+
+    loadRanking();
+  </script>
+</body>
+</html>
