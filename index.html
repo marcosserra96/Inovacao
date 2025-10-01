@@ -49,7 +49,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import {
-      getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs
+      getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs, doc, getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -145,7 +145,8 @@
     }
     nameEl.addEventListener('input', onInput);
 
-    document.getElementById('start-form').addEventListener('submit',(e)=>{
+    // ===== BLOQUEIO ANTES DE INICIAR =====
+    document.getElementById('start-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
       if(!participantsLoaded){
         alert("Aguarde carregar a lista de participantes.");
@@ -155,10 +156,31 @@
         alert("Selecione seu nome da lista oficial.");
         return;
       }
+
       const person = chosen || { id: 'free-'+Date.now(), name: nameEl.value.trim() };
-      if(!person.name){ alert("Informe seu nome."); return; }
-      const qs = new URLSearchParams({ id: person.id, name: person.name }).toString();
-      location.href = `quiz.html?${qs}`;
+      if(!person.name){ 
+        alert("Informe seu nome."); 
+        return; 
+      }
+
+      try {
+        const docId = (person.id || person.name).toLowerCase().replace(/\s+/g,'-');
+        const ref = doc(db,"scores",docId);
+        const snap = await getDoc(ref);
+
+        if (snap.exists()) {
+          alert("Você já participou do quiz e não pode jogar novamente.");
+          return;
+        }
+
+        // segue para o quiz
+        const qs = new URLSearchParams({ id: person.id, name: person.name }).toString();
+        location.href = `quiz.html?${qs}`;
+
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao verificar sua participação. Tente novamente.");
+      }
     });
 
     function renderData(data){
