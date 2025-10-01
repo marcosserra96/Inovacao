@@ -56,8 +56,8 @@
     function clearState(){ localStorage.removeItem(SESSION_KEY); }
 
     let state = loadState();
-    if (!state.startedAt){
-      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0 };
+    if (!state.idx && state.idx !== 0){
+      state = { idx:0, totalScore:0, totalTime:0 };
       saveState(state);
     }
 
@@ -103,26 +103,26 @@
       },1000);
     }
 
-    // ===== Feedback tipo Bullet =====
+    // ===== Feedback estilo Face ID =====
     function showFeedback(type){
-      const bf = document.createElement('div');
-      bf.className = `bullet-feedback ${type}`;
+      const card = document.createElement('div');
+      card.className = `feedback-card ${type}`;
       let msg = "";
       if(type==="correct") msg = "✔️ Correto!";
-      if(type==="wrong") msg = "❌ Errado!";
+      if(type==="wrong")   msg = "❌ Errado!";
       if(type==="timeout") msg = "⏳ Tempo esgotado!";
-      bf.textContent = msg;
+      card.textContent = msg;
 
       const container = document.querySelector('.quiz-wrap') || document.body;
-      container.appendChild(bf);
+      container.appendChild(card);
 
       setTimeout(()=>{
-        bf.style.animation = "bf-fade-out 0.3s ease-in forwards";
+        card.style.animation = "card-fade-out 0.4s ease-in forwards";
         setTimeout(()=>{
-          bf.remove();
+          card.remove();
           next();
-        }, 300);
-      },2000);
+        }, 400);
+      }, 2000);
     }
 
     function render(){
@@ -139,13 +139,11 @@
         elOpts.appendChild(b);
       });
 
-      // tempo persistente
-      const now = Date.now();
-      if (!state.startedAt) state.startedAt = now;
-      const elapsed = (now - state.startedAt) / 1000;
-      remaining = Math.max(0, QTIME - elapsed);
+      // Reseta timer ao começar a pergunta
+      startTs = performance.now();
+      state.startedAt = Date.now();
+      saveState(state);
 
-      startTs = performance.now() - (elapsed*1000);
       if (tickId) cancelAnimationFrame(tickId);
       const tick=()=>{
         const passed=(performance.now()-startTs)/1000;
@@ -188,7 +186,7 @@
     function next(){
       if (tickId) cancelAnimationFrame(tickId);
       idx++;
-      saveState({ idx, totalScore, totalTime, startedAt: Date.now() });
+      saveState({ idx, totalScore, totalTime });
       if (idx<QS.length) { prepareNextQuestion(); return; }
       finalize();
     }
