@@ -2,18 +2,17 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Quiz EMR — Perguntas</title>
   <link rel="stylesheet" href="assets/styles.css?v=2"/>
-  <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 </head>
 <body>
   <header class="header">
     <div class="brand">
-      <img src="assets/logo.jpg" alt="Logo do evento" class="logo-img" />
+      <img src="assets/logo.jpg" alt="Logo do evento" class="logo-img"/>
       <span class="title">Quiz EMR</span>
     </div>
-    <div class="badge">Perguntas</div>
   </header>
 
   <section class="card quiz-wrap">
@@ -22,27 +21,30 @@
       <div class="progress"><div id="progress" class="bar"></div></div>
       <span id="q-time" class="timer">⏱ 0.0s</span>
     </div>
+
     <h2 id="q-title" class="q-title">Carregando…</h2>
     <div id="q-options"></div>
 
-    <!-- Intersticial -->
-    <div id="interstitial" class="inter-wrap" aria-hidden="true"> ... </div>
-    <!-- Tempo Esgotado -->
+    <!-- Intersticial: Prepare-se -->
+    <div id="interstitial" class="inter-wrap" aria-hidden="true">
+      <div class="inter-card">
+        <p class="inter-title">Prepare-se</p>
+        <div class="inter-count"><span id="inter-num">3</span></div>
+        <p class="inter-sub">Próxima pergunta em instantes…</p>
+      </div>
+    </div>
+
+    <!-- Overlay Tempo Esgotado -->
     <div id="timeup" class="timeup-wrap" aria-hidden="true">
       <div class="timeup-pulse">⏰ Tempo esgotado!</div>
     </div>
-    <!-- Resultado -->
-    <div id="result" class="result-wrap" aria-hidden="true">
-      <div id="result-card" class="result-card">
-        <span id="result-emoji">✅</span>
-        <p id="result-text" class="result-text">Acertou!</p>
-      </div>
+
+    <!-- Overlay Resposta -->
+    <div id="answer-overlay" class="answer-wrap" aria-hidden="true">
+      <div class="answer-card"><span id="answer-msg"></span></div>
     </div>
   </section>
 
-  <script type="module">
-    /* === todo o JS ajustado (onTimeUp com animação, showResult, interstitial, etc) === */
-    /* se quiser eu detalho ele aqui inteiro */
-  </script>
+  <script type="module" src="assets/quiz.js?v=2"></script>
 </body>
 </html>
