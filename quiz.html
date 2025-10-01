@@ -27,7 +27,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     import { QUESTIONS, computeScore } from "./js/questions.js?v=dev";
 
     const firebaseConfig = {
@@ -75,33 +75,55 @@
       elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
     }
 
-function prepareNextQuestion(){
-  // cria overlay
-  const overlay = document.createElement('div');
-  overlay.className = 'prepare-overlay';
-  overlay.innerHTML = `
-    <div style="text-align:center;">
-      <div>Prepare-se!</div>
-      <div id="countdown" class="countdown">3</div>
-    </div>`;
-  document.body.appendChild(overlay);
+    // ===== Overlay Prepare-se =====
+    function prepareNextQuestion(){
+      const overlay = document.createElement('div');
+      overlay.className = 'prepare-overlay';
+      overlay.innerHTML = `
+        <div style="text-align:center;">
+          <div>Prepare-se!</div>
+          <div id="countdown" class="countdown">3</div>
+        </div>`;
+      document.body.appendChild(overlay);
 
-  let count = 3;
-  const countdownEl = overlay.querySelector('#countdown');
-  const timer = setInterval(()=>{
-    count--;
-    if(count>0){
-      countdownEl.textContent = count;
-      countdownEl.classList.remove('pop');
-      void countdownEl.offsetWidth; // força reflow pra reiniciar animação
-      countdownEl.classList.add('pop');
-    } else {
-      clearInterval(timer);
-      overlay.remove(); // remove overlay
-      render(); // mostra a pergunta
+      let count = 3;
+      const countdownEl = overlay.querySelector('#countdown');
+      const timer = setInterval(()=>{
+        count--;
+        if(count>0){
+          countdownEl.textContent = count;
+          countdownEl.classList.remove('pop');
+          void countdownEl.offsetWidth;
+          countdownEl.classList.add('pop');
+        } else {
+          clearInterval(timer);
+          overlay.remove();
+          render();
+        }
+      },1000);
     }
-  },1000);
-}
+
+    // ===== Feedback tipo Bullet =====
+    function showFeedback(type){
+      const bf = document.createElement('div');
+      bf.className = `bullet-feedback ${type}`;
+      let msg = "";
+      if(type==="correct") msg = "✔️ Correto!";
+      if(type==="wrong") msg = "❌ Errado!";
+      if(type==="timeout") msg = "⏳ Tempo esgotado!";
+      bf.textContent = msg;
+
+      const container = document.querySelector('.quiz-wrap') || document.body;
+      container.appendChild(bf);
+
+      setTimeout(()=>{
+        bf.style.animation = "bf-fade-out 0.3s ease-in forwards";
+        setTimeout(()=>{
+          bf.remove();
+          next();
+        }, 300);
+      },2000);
+    }
 
     function render(){
       setProgress();
@@ -117,8 +139,13 @@ function prepareNextQuestion(){
         elOpts.appendChild(b);
       });
 
-      remaining = QTIME;
-      startTs = performance.now();
+      // tempo persistente
+      const now = Date.now();
+      if (!state.startedAt) state.startedAt = now;
+      const elapsed = (now - state.startedAt) / 1000;
+      remaining = Math.max(0, QTIME - elapsed);
+
+      startTs = performance.now() - (elapsed*1000);
       if (tickId) cancelAnimationFrame(tickId);
       const tick=()=>{
         const passed=(performance.now()-startTs)/1000;
@@ -147,24 +174,21 @@ function prepareNextQuestion(){
       });
 
       saveState({ idx, totalScore, totalTime });
-      setTimeout(()=> next(),380);
+      if(correct) showFeedback("correct");
+      else showFeedback("wrong");
     }
 
     function timeExpired(){
       lockOptions();
       totalTime += QTIME;
-      elTitle.textContent = "⏳ Tempo esgotado!";
-      elOpts.querySelectorAll('.option').forEach(b=>{
-        b.classList.add('danger');
-      });
       saveState({ idx, totalScore, totalTime });
-      setTimeout(()=> next(),1200);
+      showFeedback("timeout");
     }
 
     function next(){
       if (tickId) cancelAnimationFrame(tickId);
       idx++;
-      saveState({ idx, totalScore, totalTime });
+      saveState({ idx, totalScore, totalTime, startedAt: Date.now() });
       if (idx<QS.length) { prepareNextQuestion(); return; }
       finalize();
     }
@@ -184,7 +208,7 @@ function prepareNextQuestion(){
         confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
         clearState();
         const me=encodeURIComponent(player.email||'');
-        setTimeout(()=> location.href=`index.html?me=${me}`,900);
+        setTimeout(()=> location.href=`index.html?me=${me}`,1200);
       }catch(err){ console.error(err); alert("Falha ao enviar sua pontuação."); }
     }
 
