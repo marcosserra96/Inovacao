@@ -2,10 +2,12 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <!-- Anti-zoom iOS + notch -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
   <title>Quiz Innovation Break</title>
 
-  <!-- Performance em rede móvel -->
+  <!-- Performance -->
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 
@@ -16,6 +18,12 @@
     /* Esconde o QR e o badge “Evento” sem remover do HTML */
     .qr { display: none !important; }
     .badge { display: none !important; }
+
+    /* Anti-zoom iOS: inputs/botões ≥16px e sem double-tap zoom */
+    html { -webkit-text-size-adjust: 100%; }
+    body { touch-action: manipulation; }
+    input, select, textarea, button { font-size: 16px; line-height: 1.2; }
+    button, a { touch-action: manipulation; }
 
     /* ===== Dev Modal (estilo mínimo) ===== */
     .dev-hidden-hotspot{
@@ -136,7 +144,15 @@
       onSnapshot, getDocs, deleteDoc, doc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    // Firebase
+    // ===== Bloqueio de double-tap zoom (fallback leve) =====
+    let lastTouch = 0;
+    document.addEventListener('touchend', (e)=>{
+      const now = Date.now();
+      if (now - lastTouch <= 300) e.preventDefault();
+      lastTouch = now;
+    }, {passive:false});
+
+    // ===== Firebase =====
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -149,7 +165,7 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // ===== Utils
+    // ===== Utils =====
     const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
     const norm  = (s)=> (s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
     function debug(msg){
@@ -159,20 +175,20 @@
       el.textContent = `[${t}] ${msg}\n` + (el.textContent||"");
     }
 
-    // ===== Estado
+    // ===== Estado =====
     let participants = [];
     let filtered = [], chosen=null, active=-1;
     let allowFreeName = false; // produção: false
     let participantsLoaded = false;
 
-    // ===== DOM
+    // ===== DOM =====
     const nameEl   = document.getElementById('name');
     const sugEl    = document.getElementById('suggestions');
     const startBtn = document.getElementById('start-btn');
     const loadMsg  = document.getElementById('loadMsg');
     const rows     = document.getElementById('ranking-rows');
 
-    // ===== Participantes
+    // ===== Participantes =====
     async function loadParticipants(){
       const tryPaths = ["participants.json", "data/participants.json"];
       for (const p of tryPaths){
@@ -199,7 +215,7 @@
     }
     loadParticipants();
 
-    // ===== Autocomplete
+    // ===== Autocomplete =====
     function filterNames(q){
       const n = norm(q);
       if (n.length < 1) return [];
@@ -267,7 +283,7 @@
       nameEl.addEventListener('focus', fix);
     }
 
-    // ===== Submit
+    // ===== Submit =====
     document.getElementById('start-form').addEventListener('submit',(e)=>{
       e.preventDefault();
       if(!participantsLoaded){
@@ -284,7 +300,7 @@
       location.href = `quiz.html?${qs}`;
     });
 
-    // ===== Ranking: helpers de estado
+    // ===== Ranking: helpers de estado =====
     function showRankError(msg){
       rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">${msg}</td></tr>`;
     }
@@ -295,7 +311,7 @@
         <tr><td colspan="4"><div class="skel"></div></td></tr>`;
     }
 
-    // ===== Ranking: render dos dados
+    // ===== Ranking: render dos dados =====
     const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
     function renderData(data){
       rows.innerHTML="";
@@ -317,7 +333,7 @@
       }
     }
 
-    // ===== Ranking: startLive com fallback
+    // ===== Ranking: startLive com fallback =====
     async function startLive(){
       showRankLoading();
 
@@ -341,7 +357,6 @@
           renderData(arr);
         }, (err)=>{
           console.error("onSnapshot erro:", err);
-          // Mantém dados já renderizados; (opcional) ativar polling aqui
         });
 
       }catch(err){
@@ -373,13 +388,13 @@
     }
     startLive();
 
-    // ===== Modo Dev
+    // ===== Modo Dev =====
     const devModal = document.getElementById('dev-modal');
     const devFreeState = document.getElementById('dev-free-state');
 
     function updateFreeNameBadge(){
       if (!devFreeState) return;
-      devFreeNameState.textContent = allowFreeName ? 'ON' : 'OFF';
+      devFreeState.textContent = allowFreeName ? 'ON' : 'OFF';
       devFreeState.style.color = allowFreeName ? '#59C085' : '#e8f7fb';
     }
     async function askDevPassword(){ return true; /* produção: validar hash */ }
