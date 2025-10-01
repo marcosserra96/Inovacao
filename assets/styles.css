@@ -120,3 +120,35 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
 
 /* util */
 .center{ text-align:center; }
+
+/* Overlay do Prepare-se */
+.prepare-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  color: #fff;
+  font-weight: 900;
+  font-size: 64px;
+  animation: fadeIn 0.3s ease;
+}
+
+.prepare-overlay .countdown {
+  font-size: 96px;
+  margin-top: 16px;
+  animation: pop 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); }
+}
