@@ -6,16 +6,6 @@
   <title>Quiz EMR — Perguntas</title>
   <link rel="stylesheet" href="assets/styles.css?v=dev"/>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-  <style>
-    .overlay-msg {
-      position: fixed;
-      top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.8);
-      display:flex; align-items:center; justify-content:center;
-      color:#fff; font-size:1.5rem; text-align:center;
-      padding:20px; z-index:9999;
-    }
-  </style>
 </head>
 <body>
   <header class="header">
@@ -30,15 +20,14 @@
       <div class="progress"><div id="progress" class="bar"></div></div>
       <span id="q-time" class="timer">⏱ 0.0s</span>
     </div>
+
     <h2 id="q-title" class="q-title">Carregando…</h2>
     <div id="q-options"></div>
   </section>
 
-  <div id="final-overlay" class="overlay-msg" style="display:none;"></div>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     import { QUESTIONS, computeScore } from "./js/questions.js?v=dev";
 
     const firebaseConfig = {
@@ -47,36 +36,58 @@
       projectId: "inovacao-emr",
       storageBucket: "inovacao-emr.firebasestorage.app",
       messagingSenderId: "1075399271811",
-      appId: "1:1075399271811:web:f532f25547125d6a8f42b6"
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
     };
 
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    const params = new URLSearchParams(location.search);
-    const player = { 
-      name: params.get('name'), 
-      id: params.get('id'), 
-      fase: parseInt(params.get('fase')||'1') 
-    };
-    const docId = player.id;
-
-    const ref = doc(db,"scores",docId);
-    const snap = await getDoc(ref);
-    if (snap.exists() && snap.data().fases && snap.data().fases[player.fase]) {
-      alert(`Você já respondeu a fase ${player.fase}. Aguarde a próxima!`);
-      location.href="index.html";
+    function makeDocId(name){
+      return (name||'anon')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .toLowerCase()
+        .replace(/\s+/g,'-')
+        .trim();
     }
 
-    // ===== Perguntas da fase =====
+    const $ = s => document.querySelector(s);
+    const params = new URLSearchParams(location.search);
+    const player = {
+      name: params.get('name') || 'Participante',
+      id: params.get('id') || makeDocId(params.get('name') || 'anon')
+    };
+
+    const docId = player.id;
+
+    const SESSION_KEY = `quiz-emr:${docId}`;
+    function loadState(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||{}}catch{return {}} }
+    function saveState(p){ localStorage.setItem(SESSION_KEY, JSON.stringify({ ...loadState(), ...p })); }
+    function clearState(){ localStorage.removeItem(SESSION_KEY); }
+
+    let state = loadState();
+    if (!state.startedAt){
+      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0 };
+      saveState(state);
+    }
+
     const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
-    let QS = shuffle(QUESTIONS.filter(q=>q.fase===player.fase));
 
-    let idx=0,totalScore=0,totalTime=0;
-    const QTIME=20;
-    let tickId;
+    let QS = state.QS;
+    if (!QS) {
+      QS = shuffle(QUESTIONS).map(q => {
+        const options = shuffle(q.options.slice());
+        const answerText = q.options[q.answerIndex];
+        const newAnswerIndex = options.indexOf(answerText);
+        return { ...q, options, answerIndex: newAnswerIndex };
+      });
+      saveState({ ...state, QS });
+    }
 
-    const $=s=>document.querySelector(s);
+    const QTIME = 20;
+    let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
+    let startTs=0, tickId=null, remaining=QTIME;
+
     const elCount=$('#q-count'), elBar=$('#progress'), elTimer=$('#q-time'), elTitle=$('#q-title'), elOpts=$('#q-options');
 
     function setProgress(){
@@ -84,77 +95,110 @@
       elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
     }
 
+    function prepareNextQuestion(){
+      const overlay = document.createElement('div');
+      overlay.className = 'prepare-overlay';
+      overlay.innerHTML = `
+        <div style="text-align:center;">
+          <div>Prepare-se!</div>
+          <div id="countdown" class="countdown">3</div>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      let count = 3;
+      const countdownEl = overlay.querySelector('#countdown');
+      const timer = setInterval(()=>{
+        count--;
+        if(count>0){
+          countdownEl.textContent = count;
+        } else {
+          clearInterval(timer);
+          overlay.remove();
+          render();
+        }
+      },1000);
+    }
+
+    function showFeedback(type){
+      const bf = document.createElement('div');
+      bf.className = `bullet-feedback ${type}`;
+      bf.textContent = type==="correct" ? "✔️ Correto!" :
+                       type==="wrong"   ? "❌ Errado!"  :
+                                          "⏳ Tempo esgotado!";
+      const container = document.querySelector('.quiz-wrap') || document.body;
+      container.appendChild(bf);
+      setTimeout(()=>{ bf.remove(); next(); },2000);
+    }
+
     function render(){
       setProgress();
-      const q=QS[idx];
-      elTitle.textContent=q.title;
-      elOpts.innerHTML="";
-      q.options.forEach((t,i)=>{
-        const b=document.createElement("button");
-        b.className="option";
-        b.textContent=t;
-        b.onclick=()=>answer(i);
+      const q = QS[idx];
+      elTitle.textContent = q.title;
+      elOpts.innerHTML = "";
+      q.options.forEach((text,i)=>{
+        const b=document.createElement('button');
+        b.className='option';
+        b.innerHTML = `<div class="bullet">${i+1}</div><div>${text}</div>`;
+        b.onclick = ()=> answer(i);
         elOpts.appendChild(b);
       });
-      const start=performance.now();
+      startTs = performance.now();
       const tick=()=>{
-        const pass=(performance.now()-start)/1000;
-        const left=Math.max(0,QTIME-pass);
+        const passed=(performance.now()-startTs)/1000;
+        const left=Math.max(0,QTIME-passed);
+        remaining=left;
         elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
-        if(left<=0){ timeExpired(); return; }
+        if (left<=0){ timeExpired(); return; }
         tickId=requestAnimationFrame(tick);
       };
       tickId=requestAnimationFrame(tick);
     }
 
+    function lockOptions(){ [...elOpts.querySelectorAll('.option')].forEach(b=>b.disabled=true); }
+
     function answer(i){
-      if(tickId) cancelAnimationFrame(tickId);
+      lockOptions();
+      const used=Math.min(QTIME,(performance.now()-startTs)/1000);
       const q=QS[idx];
       const correct=(i===q.answerIndex);
-      const pts=computeScore?computeScore(correct,5):(correct?1000:0);
-      if(correct) totalScore+=pts;
-      idx++;
-      if(idx<QS.length) render(); else finalize();
+      const pts=computeScore?computeScore(correct,used):(correct?1000:0);
+      totalScore+=pts; totalTime+=used;
+      saveState({ idx, totalScore, totalTime });
+      showFeedback(correct?"correct":"wrong");
     }
 
     function timeExpired(){
+      lockOptions();
+      totalTime += QTIME;
+      saveState({ idx, totalScore, totalTime });
+      showFeedback("timeout");
+    }
+
+    function next(){
+      if (tickId) cancelAnimationFrame(tickId);
       idx++;
-      if(idx<QS.length) render(); else finalize();
+      saveState({ idx, totalScore, totalTime, startedAt: Date.now(), QS });
+      if (idx<QS.length) { prepareNextQuestion(); return; }
+      finalize();
     }
 
     async function finalize(){
-      const snap = await getDoc(ref);
-      let oldScore=0, oldTime=0, fases={};
-      if(snap.exists()){
-        const d=snap.data();
-        oldScore=d.score||0;
-        oldTime=d.totalTime||0;
-        fases=d.fases||{};
-      }
-      fases[player.fase]={ score: totalScore, time: totalTime };
-      const newData={
-        name:player.name,
-        score: oldScore+totalScore,
-        totalTime: oldTime+totalTime,
-        updatedAt: serverTimestamp(),
-        fases
-      };
-      await setDoc(ref,newData);
-      confetti();
-
-      // Mensagem final amigável
-      document.getElementById("final-overlay").style.display="flex";
-      document.getElementById("final-overlay").innerHTML = `
-        <div>
-          <h2>🎉 Você concluiu a fase ${player.fase}!</h2>
-          <p>Sua pontuação desta fase foi <strong>${totalScore}</strong>.</p>
-          <p>Volte no horário da próxima fase para continuar jogando.</p>
-          <p style="margin-top:15px;"><a href="index.html" style="color:#fff; text-decoration:underline;">Voltar ao ranking</a></p>
-        </div>
-      `;
+      const ref=doc(db,"scores",docId);
+      try{
+        const newData={
+          name:player.name,
+          score:Math.round(totalScore),
+          totalTime:Math.round(totalTime*10)/10,
+          updatedAt:serverTimestamp()
+        };
+        await setDoc(ref,newData);
+        confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
+        clearState();
+        setTimeout(()=> location.href=`index.html?me=${encodeURIComponent(player.name)}`,1200);
+      }catch(err){ console.error(err); alert("Falha ao enviar sua pontuação."); }
     }
 
-    render();
+    prepareNextQuestion();
   </script>
 </body>
 </html>
