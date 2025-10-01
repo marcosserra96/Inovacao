@@ -1,15 +1,24 @@
 /* ===============================
-   ENERGISA THEME — moderno
+   ENERGISA THEME — moderno (V2)
    =============================== */
 
 :root{
   --teal:#009BC1; --green:#59C085; --ink:#0a4561; --dark:#0f3f53;
   --bg:#F4F8FA; --card:#FFFFFF; --muted:#5E7D8C; --stroke:rgba(2,34,46,.08);
+  --safe: env(safe-area-inset);
 }
 
-*{ box-sizing:border-box; }
+/* Anti-zoom iOS e conforto mobile */
+html { -webkit-text-size-adjust: 100%; }
 html,body{ margin:0; background:var(--bg); color:var(--ink);
-  font-family:"Segoe UI", Inter, system-ui, -apple-system, Arial, sans-serif; }
+  font-family:"Segoe UI", Inter, system-ui, -apple-system, Arial, sans-serif;
+  overscroll-behavior-y: contain; /* reduz pull-to-refresh acidental */
+}
+*{ box-sizing:border-box; }
+input, select, textarea, button { font-size:16px; } /* evita zoom no foco */
+button, a { touch-action: manipulation; } /* evita double-tap-zoom */
+
+body { padding: max(0px, env(safe-area-inset-top)) 0 max(0px, env(safe-area-inset-bottom)) 0; }
 
 /* ======= Topbar ======= */
 .header{
@@ -22,6 +31,10 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
   background:radial-gradient(circle at 30% 30%, #fff, var(--teal) 60%);
   box-shadow:0 3px 10px rgba(0,0,0,.12);
 }
+/* Logo JPEG personalizada */
+.logo-img{
+  height:36px; width:auto; display:block; border-radius:6px; /* opcional */
+}
 .title{ font-weight:900; font-size:24px; }
 .badge{ background:var(--dark); color:#fff; padding:8px 12px; border-radius:999px; font-weight:800; }
 
@@ -30,6 +43,8 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
   max-width:1120px; margin:0 auto 28px; background:var(--card);
   border:1px solid var(--stroke); border-radius:28px;
   box-shadow:0 10px 24px rgba(0,0,0,.06);
+  margin-left: max(16px, env(safe-area-inset-left));
+  margin-right: max(16px, env(safe-area-inset-right));
 }
 
 /* ======= Home ======= */
@@ -52,7 +67,7 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
   width:100%; padding:14px 16px; border:none; outline:none; border-radius:16px;
   background:#fff; color:#0a2e40; font-weight:600; box-shadow:0 6px 16px rgba(0,0,0,.12);
 }
-.btn{ border:none; cursor:pointer; font-weight:900; }
+.btn{ border:none; cursor:pointer; font-weight:900; min-height:48px; }
 .btn-pill{ border-radius:999px; padding:14px 20px; }
 .btn-primary{
   background:linear-gradient(90deg,var(--dark),#0b3a4f); color:#fff;
@@ -60,6 +75,29 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
   transition:transform .08s ease, filter .2s ease;
 }
 .btn-primary:hover{ transform:translateY(-1px); filter:brightness(1.04); }
+
+/* ======= Autocomplete ======= */
+.autocomplete{ position:relative; }
+.typeahead{
+  position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:50;
+  list-style:none; margin:0; padding:6px;
+  max-height:240px; overflow:auto;
+  background:#0b2f39; color:#e7f6fb;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  box-shadow:0 14px 28px rgba(0,0,0,.18), 0 10px 10px rgba(0,0,0,.12);
+  display:none;
+}
+.typeahead li{
+  display:flex; justify-content:space-between; align-items:center;
+  gap:10px; padding:10px 12px; cursor:pointer; border-radius:10px;
+}
+.typeahead li .n{ font-weight:700; color:#e7f6fb; }
+.typeahead li .hint{ font-size:.85rem; opacity:.75; color:#cde7ef; }
+.typeahead li:hover, .typeahead li.active{ background:rgba(255,255,255,.06); }
+
+/* Garante que nada corte o dropdown */
+.card, .form, .hero { overflow: visible; }
 
 /* ======= Ranking ======= */
 .side{ padding:28px; background:#fff; border-left:1px solid var(--stroke); }
@@ -96,15 +134,64 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
 .q-title{ margin:10px 0 14px; font-size:28px; font-weight:900; }
 #q-options{ display:flex; flex-direction:column; gap:14px; }
 .option{
-  padding:16px 20px; border:none; border-radius:22px; cursor:pointer;
+  padding:16px 20px; border:none; border-radius:22px; cursor:pointer; min-height:48px;
   background:linear-gradient(135deg,var(--teal),var(--green)); color:#052531; font-weight:900;
   text-align:left; display:flex; align-items:center; gap:14px; box-shadow:0 8px 16px rgba(0,0,0,.08);
+  -webkit-user-select: none; user-select: none;
 }
-.option .bullet{ width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:var(--dark); color:#fff; }
+.option .bullet{ width:48px; height:48px; border-radius:14px; display:grid; place-items:center; background:var(--dark); color:#fff; }
 .option:hover{ transform:translateY(-1px); }
+.option:active{
+  transform: translateY(0);
+  filter: brightness(0.98);
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+}
 .option:disabled{ opacity:.92; cursor:default; }
 .option.success{ outline:3px solid #2ecc71; }
 .option.danger { outline:3px solid #ff6b6b; }
+
+/* ======= Intersticial (Kahoot-like) ======= */
+.inter-wrap{
+  position: fixed; inset: 0; z-index: 999;
+  display: none; /* hidden por padrão */
+  align-items: center; justify-content: center;
+  background: rgba(10, 30, 40, .65);
+  backdrop-filter: blur(4px);
+}
+.inter-wrap.show{ display: flex; }
+
+.inter-card{
+  width: min(520px, 92vw);
+  background: #0b2f39; color: #e7f6fb;
+  border-radius: 22px; padding: 28px 24px;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+  text-align: center;
+  animation: inter-pop .38s ease-out both;
+}
+.inter-title{ margin: 0 0 10px; font-size: 24px; font-weight: 900; letter-spacing: .5px; }
+.inter-sub{ margin: 10px 0 0; opacity: .85; }
+
+.inter-count{
+  margin: 4px auto; width: 140px; height: 140px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.1), rgba(255,255,255,.03) 60%);
+  border: 2px solid rgba(255,255,255,.12);
+  box-shadow: inset 0 0 0 6px rgba(255,255,255,.05), 0 10px 30px rgba(0,0,0,.25);
+}
+.inter-count span{
+  font-size: 64px; font-weight: 900; line-height: 1;
+  animation: inter-pulse 1s ease-in-out infinite;
+}
+
+@keyframes inter-pop{
+  0%{ transform: translateY(10px) scale(.96); opacity: 0; }
+  100%{ transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes inter-pulse{
+  0%,100%{ transform: scale(1); }
+  50%{ transform: scale(1.08); }
+}
 
 /* ======= Placar TV ======= */
 .full{ max-width:1280px; margin:28px auto; }
@@ -114,5 +201,11 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
 .qr{ display:flex; align-items:center; gap:12px; margin-top:10px; }
 .qr img{ width:96px; height:96px; border-radius:12px; border:1px solid var(--stroke); }
 
-/* util */
-.center{ text-align:center; }
+/* ===== A11y foco visível & motion safe ===== */
+.btn:focus-visible, .input:focus-visible, .option:focus-visible, .typeahead li:focus-visible {
+  outline: 3px solid rgba(0,155,193,.55);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce){
+  * { animation: none !important; transition: none !important; }
+}
