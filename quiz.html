@@ -75,13 +75,33 @@
       elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
     }
 
-    function prepareNextQuestion(){
-      elTitle.textContent = "Prepare-se!";
-      elOpts.innerHTML = "";
-      elCount.textContent = `Próxima pergunta...`;
-      elTimer.textContent = "⏱ --";
-      setTimeout(render, 3000);
+function prepareNextQuestion(){
+  // cria overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'prepare-overlay';
+  overlay.innerHTML = `
+    <div style="text-align:center;">
+      <div>Prepare-se!</div>
+      <div id="countdown" class="countdown">3</div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  let count = 3;
+  const countdownEl = overlay.querySelector('#countdown');
+  const timer = setInterval(()=>{
+    count--;
+    if(count>0){
+      countdownEl.textContent = count;
+      countdownEl.classList.remove('pop');
+      void countdownEl.offsetWidth; // força reflow pra reiniciar animação
+      countdownEl.classList.add('pop');
+    } else {
+      clearInterval(timer);
+      overlay.remove(); // remove overlay
+      render(); // mostra a pergunta
     }
+  },1000);
+}
 
     function render(){
       setProgress();
