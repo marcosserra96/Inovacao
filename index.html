@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quiz Innovation Break</title>
+  <title>Quiz EMR — Início</title>
   <link rel="stylesheet" href="assets/styles.css?v=dev"/>
 </head>
 <body>
   <header class="header" style="position:relative">
     <div class="brand" id="brand" style="position:relative">
-      <span class="logo-dot"></span><span class="title">Quiz Innovation Break</span>
+      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
     </div>
   </header>
 
@@ -18,7 +18,7 @@
       <!-- HERO -->
       <div class="hero">
         <h1>Pronto para jogar? 🎯</h1>
-        <p>Digite seu nome e <strong>escolha da lista</strong> para participar.</p>
+        <p>Digite seu nome e <strong>escolha da lista oficial</strong> para participar.</p>
 
         <form id="start-form" class="form" novalidate>
           <div class="autocomplete">
@@ -32,7 +32,7 @@
 
       <!-- RANKING -->
       <aside class="side">
-        <h2>🏆 Ranking</h2>
+        <h2>🏆 Ranking em tempo real</h2>
         <table class="table">
           <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
           <tbody id="ranking-rows">
@@ -64,6 +64,14 @@
 
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
+
+    function makeDocId(name){
+      return (name||'anon')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .toLowerCase()
+        .replace(/\s+/g,'-')
+        .trim();
+    }
 
     let participants = [];
     let filtered = [], chosen=null, active=-1;
@@ -157,15 +165,14 @@
         return;
       }
 
-      const person = chosen || { id: 'free-'+Date.now(), name: nameEl.value.trim() };
+      const person = chosen || { name: nameEl.value.trim() };
       if(!person.name){ 
         alert("Informe seu nome."); 
         return; 
       }
 
       try {
-        const rawId = person.id || person.name;
-        const docId = rawId.toLowerCase().replace(/\s+/g,'-');
+        const docId = makeDocId(person.name);
         const ref = doc(db,"scores",docId);
         const snap = await getDoc(ref);
 
