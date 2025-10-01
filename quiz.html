@@ -27,7 +27,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     import { QUESTIONS, computeScore } from "./js/questions.js?v=dev";
 
     const firebaseConfig = {
@@ -65,13 +65,17 @@
     // shuffle
     const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
 
-    // embaralha perguntas e alternativas, corrigindo o answerIndex
-    let QS = shuffle(QUESTIONS).map(q => {
-      const options = shuffle(q.options.slice());
-      const answerText = q.options[q.answerIndex];
-      const newAnswerIndex = options.indexOf(answerText);
-      return { ...q, options, answerIndex: newAnswerIndex };
-    });
+    // embaralha perguntas e alternativas apenas uma vez por usuário
+    let QS = state.QS;
+    if (!QS) {
+      QS = shuffle(QUESTIONS).map(q => {
+        const options = shuffle(q.options.slice());
+        const answerText = q.options[q.answerIndex];
+        const newAnswerIndex = options.indexOf(answerText);
+        return { ...q, options, answerIndex: newAnswerIndex };
+      });
+      saveState({ ...state, QS });
+    }
 
     const QTIME = 20;
     let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
@@ -195,7 +199,7 @@
     function next(){
       if (tickId) cancelAnimationFrame(tickId);
       idx++;
-      saveState({ idx, totalScore, totalTime, startedAt: Date.now() });
+      saveState({ idx, totalScore, totalTime, startedAt: Date.now(), QS });
       if (idx<QS.length) { prepareNextQuestion(); return; }
       finalize();
     }
@@ -203,7 +207,17 @@
     async function finalize(){
       const docId = (player.email || player.name || 'anon').toLowerCase().replace(/\s+/g,'-');
       const ref=doc(db,"scores",docId);
+
       try{
+        // verifica se já existe score
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          alert("Você já participou do quiz e só é permitido jogar uma vez.");
+          clearState();
+          location.href = `index.html?me=${encodeURIComponent(player.email || player.name || '')}`;
+          return;
+        }
+
         const newData={
           name:player.name,
           email:player.email,
@@ -212,10 +226,12 @@
           updatedAt:serverTimestamp()
         };
         await setDoc(ref,newData);
+
         confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
         clearState();
         const me=encodeURIComponent(player.email || player.name || '');
         setTimeout(()=> location.href=`index.html?me=${me}`,1200);
+
       }catch(err){ console.error(err); alert("Falha ao enviar sua pontuação."); }
     }
 
