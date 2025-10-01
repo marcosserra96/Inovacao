@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz EMR — Perguntas</title>
   <link rel="stylesheet" href="assets/styles.css?v=dev"/>
-  <!-- Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 </head>
 <body>
@@ -13,11 +12,9 @@
     <div class="brand">
       <span class="logo-dot"></span><span class="title">Quiz EMR</span>
     </div>
-    <div class="badge">Perguntas</div>
   </header>
 
   <section class="card quiz-wrap">
-    <!-- top -->
     <div class="topbar">
       <span id="q-count" class="pill">Pergunta 1</span>
       <div class="progress"><div id="progress" class="bar"></div></div>
@@ -33,7 +30,6 @@
     import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     import { QUESTIONS, computeScore } from "./js/questions.js?v=dev";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -47,7 +43,6 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // util
     const $ = s => document.querySelector(s);
     const params = new URLSearchParams(location.search);
     const player = {
@@ -55,7 +50,6 @@
       email: (params.get('email')|| '').trim()
     };
 
-    // ===== Persistência local =====
     const SESSION_KEY = `quiz-emr:${player.email||'anon'}`;
     function loadState(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||{}}catch{return {}} }
     function saveState(p){ localStorage.setItem(SESSION_KEY, JSON.stringify({ ...loadState(), ...p })); }
@@ -63,16 +57,14 @@
 
     let state = loadState();
     if (!state.startedAt){
-      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0, answers:[] };
+      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0 };
       saveState(state);
     }
 
-    // embaralhar
     const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
     let QS = shuffle(QUESTIONS).map(q => ({ ...q, options: shuffle(q.options.slice()) }));
 
-    // estado
-    const QTIME = 20; // segundos por pergunta
+    const QTIME = 20;
     let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
     let startTs=0, tickId=null, remaining=QTIME;
 
@@ -81,6 +73,14 @@
     function setProgress(){
       elBar.style.width = `${Math.round((idx/QS.length)*100)}%`;
       elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
+    }
+
+    function prepareNextQuestion(){
+      elTitle.textContent = "Prepare-se!";
+      elOpts.innerHTML = "";
+      elCount.textContent = `Próxima pergunta...`;
+      elTimer.textContent = "⏱ --";
+      setTimeout(render, 3000);
     }
 
     function render(){
@@ -97,7 +97,6 @@
         elOpts.appendChild(b);
       });
 
-      // timer
       remaining = QTIME;
       startTs = performance.now();
       if (tickId) cancelAnimationFrame(tickId);
@@ -106,7 +105,7 @@
         const left=Math.max(0,QTIME-passed);
         remaining=left;
         elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
-        if (left<=0){ lockOptions(); next(false,QTIME); return; }
+        if (left<=0){ timeExpired(); return; }
         tickId=requestAnimationFrame(tick);
       };
       tickId=requestAnimationFrame(tick);
@@ -128,14 +127,25 @@
       });
 
       saveState({ idx, totalScore, totalTime });
-      setTimeout(()=> next(true,used),380);
+      setTimeout(()=> next(),380);
+    }
+
+    function timeExpired(){
+      lockOptions();
+      totalTime += QTIME;
+      elTitle.textContent = "⏳ Tempo esgotado!";
+      elOpts.querySelectorAll('.option').forEach(b=>{
+        b.classList.add('danger');
+      });
+      saveState({ idx, totalScore, totalTime });
+      setTimeout(()=> next(),1200);
     }
 
     function next(){
       if (tickId) cancelAnimationFrame(tickId);
       idx++;
       saveState({ idx, totalScore, totalTime });
-      if (idx<QS.length) { render(); return; }
+      if (idx<QS.length) { prepareNextQuestion(); return; }
       finalize();
     }
 
@@ -143,7 +153,6 @@
       const emailId=(player.email||'anon').toLowerCase();
       const ref=doc(db,"scores",emailId);
       try{
-        const prev=await getDoc(ref);
         const newData={
           name:player.name,
           email:player.email,
@@ -151,27 +160,19 @@
           totalTime:Math.round(totalTime*10)/10,
           updatedAt:serverTimestamp()
         };
-        let canWrite=true;
-        if (prev.exists()){
-          const p=prev.data();
-          canWrite=(newData.score>(p.score||0)) || (newData.score===(p.score||0) && (newData.totalTime||9e9)<(p.totalTime||9e9));
-        }
-        if (canWrite) await setDoc(ref,newData);
-
+        await setDoc(ref,newData);
         confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
-
-        clearState(); // 🔑 limpa sessão
+        clearState();
         const me=encodeURIComponent(player.email||'');
         setTimeout(()=> location.href=`index.html?me=${me}`,900);
       }catch(err){ console.error(err); alert("Falha ao enviar sua pontuação."); }
     }
 
-    // protege contra refresh acidental
     window.addEventListener('beforeunload',e=>{
       if (idx<QS.length){ e.preventDefault(); e.returnValue=''; }
     });
 
-    render();
+    prepareNextQuestion();
   </script>
 </body>
 </html>
