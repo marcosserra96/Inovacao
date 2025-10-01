@@ -43,15 +43,22 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
+    function makeDocId(name){
+      return (name||'anon')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .toLowerCase()
+        .replace(/\s+/g,'-')
+        .trim();
+    }
+
     const $ = s => document.querySelector(s);
     const params = new URLSearchParams(location.search);
     const player = {
       name: params.get('name') || 'Participante',
-      id: (params.get('id') || '').trim()
+      id: params.get('id') || makeDocId(params.get('name') || 'anon')
     };
 
-    // padroniza docId
-    const docId = (player.id || player.name).toLowerCase().replace(/\s+/g,'-');
+    const docId = player.id;
 
     const SESSION_KEY = `quiz-emr:${docId}`;
     function loadState(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||{}}catch{return {}} }
@@ -88,7 +95,6 @@
       elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
     }
 
-    // Overlay prepare-se
     function prepareNextQuestion(){
       const overlay = document.createElement('div');
       overlay.className = 'prepare-overlay';
@@ -105,9 +111,6 @@
         count--;
         if(count>0){
           countdownEl.textContent = count;
-          countdownEl.classList.remove('pop');
-          void countdownEl.offsetWidth;
-          countdownEl.classList.add('pop');
         } else {
           clearInterval(timer);
           overlay.remove();
@@ -119,22 +122,12 @@
     function showFeedback(type){
       const bf = document.createElement('div');
       bf.className = `bullet-feedback ${type}`;
-      let msg = "";
-      if(type==="correct") msg = "✔️ Correto!";
-      if(type==="wrong") msg = "❌ Errado!";
-      if(type==="timeout") msg = "⏳ Tempo esgotado!";
-      bf.textContent = msg;
-
+      bf.textContent = type==="correct" ? "✔️ Correto!" :
+                       type==="wrong"   ? "❌ Errado!"  :
+                                          "⏳ Tempo esgotado!";
       const container = document.querySelector('.quiz-wrap') || document.body;
       container.appendChild(bf);
-
-      setTimeout(()=>{
-        bf.style.animation = "bf-fade-out 0.3s ease-in forwards";
-        setTimeout(()=>{
-          bf.remove();
-          next();
-        }, 300);
-      },2000);
+      setTimeout(()=>{ bf.remove(); next(); },2000);
     }
 
     function render(){
@@ -142,7 +135,6 @@
       const q = QS[idx];
       elTitle.textContent = q.title;
       elOpts.innerHTML = "";
-
       q.options.forEach((text,i)=>{
         const b=document.createElement('button');
         b.className='option';
@@ -150,13 +142,7 @@
         b.onclick = ()=> answer(i);
         elOpts.appendChild(b);
       });
-
-      state.startedAt = Date.now();
-      saveState(state);
-
       startTs = performance.now();
-      if (tickId) cancelAnimationFrame(tickId);
-
       const tick=()=>{
         const passed=(performance.now()-startTs)/1000;
         const left=Math.max(0,QTIME-passed);
@@ -177,15 +163,8 @@
       const correct=(i===q.answerIndex);
       const pts=computeScore?computeScore(correct,used):(correct?1000:0);
       totalScore+=pts; totalTime+=used;
-
-      [...elOpts.children].forEach((btn,ii)=>{
-        if (ii===q.answerIndex) btn.classList.add('success');
-        if (ii===i && ii!==q.answerIndex) btn.classList.add('danger');
-      });
-
       saveState({ idx, totalScore, totalTime });
-      if(correct) showFeedback("correct");
-      else showFeedback("wrong");
+      showFeedback(correct?"correct":"wrong");
     }
 
     function timeExpired(){
@@ -213,17 +192,11 @@
           updatedAt:serverTimestamp()
         };
         await setDoc(ref,newData);
-
         confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
         clearState();
         setTimeout(()=> location.href=`index.html?me=${encodeURIComponent(player.name)}`,1200);
-
       }catch(err){ console.error(err); alert("Falha ao enviar sua pontuação."); }
     }
-
-    window.addEventListener('beforeunload',e=>{
-      if (idx<QS.length){ e.preventDefault(); e.returnValue=''; }
-    });
 
     prepareNextQuestion();
   </script>
