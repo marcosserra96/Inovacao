@@ -5,75 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz EMR — Início</title>
   <link rel="stylesheet" href="assets/styles.css?v=dev"/>
-
-  <style>
-    /* ============ Autocomplete ============ */
-    .autocomplete{ position:relative; }
-    .typeahead{
-      position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:50;
-      list-style:none; margin:0; padding:6px;
-      max-height:240px; overflow:auto;
-      background:#0b2f39; color:#e7f6fb;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:12px;
-      box-shadow:0 14px 28px rgba(0,0,0,.18), 0 10px 10px rgba(0,0,0,.12);
-      display:none;
-    }
-    .typeahead li{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:10px; padding:10px 12px; cursor:pointer; border-radius:10px;
-    }
-    .typeahead li .n{ font-weight:700; color:#e7f6fb; }
-    .typeahead li .hint{ font-size:.85rem; opacity:.75; color:#cde7ef; }
-    .typeahead li:hover, .typeahead li.active{ background:rgba(255,255,255,.06); }
-
-    /* Garante que nada corte o dropdown */
-    .card, .form, .hero { overflow: visible; }
-
-    @media (max-width:640px){
-      .typeahead{ max-height:50vh; }
-    }
-
-    /* ============ Dev Modal ============ */
-    .dev-hidden-hotspot{
-      position:absolute; inset:0; /* ocupa toda a área da brand */
-      background:transparent; border:none; padding:0; margin:0;
-      cursor:default; opacity:0; /* invisível */
-    }
-    dialog.dev-modal{
-      width:min(720px, 92vw);
-      border:none; border-radius:16px; padding:0; overflow:hidden;
-      box-shadow:0 20px 60px rgba(0,0,0,.45);
-      background:#09232a; color:#dff3f9;
-    }
-    .dev-modal::backdrop{ background:rgba(0,0,0,.45); }
-    .dev-head{ display:flex; align-items:center; justify-content:space-between;
-               padding:16px 18px; background:#0b2f39; border-bottom:1px solid rgba(255,255,255,.06); }
-    .dev-body{ padding:16px 18px; display:grid; gap:12px; }
-    .dev-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .dev-actions button{
-      padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.08);
-      background:#0e3c49; color:#e8f7fb; font-weight:600; cursor:pointer;
-    }
-    .dev-actions button:hover{ background:#0f4654; }
-    .dev-danger{ background:#4b1212 !important; border-color:#7a2222 !important; }
-    .dev-danger:hover{ background:#5a1616 !important; }
-
-    .dev-foot{ display:flex; justify-content:flex-end; gap:8px; padding:12px 18px; border-top:1px solid rgba(255,255,255,.06); }
-    .muted{ opacity:.8; font-size:.9rem; }
-
-    /* botão desabilitado até carregar a lista */
-    .btn[disabled]{ opacity:.6; cursor:not-allowed; }
-  </style>
 </head>
 <body>
   <header class="header" style="position:relative">
     <div class="brand" id="brand" style="position:relative">
       <span class="logo-dot"></span><span class="title">Quiz EMR</span>
-      <!-- Hotspot invisível para abrir o modo dev (long-press) -->
-      <button id="dev-hotspot" class="dev-hidden-hotspot" aria-hidden="true" tabindex="-1"></button>
     </div>
-    <div class="badge">Evento</div>
   </header>
 
   <section class="card">
@@ -91,12 +28,6 @@
           <button id="start-btn" class="btn btn-pill btn-primary" type="submit" disabled>Começar agora</button>
           <p id="loadMsg" class="muted" role="status">Carregando lista de participantes…</p>
         </form>
-
-        <div class="qr" style="margin-top:12px;">
-          <img id="qr" alt="QR do jogo" width="120" height="120" />
-          <button id="copy" class="btn btn-pill" style="background:#e9f4f8;color:#0a4561; margin-left:8px;">Copiar link</button>
-          <span id="copied" class="muted" style="display:none; margin-left:8px;">Link copiado!</span>
-        </div>
       </div>
 
       <!-- RANKING -->
@@ -115,36 +46,10 @@
     </div>
   </section>
 
-  <!-- Modal Dev -->
-  <dialog id="dev-modal" class="dev-modal">
-    <div class="dev-head">
-      <strong>⚙️ Modo Desenvolvedor</strong>
-      <button id="dev-close" title="Fechar" style="all:unset; cursor:pointer; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,.06)">✕</button>
-    </div>
-    <div class="dev-body">
-      <div class="muted">Ações rápidas (use com cuidado, especialmente <b>apagar scores</b>).</div>
-      <div class="dev-actions">
-        <button id="dev-reload-part">Recarregar participantes</button>
-        <button id="dev-toggle-free">Nome livre: <span id="dev-free-state">OFF</span></button>
-        <button id="dev-clear-cache">Limpar cache local</button>
-        <button id="dev-wipe" class="dev-danger">APAGAR TODOS os scores</button>
-      </div>
-      <details>
-        <summary>Debug</summary>
-        <pre id="dev-debug" style="white-space:pre-wrap; background:#0b2f39; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.08); max-height:200px; overflow:auto;"></pre>
-      </details>
-      <div class="muted">Atalho: <code>Ctrl + Alt + D</code> ou pressionar 2s sobre a bolinha da logo.</div>
-    </div>
-    <div class="dev-foot">
-      <button id="dev-ok" style="padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:#0e3c49; color:#e8f7fb; font-weight:600;">OK</button>
-    </div>
-  </dialog>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import {
-      getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs,
-      deleteDoc, doc
+      getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -159,24 +64,6 @@
 
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
-
-    /* =====================
-       Utils / Segurança leve (MODO TESTE: SEM VALIDAÇÃO)
-       ===================== */
-    // deixe o DEV_HASH caso queira depois voltar a verificação; não usado abaixo
-    const DEV_HASH = "";
-
-    async function sha256Hex(str){
-      const enc = new TextEncoder().encode(str);
-      const buf = await crypto.subtle.digest("SHA-256", enc);
-      const arr = Array.from(new Uint8Array(buf));
-      return arr.map(b=>b.toString(16).padStart(2,"0")).join("");
-    }
-    // helper exposto pra você gerar hash no console, se quiser
-    window.__hash = sha256Hex;
-
-    function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-    function norm(s){ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
 
     /* =====================
        Estado
@@ -195,9 +82,6 @@
     const loadMsg  = document.getElementById('loadMsg');
     const rows = document.getElementById('ranking-rows');
 
-    /* =====================
-       Carrega participantes
-       ===================== */
     async function loadParticipants(){
       const tryPaths = ["participants.json", "data/participants.json"];
       for (const p of tryPaths){
@@ -210,12 +94,9 @@
             participantsLoaded = true;
             loadMsg.textContent = `Lista carregada (${participants.length}).`;
             startBtn.disabled = false;
-            debug(`participants de: ${p} — ${participants.length} itens`);
             return;
           }
-        }catch(e){
-          debug(`Falhou ${p}: ${e.message||e}`);
-        }
+        }catch(e){}
       }
       participants = [];
       participantsLoaded = false;
@@ -224,9 +105,7 @@
     }
     loadParticipants();
 
-    /* =====================
-       Autocomplete (nome)
-       ===================== */
+    function norm(s){ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
     function filterNames(q){
       const n = norm(q);
       if (n.length < 1) return [];
@@ -261,13 +140,6 @@
       chosen = p;
       hideSug();
     }
-    function move(delta){
-      const items = [...sugEl.children]; if(!items.length) return;
-      active = (active + delta + items.length) % items.length;
-      items.forEach((li,idx)=> li.classList.toggle('active', idx===active));
-      if(active>=0) items[active].scrollIntoView({block:'nearest'});
-    }
-
     let debounce;
     function onInput(){
       chosen=null;
@@ -278,21 +150,7 @@
       },110);
     }
     nameEl.addEventListener('input', onInput);
-    nameEl.addEventListener('keydown', (e)=>{
-      if(sugEl.style.display==='block'){
-        if(e.key==='ArrowDown'){ e.preventDefault(); move(1); }
-        if(e.key==='ArrowUp'){   e.preventDefault(); move(-1); }
-        if(e.key==='Enter'){     e.preventDefault(); if(active>=0) pick(active); }
-        if(e.key==='Escape'){    e.preventDefault(); hideSug(); }
-      }
-    });
-    document.addEventListener('click', (e)=>{
-      if(!e.target.closest('.autocomplete')) hideSug();
-    });
 
-    /* =====================
-       Submit
-       ===================== */
     document.getElementById('start-form').addEventListener('submit',(e)=>{
       e.preventDefault();
       if(!participantsLoaded){
@@ -309,28 +167,6 @@
       location.href = `quiz.html?${qs}`;
     });
 
-    /* =====================
-       QR & Copiar link
-       ===================== */
-    const homeURL = (()=> {
-      // remove "index.html" do final se existir (melhor para GitHub Pages)
-      const url = new URL(location.href);
-      const path = url.pathname.replace(/index\.html?$/i,'');
-      return url.origin + path;
-    })();
-    const qrURL   = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(homeURL)}`;
-    document.getElementById('qr').src = qrURL;
-    document.getElementById('copy').onclick = async ()=>{
-      await navigator.clipboard.writeText(homeURL);
-      const ok=document.getElementById('copied');
-      ok.style.display='inline'; setTimeout(()=>ok.style.display='none',1500);
-    };
-
-    /* =====================
-       Ranking ao vivo
-       ===================== */
-    const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
-
     function renderData(data){
       rows.innerHTML="";
       const top = data.slice(0,10);
@@ -346,7 +182,7 @@
           <td>${medal}</td>
           <td>${(d.name||"-").toString().slice(0,48)}</td>
           <td><strong>${d.score ?? 0}</strong></td>
-          <td>${fmt(d.totalTime)}</td>`;
+          <td>${Number.isFinite(d.totalTime)? d.totalTime.toFixed(1)+"s":"-"}</td>`;
         rows.appendChild(tr); pos++;
       }
     }
@@ -367,95 +203,6 @@
       }catch(e){ console.error(e); }
     }
     startLive();
-
-    /* =====================
-       Modo Dev (LIBERADO - SEM SENHA)
-       ===================== */
-    const devModal = document.getElementById('dev-modal');
-    const devFreeState = document.getElementById('dev-free-state');
-    const devDebug = document.getElementById('dev-debug');
-
-    function debug(msg){
-      if(!devDebug) return;
-      const time = new Date().toLocaleTimeString();
-      devDebug.textContent = `[${time}] ${msg}\n` + (devDebug.textContent||"");
-    }
-
-    function updateFreeNameBadge(){
-      devFreeState.textContent = allowFreeName ? 'ON' : 'OFF';
-      devFreeState.style.color = allowFreeName ? '#59C085' : '#e8f7fb';
-    }
-
-    // MODO TESTE: sempre retorna true -> abre o modal sem validação
-    async function askDevPassword(){
-      return true;
-    }
-
-    function openDev(){
-      devModal.showModal();
-      updateFreeNameBadge();
-    }
-    function closeDev(){ devModal.close(); }
-
-    // Abertura por long-press na bolinha da logo (2s)
-    const hotspot = document.getElementById('dev-hotspot');
-    let pressTimer=null;
-    hotspot.addEventListener('pointerdown', ()=>{
-      pressTimer = setTimeout(async ()=>{
-        if(await askDevPassword()) openDev();
-      }, 2000);
-    });
-    ['pointerup','pointerleave','pointercancel'].forEach(ev=>{
-      hotspot.addEventListener(ev, ()=>{ clearTimeout(pressTimer); pressTimer=null; });
-    });
-
-    // Atalho: Ctrl + Alt + D
-    document.addEventListener('keydown', async (e)=>{
-      if(e.ctrlKey && e.altKey && (e.key==='d' || e.key==='D')){
-        if(await askDevPassword()) openDev();
-      }
-    });
-
-    // Botões do modal
-    document.getElementById('dev-close').onclick = closeDev;
-    document.getElementById('dev-ok').onclick = closeDev;
-
-    document.getElementById('dev-reload-part').onclick = async ()=>{
-      await loadParticipants();
-      alert("Participantes recarregados.");
-    };
-
-    document.getElementById('dev-toggle-free').onclick = ()=>{
-      allowFreeName = !allowFreeName;
-      updateFreeNameBadge();
-      alert(`Nome livre ${allowFreeName? 'ativado' : 'desativado'}.`);
-    };
-
-    document.getElementById('dev-clear-cache').onclick = ()=>{
-      try{
-        localStorage.clear();
-        sessionStorage.clear();
-        alert("Cache local limpo (localStorage/sessionStorage).");
-      }catch(e){ alert("Falha ao limpar cache: "+e.message); }
-    };
-
-    document.getElementById('dev-wipe').onclick = async ()=>{
-      if(!confirm("Tem certeza? Isso APAGARÁ TODOS os scores.")) return;
-      try{
-        const snap = await getDocs(collection(db,'scores'));
-        let n=0;
-        for(const d of snap.docs){
-          await deleteDoc(doc(db,'scores', d.id));
-          n++;
-          if(n%20===0) await sleep(20);
-        }
-        alert(`Pronto. Removidos ${n} scores.`);
-      }catch(e){
-        alert("Erro ao apagar scores (verifique regras do Firestore). Detalhe no console.");
-        console.error(e);
-      }
-    };
   </script>
 </body>
 </html>
-
