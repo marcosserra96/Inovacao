@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8"/>
   <!-- Anti-zoom iOS + notch -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"/>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+
   <title>Quiz EMR — Perguntas</title>
 
-  <!-- Estilos globais -->
   <link rel="stylesheet" href="assets/styles.css?v=2"/>
 
-  <!-- Anti-zoom iOS (garante fonte >=16px em inputs/botões) -->
+  <!-- Anti-zoom iOS extra -->
   <style>
     html { -webkit-text-size-adjust: 100%; }
-    input, select, textarea, button { font-size: 16px; } /* evita zoom no foco no iPhone */
-    /* opcional: evita “double-tap zoom” em botões/links */
+    body { touch-action: manipulation; }
+    input, select, textarea, button { font-size: 16px; line-height: 1.2; }
+    /* evita “double-tap zoom” em botões/links */
     button, a { touch-action: manipulation; }
   </style>
 
@@ -65,9 +67,15 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { QUESTIONS, computeScore as SCORE_FN } from "./js/questions.js?v=dev";
 
-    // ========== Firebase ==========
+    // ========= CONFIG BÁSICA =========
+    const importPath = "./js/questions.js?v=dev"; // <-- ajuste se seu path for diferente
+    const QTIME = 20;                  // segundos por pergunta
+    const INTER_FIRST   = 3;           // contagem antes da primeira
+    const INTER_BETWEEN = 3;           // contagem entre as demais
+    const HAPTICS = false;             // vibre no Android se quiser
+
+    // ========= FIREBASE =========
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -80,13 +88,7 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // ========== Config ==========
-    const QTIME = 20;                  // segundos por pergunta
-    const INTER_FIRST   = 3;           // contagem antes da primeira
-    const INTER_BETWEEN = 3;           // contagem entre as demais
-    const HAPTICS = false;             // vibre no Android se quiser
-
-    // ========== Estado ==========
+    // ========= ESTADO =========
     const $ = s => document.querySelector(s);
     const params = new URLSearchParams(location.search);
     const player = {
@@ -106,16 +108,39 @@
       saveState(state);
     }
 
-    // Embaralha sem seed
-    const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
-    let QS = shuffle(QUESTIONS).map(q => ({ ...q, options: shuffle(q.options.slice()) }));
+    // ========= CARREGAR PERGUNTAS (com fallback) =========
+    let QUESTIONS = [];
+    let computeScore = (correct, used) => correct ? Math.max(0, Math.round(1200 - used*50)) : 0; // fallback simples
 
-    // DOM refs
+    try {
+      const mod = await import(importPath);
+      if (Array.isArray(mod.QUESTIONS)) QUESTIONS = mod.QUESTIONS;
+      if (typeof mod.computeScore === 'function') computeScore = mod.computeScore;
+    } catch (e) {
+      console.error("Falha ao importar questions.js:", e);
+    }
+
+    // ========= SE NÃO HÁ PERGUNTAS, MOSTRA AVISO E SAI =========
     const elCount=$('#q-count'), elBar=$('#progress'), elTimer=$('#q-time'), elTitle=$('#q-title'), elOpts=$('#q-options');
     const interWrap = $('#interstitial'), interNum = $('#inter-num');
     const resultWrap=$('#result'), resultCard=$('#result-card'), resultEmoji=$('#result-emoji'), resultText=$('#result-text');
     const quizCard = document.querySelector('.quiz-wrap');
     const timeupEl = $('#timeup');
+
+    if (!Array.isArray(QUESTIONS) || QUESTIONS.length === 0) {
+      elTitle.textContent = "Não encontrei as perguntas. Verifique o arquivo js/questions.js e o caminho no import.";
+      elOpts.innerHTML = "";
+      // Evita ficar preso em overlays:
+      interWrap?.classList.remove('show'); interWrap?.setAttribute('aria-hidden','true');
+      resultWrap?.classList.remove('show'); resultWrap?.setAttribute('aria-hidden','true');
+      timeupEl?.classList.remove('show'); timeupEl?.setAttribute('aria-hidden','true');
+      // Interrompe o fluxo do quiz:
+      throw new Error("QUESTIONS vazio: verifique o path de import e o conteúdo do arquivo.");
+    }
+
+    // ========= UTIL =========
+    const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+    let QS = shuffle(QUESTIONS).map(q => ({ ...q, options: shuffle(q.options.slice()) }));
 
     // Timer & locks
     let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
@@ -131,8 +156,9 @@
       else if (paused){ paused=false; pausedTotal += performance.now()-pauseStart; }
     });
 
-    // ===== Intersticial 3-2-1 =====
     function haptic(){ if (HAPTICS && 'vibrate' in navigator) navigator.vibrate(20); }
+
+    // ===== Intersticial 3-2-1 =====
     function showIntermission(seconds){
       interLock = true;
       return new Promise(resolve=>{
@@ -250,7 +276,7 @@
       const q=QS[idx];
       const used = QTIME;
       const correct = false;
-      const pts = (SCORE_FN ? SCORE_FN(correct, used) : 0);
+      const pts = computeScore(correct, used);
       totalScore += pts;
       totalTime  += used;
 
@@ -264,7 +290,6 @@
 
       saveState({ idx, totalScore, totalTime, answers: state.answers, times: state.times });
 
-      // feedback -> contagem -> próxima
       setTimeout(async ()=>{
         await showResult(false);
         await goNext();
@@ -281,7 +306,7 @@
       const used=Math.min(QTIME,(performance.now()-startTs - pausedTotal)/1000);
       const q=QS[idx];
       const correct=(i===q.answerIndex);
-      const pts=(SCORE_FN?SCORE_FN(correct,used):(correct?1000:0));
+      const pts=computeScore(correct,used);
       totalScore+=pts; totalTime+=used;
 
       state.answers[idx] = i;
@@ -302,7 +327,6 @@
 
     // ===== Avançar com intersticial consistente =====
     async function goNext(){
-      // incrementa índice, decide se finaliza, e se não, mostra contagem e renderiza
       idx++;
       saveState({ idx, totalScore, totalTime });
 
