@@ -24,8 +24,6 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
 }
 .title{ font-weight:900; font-size:24px; }
 
-/* (removemos o .badge pois você pediu) */
-
 /* ======= Card ======= */
 .card{
   max-width:1120px; margin:0 auto 28px; background:var(--card);
@@ -86,7 +84,7 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
 @keyframes s{0%{background-position:100% 0}100%{background-position:0 0}}
 
 /* ======= Quiz ======= */
-.quiz-wrap{ padding:24px 28px 32px; }
+.quiz-wrap{ padding:24px 28px 32px; position:relative; }
 .topbar{ display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; }
 .pill{ background:var(--dark); color:#fff; padding:8px 12px; border-radius:999px; font-weight:800; }
 .progress{ height:12px; background:#deedf3; border:1px solid var(--stroke); border-radius:999px; overflow:hidden; }
@@ -103,29 +101,13 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
 .option:hover{ transform:translateY(-1px); }
 .option:disabled{ opacity:.92; cursor:default; }
 .option.success{ outline:3px solid #2ecc71; }
-.option.danger { outline:3px solid #ff6b6b; animation: shake 0.4s ease-in-out; }
-@keyframes shake {
-  0%,100%{ transform:translateX(0); }
-  25%{ transform:translateX(-4px); }
-  75%{ transform:translateX(4px); }
-}
+.option.danger { outline:3px solid #ff6b6b; }
 
-/* ======= Placar TV ======= */
-.full{ max-width:1280px; margin:28px auto; }
-.board{ padding:24px; border-radius:24px; background:#fff; border:1px solid var(--stroke); box-shadow:0 10px 24px rgba(0,0,0,.06); }
-.board h1{ margin:0 0 12px; font-size:32px; font-weight:900; }
-.board .table td{ font-size:20px; padding:14px 12px; }
-.qr{ display:flex; align-items:center; gap:12px; margin-top:10px; }
-.qr img{ width:96px; height:96px; border-radius:12px; border:1px solid var(--stroke); }
-
-/* util */
-.center{ text-align:center; }
-
-/* Overlay do Prepare-se */
+/* ===== Overlay Prepare-se ===== */
 .prepare-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -133,22 +115,54 @@ html,body{ margin:0; background:var(--bg); color:var(--ink);
   color: #fff;
   font-weight: 900;
   font-size: 64px;
-  animation: fadeIn 0.3s ease;
 }
-
 .prepare-overlay .countdown {
   font-size: 96px;
   margin-top: 16px;
   animation: pop 0.6s ease;
 }
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 @keyframes pop {
   0% { transform: scale(0.5); opacity: 0; }
   50% { transform: scale(1.2); opacity: 1; }
   100% { transform: scale(1); }
 }
+
+/* ===== Feedback Bullet ===== */
+.bullet-feedback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  padding: 24px 32px;
+  border-radius: 24px;
+  color: #fff;
+  font-weight: 900;
+  font-size: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  animation: bf-fade-in 0.3s ease-out forwards;
+}
+.bullet-feedback.correct { background: rgba(46, 204, 113, 0.9); }
+.bullet-feedback.wrong { background: rgba(231, 76, 60, 0.9); }
+.bullet-feedback.timeout { background: rgba(243, 156, 18, 0.9); }
+
+@keyframes bf-fade-in {
+  from { opacity: 0; transform: translate(-50%, -70%) scale(0.5); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes bf-fade-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -30%) scale(1.2); }
+}
+
+/* ======= Placar TV ======= */
+.full{ max-width:1280px; margin:28px auto; }
+.board{ padding:24px; border-radius:24px; background:#fff; border:1px solid var(--stroke); box-shadow:0 10px 24px rgba(0,0,0,.06); }
+.board h1{ margin:0 0 12px; font-size:32px; font-weight:900; }
+.board .table td{ font-size:20px; padding:14px 12px; }
+
+/* util */
+.center{ text-align:center; }
