@@ -125,38 +125,37 @@
       },2000);
     }
 
-    function render(){
-      setProgress();
-      const q = QS[idx];
-      elTitle.textContent = q.title;
-      elOpts.innerHTML = "";
+function render(){
+  setProgress();
+  const q = QS[idx];
+  elTitle.textContent = q.title;
+  elOpts.innerHTML = "";
 
-      q.options.forEach((text,i)=>{
-        const b=document.createElement('button');
-        b.className='option';
-        b.innerHTML = `<div class="bullet">${i+1}</div><div>${text}</div>`;
-        b.onclick = ()=> answer(i);
-        elOpts.appendChild(b);
-      });
+  q.options.forEach((text,i)=>{
+    const b=document.createElement('button');
+    b.className='option';
+    b.innerHTML = `<div class="bullet">${i+1}</div><div>${text}</div>`;
+    b.onclick = ()=> answer(i);
+    elOpts.appendChild(b);
+  });
 
-      // tempo persistente
-      const now = Date.now();
-      if (!state.startedAt) state.startedAt = now;
-      const elapsed = (now - state.startedAt) / 1000;
-      remaining = Math.max(0, QTIME - elapsed);
+  // Reseta o tempo quando a questão começa de fato
+  state.startedAt = Date.now();
+  saveState(state);
 
-      startTs = performance.now() - (elapsed*1000);
-      if (tickId) cancelAnimationFrame(tickId);
-      const tick=()=>{
-        const passed=(performance.now()-startTs)/1000;
-        const left=Math.max(0,QTIME-passed);
-        remaining=left;
-        elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
-        if (left<=0){ timeExpired(); return; }
-        tickId=requestAnimationFrame(tick);
-      };
-      tickId=requestAnimationFrame(tick);
-    }
+  startTs = performance.now();
+  if (tickId) cancelAnimationFrame(tickId);
+
+  const tick=()=>{
+    const passed=(performance.now()-startTs)/1000;
+    const left=Math.max(0,QTIME-passed);
+    remaining=left;
+    elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
+    if (left<=0){ timeExpired(); return; }
+    tickId=requestAnimationFrame(tick);
+  };
+  tickId=requestAnimationFrame(tick);
+}
 
     function lockOptions(){ [...elOpts.querySelectorAll('.option')].forEach(b=>b.disabled=true); }
 
