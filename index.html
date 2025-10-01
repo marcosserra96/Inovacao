@@ -2,54 +2,20 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
-  <!-- Anti-zoom iOS + notch -->
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>Quiz Innovation Break</title>
 
-  <!-- Performance -->
+  <!-- Preconnect p/ performance em rede móvel -->
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 
   <!-- Styles -->
   <link rel="stylesheet" href="assets/styles.css?v=2"/>
-
   <style>
-    /* Esconde o QR e o badge “Evento” sem remover do HTML */
+    /* Esconde o QR sem remover (pra poder voltar fácil) */
     .qr { display: none !important; }
+    /* Esconde o badge “Evento” sem apagar do HTML */
     .badge { display: none !important; }
-
-    /* Anti-zoom iOS: inputs/botões ≥16px e sem double-tap zoom */
-    html { -webkit-text-size-adjust: 100%; }
-    body { touch-action: manipulation; }
-    input, select, textarea, button { font-size: 16px; line-height: 1.2; }
-    button, a { touch-action: manipulation; }
-
-    /* ===== Dev Modal (estilo mínimo) ===== */
-    .dev-hidden-hotspot{
-      position:absolute; inset:0; background:transparent; border:none; padding:0; margin:0;
-      cursor:default; opacity:0;
-    }
-    dialog.dev-modal{
-      width:min(720px, 92vw);
-      border:none; border-radius:16px; padding:0; overflow:hidden;
-      box-shadow:0 20px 60px rgba(0,0,0,.45);
-      background:#09232a; color:#dff3f9;
-    }
-    .dev-modal::backdrop{ background:rgba(0,0,0,.45); }
-    .dev-head{ display:flex; align-items:center; justify-content:space-between;
-               padding:16px 18px; background:#0b2f39; border-bottom:1px solid rgba(255,255,255,.06); }
-    .dev-body{ padding:16px 18px; display:grid; gap:12px; }
-    .dev-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .dev-actions button{
-      padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.08);
-      background:#0e3c49; color:#e8f7fb; font-weight:600; cursor:pointer;
-    }
-    .dev-actions button:hover{ background:#0f4654; }
-    .dev-danger{ background:#4b1212 !important; border-color:#7a2222 !important; }
-    .dev-danger:hover{ background:#5a1616 !important; }
-    .dev-foot{ display:flex; justify-content:flex-end; gap:8px; padding:12px 18px; border-top:1px solid rgba(255,255,255,.06); }
-    .muted{ opacity:.9; }
   </style>
 </head>
 <body>
@@ -144,15 +110,7 @@
       onSnapshot, getDocs, deleteDoc, doc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    // ===== Bloqueio de double-tap zoom (fallback leve) =====
-    let lastTouch = 0;
-    document.addEventListener('touchend', (e)=>{
-      const now = Date.now();
-      if (now - lastTouch <= 300) e.preventDefault();
-      lastTouch = now;
-    }, {passive:false});
-
-    // ===== Firebase =====
+    // Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -165,30 +123,32 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // ===== Utils =====
+    // ===== Utils
+    const DEV_HASH = ""; // opcional, para proteger modal dev
     const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
-    const norm  = (s)=> (s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-    function debug(msg){
-      const el = document.getElementById('dev-debug');
-      if (!el) return;
-      const t = new Date().toLocaleTimeString();
-      el.textContent = `[${t}] ${msg}\n` + (el.textContent||"");
-    }
+    const norm = (s)=> (s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 
-    // ===== Estado =====
+    async function sha256Hex(str){
+      const enc = new TextEncoder().encode(str);
+      const buf = await crypto.subtle.digest("SHA-256", enc);
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+    window.__hash = sha256Hex; // helper no console
+
+    // ===== Estado
     let participants = [];
     let filtered = [], chosen=null, active=-1;
     let allowFreeName = false; // produção: false
     let participantsLoaded = false;
 
-    // ===== DOM =====
+    // ===== DOM
     const nameEl   = document.getElementById('name');
     const sugEl    = document.getElementById('suggestions');
     const startBtn = document.getElementById('start-btn');
     const loadMsg  = document.getElementById('loadMsg');
     const rows     = document.getElementById('ranking-rows');
 
-    // ===== Participantes =====
+    // ===== Participantes
     async function loadParticipants(){
       const tryPaths = ["participants.json", "data/participants.json"];
       for (const p of tryPaths){
@@ -215,7 +175,7 @@
     }
     loadParticipants();
 
-    // ===== Autocomplete =====
+    // ===== Autocomplete
     function filterNames(q){
       const n = norm(q);
       if (n.length < 1) return [];
@@ -283,7 +243,7 @@
       nameEl.addEventListener('focus', fix);
     }
 
-    // ===== Submit =====
+    // ===== Submit
     document.getElementById('start-form').addEventListener('submit',(e)=>{
       e.preventDefault();
       if(!participantsLoaded){
@@ -300,7 +260,7 @@
       location.href = `quiz.html?${qs}`;
     });
 
-    // ===== Ranking: helpers de estado =====
+    // ===== Ranking: helpers de estado
     function showRankError(msg){
       rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">${msg}</td></tr>`;
     }
@@ -311,7 +271,7 @@
         <tr><td colspan="4"><div class="skel"></div></td></tr>`;
     }
 
-    // ===== Ranking: render dos dados =====
+    // ===== Ranking: render dos dados
     const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
     function renderData(data){
       rows.innerHTML="";
@@ -333,7 +293,7 @@
       }
     }
 
-    // ===== Ranking: startLive com fallback =====
+    // ===== Ranking: startLive com fallback
     async function startLive(){
       showRankLoading();
 
@@ -357,6 +317,7 @@
           renderData(arr);
         }, (err)=>{
           console.error("onSnapshot erro:", err);
+          // Mantém dados já renderizados; opcionalmente, poderia ativar um polling simples aqui
         });
 
       }catch(err){
@@ -388,12 +349,17 @@
     }
     startLive();
 
-    // ===== Modo Dev =====
+    // ===== Modo Dev
     const devModal = document.getElementById('dev-modal');
     const devFreeState = document.getElementById('dev-free-state');
+    const devDebug = document.getElementById('dev-debug');
 
+    function debug(msg){
+      if(!devDebug) return;
+      const time = new Date().toLocaleTimeString();
+      devDebug.textContent = `[${time}] ${msg}\n` + (devDebug.textContent||"");
+    }
     function updateFreeNameBadge(){
-      if (!devFreeState) return;
       devFreeState.textContent = allowFreeName ? 'ON' : 'OFF';
       devFreeState.style.color = allowFreeName ? '#59C085' : '#e8f7fb';
     }
