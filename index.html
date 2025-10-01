@@ -65,17 +65,11 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    /* =====================
-       Estado
-       ===================== */
     let participants = [];
     let filtered = [], chosen=null, active=-1;
     let allowFreeName = false;
     let participantsLoaded = false;
 
-    /* =====================
-       DOM
-       ===================== */
     const nameEl = document.getElementById('name');
     const sugEl  = document.getElementById('suggestions');
     const startBtn = document.getElementById('start-btn');
