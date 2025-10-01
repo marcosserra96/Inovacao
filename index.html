@@ -15,18 +15,18 @@
 
   <section class="card">
     <div class="grid-home">
-      <!-- HERO -->
       <div class="hero">
         <h1>Pronto para jogar? 🎯</h1>
         <p>Digite seu nome e <strong>selecione da lista</strong> para participar.</p>
 
         <form id="start-form" class="form" novalidate>
-          <input id="name" class="input" type="text" placeholder="Digite seu nome" required />
+          <div class="autocomplete">
+            <input id="name" class="input" type="text" placeholder="Digite seu nome" required autocomplete="off"/>
+          </div>
           <button id="start-btn" class="btn btn-pill btn-primary" type="submit">Começar agora</button>
         </form>
       </div>
 
-      <!-- RANKING -->
       <aside class="side">
         <h2>🏆 Ranking</h2>
         <table class="table">
@@ -37,12 +37,13 @@
     </div>
   </section>
 
-  <!-- Menu DEV -->
+  <!-- Menu DEV secreto -->
   <section id="dev-menu" class="card" style="display:none; margin-top:20px;">
     <h2>⚙️ Menu Dev</h2>
-    <button onclick="setFase(1)">Ativar Fase 1</button>
-    <button onclick="setFase(2)">Ativar Fase 2</button>
-    <button onclick="setFase(3)">Ativar Fase 3</button>
+    <label>⏰ Fase 1: <input type="time" id="fase1"></label><br>
+    <label>⏰ Fase 2: <input type="time" id="fase2"></label><br>
+    <label>⏰ Fase 3: <input type="time" id="fase3"></label><br>
+    <button onclick="salvarConfig()">Salvar Configuração</button>
     <button onclick="resetRanking()">Resetar Ranking</button>
     <p>Fase atual: <span id="fase-atual">1</span></p>
   </section>
@@ -63,7 +64,6 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // normaliza nome -> docId
     function makeDocId(name){
       return (name||'anon')
         .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -72,24 +72,49 @@
         .trim();
     }
 
-    // fase atual (padrão 1)
-    let faseAtual = parseInt(localStorage.getItem("faseAtual") || "1");
+    // ===== FASES =====
+    function salvarConfig(){
+      const cfg = {
+        1: document.getElementById("fase1").value,
+        2: document.getElementById("fase2").value,
+        3: document.getElementById("fase3").value
+      };
+      localStorage.setItem("quizConfigFases", JSON.stringify(cfg));
+      alert("Configuração salva!");
+      mostrarConfig();
+    }
+
+    function faseAtual(){
+      const cfg = JSON.parse(localStorage.getItem("quizConfigFases")||"{}");
+      const now = new Date();
+      let fase = 1;
+      for (let f=1; f<=3; f++){
+        if(cfg[f]){
+          const [h,m] = cfg[f].split(":").map(Number);
+          const start = new Date(); start.setHours(h,m,0,0);
+          if(now >= start) fase = f;
+        }
+      }
+      return fase;
+    }
+
+    function mostrarConfig(){
+      const cfg = JSON.parse(localStorage.getItem("quizConfigFases")||"{}");
+      for (let f=1; f<=3; f++){
+        if(cfg[f]) document.getElementById("fase"+f).value = cfg[f];
+      }
+      document.getElementById("fase-atual").textContent = faseAtual();
+    }
 
     // ===== Menu DEV =====
     if (new URLSearchParams(location.search).get("dev") === "1") {
       document.getElementById("dev-menu").style.display = "block";
-      document.getElementById("fase-atual").textContent = faseAtual;
+      mostrarConfig();
     }
 
-    window.setFase = (f)=>{
-      faseAtual = f;
-      localStorage.setItem("faseAtual", f);
-      document.getElementById("fase-atual").textContent = f;
-      alert("Fase atual definida: "+f);
-    };
-
+    window.salvarConfig = salvarConfig;
     window.resetRanking = async ()=>{
-      if (!confirm("Tem certeza que deseja resetar o ranking?")) return;
+      if (!confirm("Resetar ranking?")) return;
       const snap = await getDocs(collection(db,"scores"));
       for (const d of snap.docs){ await deleteDoc(d.ref); }
       alert("Ranking resetado!");
@@ -105,12 +130,13 @@
       const ref = doc(db,"scores",docId);
       const snap = await getDoc(ref);
 
-      if (snap.exists() && snap.data().fases && snap.data().fases[faseAtual]) {
-        alert(`Você já respondeu a fase ${faseAtual}. Aguarde a próxima!`);
+      const fase = faseAtual();
+      if (snap.exists() && snap.data().fases && snap.data().fases[fase]) {
+        alert(`Você já respondeu a fase ${fase}. Aguarde a próxima!`);
         return;
       }
 
-      location.href = `quiz.html?name=${encodeURIComponent(name)}&id=${docId}&fase=${faseAtual}`;
+      location.href = `quiz.html?name=${encodeURIComponent(name)}&id=${docId}&fase=${fase}`;
     });
 
     // ===== Ranking =====
