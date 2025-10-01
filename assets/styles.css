@@ -209,3 +209,45 @@ body { padding: max(0px, env(safe-area-inset-top)) 0 max(0px, env(safe-area-inse
 @media (prefers-reduced-motion: reduce){
   * { animation: none !important; transition: none !important; }
 }
+/* ===== Tempo Esgotado (overlay + animação) ===== */
+.timeup-wrap{
+  position: fixed; inset: 0; z-index: 1000;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(120, 0, 0, 0.18);
+  backdrop-filter: blur(2px);
+}
+.timeup-wrap.show{ display: flex; }
+
+.timeup-pulse{
+  background: linear-gradient(135deg, #ff6b6b, #ff3b3b);
+  color: #fff; padding: 14px 18px; border-radius: 999px; font-weight: 900;
+  border: 2px solid rgba(255,255,255,.6);
+  box-shadow: 0 10px 30px rgba(255, 0, 0, .35);
+  animation: timeup-pop .28s ease-out, timeup-breath 1.2s ease-in-out infinite;
+}
+
+@keyframes timeup-pop{
+  0%{ transform: scale(.9); opacity: 0; }
+  100%{ transform: scale(1); opacity: 1; }
+}
+@keyframes timeup-breath{
+  0%,100%{ transform: scale(1); }
+  50%{ transform: scale(1.05); }
+}
+
+/* Shake sutil no card do quiz */
+.quiz-wrap.shake{
+  animation: quiz-shake .38s cubic-bezier(.36,.07,.19,.97) both;
+}
+@keyframes quiz-shake{
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
+/* respeita motion */
+@media (prefers-reduced-motion: reduce){
+  .timeup-pulse, .quiz-wrap.shake { animation: none !important; }
+}
+
