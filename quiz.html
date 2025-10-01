@@ -62,8 +62,16 @@
       saveState(state);
     }
 
+    // shuffle
     const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
-    let QS = shuffle(QUESTIONS).map(q => ({ ...q, options: shuffle(q.options.slice()) }));
+
+    // embaralha perguntas e alternativas, corrigindo o answerIndex
+    let QS = shuffle(QUESTIONS).map(q => {
+      const options = shuffle(q.options.slice());
+      const answerText = q.options[q.answerIndex];
+      const newAnswerIndex = options.indexOf(answerText);
+      return { ...q, options, answerIndex: newAnswerIndex };
+    });
 
     const QTIME = 20;
     let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
@@ -205,7 +213,6 @@
         };
         await setDoc(ref,newData);
         confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
-        // só limpa estado depois de salvar
         clearState();
         const me=encodeURIComponent(player.email || player.name || '');
         setTimeout(()=> location.href=`index.html?me=${me}`,1200);
