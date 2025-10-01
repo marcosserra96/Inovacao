@@ -50,7 +50,6 @@
 
           <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <button id="start-btn" class="btn btn-pill btn-primary" type="submit" disabled>Começar agora</button>
-            <button id="fs" type="button" class="btn btn-pill">Tela cheia</button>
             <p id="loadMsg" class="muted" role="status" style="margin:0;">Carregando lista…</p>
           </div>
         </form>
@@ -79,7 +78,7 @@
     </div>
   </section>
 
-  <!-- Modal Dev (igual ao V1, com dev ações úteis) -->
+  <!-- Modal Dev -->
   <dialog id="dev-modal" class="dev-modal">
     <div class="dev-head">
       <strong>⚙️ Modo Desenvolvedor</strong>
@@ -97,7 +96,7 @@
         <summary>Debug</summary>
         <pre id="dev-debug" style="white-space:pre-wrap; background:#0b2f39; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.08); max-height:200px; overflow:auto;"></pre>
       </details>
-      <div class="muted">Atalho: <code>Ctrl + Alt + D</code> ou pressionar 2s sobre a bolinha/área da logo.</div>
+      <div class="muted">Atalho: <code>Ctrl + Alt + D</code> ou pressionar 2s sobre a área da logo.</div>
     </div>
     <div class="dev-foot">
       <button id="dev-ok" style="padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:#0e3c49; color:#e8f7fb; font-weight:600;">OK</button>
@@ -148,13 +147,6 @@
     const startBtn = document.getElementById('start-btn');
     const loadMsg  = document.getElementById('loadMsg');
     const rows     = document.getElementById('ranking-rows');
-
-    // Tela cheia (mobile menos distração)
-    document.getElementById('fs').onclick = async ()=>{
-      const el = document.documentElement;
-      if (document.fullscreenElement) { await document.exitFullscreen(); }
-      else if (el.requestFullscreen)  { await el.requestFullscreen(); }
-    };
 
     // ===== Participantes
     async function loadParticipants(){
@@ -268,9 +260,19 @@
       location.href = `quiz.html?${qs}`;
     });
 
-    // ===== Ranking ao vivo (com ordenação composta no Firestore)
-    const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
+    // ===== Ranking: helpers de estado
+    function showRankError(msg){
+      rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">${msg}</td></tr>`;
+    }
+    function showRankLoading(){
+      rows.innerHTML = `
+        <tr><td colspan="4"><div class="skel"></div></td></tr>
+        <tr><td colspan="4"><div class="skel"></div></td></tr>
+        <tr><td colspan="4"><div class="skel"></div></td></tr>`;
+    }
 
+    // ===== Ranking: render dos dados
+    const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
     function renderData(data){
       rows.innerHTML="";
       const top = data.slice(0,10);
@@ -291,9 +293,12 @@
       }
     }
 
+    // ===== Ranking: startLive com fallback
     async function startLive(){
+      showRankLoading();
+
       try{
-        // IMPORTANTE: cria índice composto no Firestore quando ele pedir no console
+        // Tentativa com ordenação composta (precisa de índice score desc + totalTime asc)
         const baseQ = query(
           collection(db,"scores"),
           orderBy("score","desc"),
@@ -301,7 +306,7 @@
           limit(10)
         );
 
-        // Pré-carga única
+        // Pré-carga
         const snap  = await getDocs(baseQ);
         const pre   = snap.docs.map(d=>d.data());
         renderData(pre);
@@ -310,12 +315,41 @@
         onSnapshot(baseQ, (s)=>{
           const arr = s.docs.map(d=>d.data());
           renderData(arr);
+        }, (err)=>{
+          console.error("onSnapshot erro:", err);
+          // Mantém dados já renderizados; opcionalmente, poderia ativar um polling simples aqui
         });
-      }catch(e){ console.error(e); }
+
+      }catch(err){
+        console.warn("Índice composto ausente ou regras bloquearam. Usando fallback.", err);
+
+        try{
+          // Fallback: ordena só por score no servidor e desempata no cliente
+          const fbQ = query(
+            collection(db,"scores"),
+            orderBy("score","desc"),
+            limit(50) // pega um pouco mais e faz desempate local
+          );
+          const snap = await getDocs(fbQ);
+          const arr  = snap.docs.map(d=>d.data());
+
+          arr.sort((a,b)=>
+            (b.score??0) - (a.score??0) ||
+            (a.totalTime??Number.POSITIVE_INFINITY) - (b.totalTime??Number.POSITIVE_INFINITY)
+          );
+          renderData(arr.slice(0,10));
+        }catch(err2){
+          console.error("Fallback também falhou:", err2);
+          let msg = "Não foi possível carregar o ranking.";
+          const t = (err2 && (err2.message||"")).toLowerCase();
+          if (t.includes("permission") || t.includes("missing")) msg += " Verifique as regras de leitura do Firestore.";
+          showRankError(msg);
+        }
+      }
     }
     startLive();
 
-    // ===== Modo Dev (liberado — ajuste DEV_HASH p/ produção)
+    // ===== Modo Dev
     const devModal = document.getElementById('dev-modal');
     const devFreeState = document.getElementById('dev-free-state');
     const devDebug = document.getElementById('dev-debug');
