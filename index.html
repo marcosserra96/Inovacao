@@ -1,78 +1,33 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>Quiz Innovation Break</title>
-  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
 
+  <!-- Preconnect p/ performance em rede móvel -->
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="assets/styles.css?v=2"/>
   <style>
-    /* ============ Autocomplete ============ */
-    .autocomplete{ position:relative; }
-    .typeahead{
-      position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:50;
-      list-style:none; margin:0; padding:6px;
-      max-height:240px; overflow:auto;
-      background:#0b2f39; color:#e7f6fb;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:12px;
-      box-shadow:0 14px 28px rgba(0,0,0,.18), 0 10px 10px rgba(0,0,0,.12);
-      display:none;
-    }
-    .typeahead li{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:10px; padding:10px 12px; cursor:pointer; border-radius:10px;
-    }
-    .typeahead li .n{ font-weight:700; color:#e7f6fb; }
-    .typeahead li .hint{ font-size:.85rem; opacity:.75; color:#cde7ef; }
-    .typeahead li:hover, .typeahead li.active{ background:rgba(255,255,255,.06); }
-
-    /* Garante que nada corte o dropdown */
-    .card, .form, .hero { overflow: visible; }
-
-    @media (max-width:640px){
-      .typeahead{ max-height:50vh; }
-    }
-
-    /* ============ Dev Modal ============ */
-    .dev-hidden-hotspot{
-      position:absolute; inset:0; /* ocupa toda a área da brand */
-      background:transparent; border:none; padding:0; margin:0;
-      cursor:default; opacity:0; /* invisível */
-    }
-    dialog.dev-modal{
-      width:min(720px, 92vw);
-      border:none; border-radius:16px; padding:0; overflow:hidden;
-      box-shadow:0 20px 60px rgba(0,0,0,.45);
-      background:#09232a; color:#dff3f9;
-    }
-    .dev-modal::backdrop{ background:rgba(0,0,0,.45); }
-    .dev-head{ display:flex; align-items:center; justify-content:space-between;
-               padding:16px 18px; background:#0b2f39; border-bottom:1px solid rgba(255,255,255,.06); }
-    .dev-body{ padding:16px 18px; display:grid; gap:12px; }
-    .dev-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .dev-actions button{
-      padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.08);
-      background:#0e3c49; color:#e8f7fb; font-weight:600; cursor:pointer;
-    }
-    .dev-actions button:hover{ background:#0f4654; }
-    .dev-danger{ background:#4b1212 !important; border-color:#7a2222 !important; }
-    .dev-danger:hover{ background:#5a1616 !important; }
-
-    .dev-foot{ display:flex; justify-content:flex-end; gap:8px; padding:12px 18px; border-top:1px solid rgba(255,255,255,.06); }
-    .muted{ opacity:.8; font-size:.9rem; }
-
-    /* botão desabilitado até carregar a lista */
-    .btn[disabled]{ opacity:.6; cursor:not-allowed; }
+    /* Esconde o QR sem remover (pra poder voltar fácil) */
+    .qr { display: none !important; }
+    /* Esconde o badge “Evento” sem apagar do HTML */
+    .badge { display: none !important; }
   </style>
 </head>
 <body>
   <header class="header" style="position:relative">
     <div class="brand" id="brand" style="position:relative">
-      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
+      <!-- Logo JPEG personalizada -->
+      <img src="assets/logo.jpg" alt="Logo do evento" class="logo-img" />
+      <span class="title">Quiz EMR</span>
       <!-- Hotspot invisível para abrir o modo dev (long-press) -->
       <button id="dev-hotspot" class="dev-hidden-hotspot" aria-hidden="true" tabindex="-1"></button>
     </div>
+    <!-- Mantido para poder reativar depois, mas escondido via CSS -->
     <div class="badge">Evento</div>
   </header>
 
@@ -81,17 +36,26 @@
       <!-- HERO -->
       <div class="hero">
         <h1>Pronto para jogar? 🎯</h1>
-        <p>Escolha seu nome e <strong></strong> para participar.</p>
+        <p>Escolha seu nome para participar.</p>
 
         <form id="start-form" class="form" novalidate>
           <div class="autocomplete">
-            <input id="name" class="input" type="text" placeholder="Digite seu nome" required autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions" />
+            <input id="name" class="input" type="text"
+                   placeholder="Digite seu nome"
+                   required autocomplete="name" autocapitalize="words"
+                   autocorrect="off" inputmode="text"
+                   aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions"/>
             <ul id="suggestions" class="typeahead" role="listbox" aria-label="Sugestões"></ul>
           </div>
-          <button id="start-btn" class="btn btn-pill btn-primary" type="submit" disabled>Começar agora</button>
-          <p id="loadMsg" class="muted" role="status">Carregando lista de participantes…</p>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button id="start-btn" class="btn btn-pill btn-primary" type="submit" disabled>Começar agora</button>
+            <button id="fs" type="button" class="btn btn-pill">Tela cheia</button>
+            <p id="loadMsg" class="muted" role="status" style="margin:0;">Carregando lista…</p>
+          </div>
         </form>
 
+        <!-- QR mantido, mas escondido via CSS -->
         <div class="qr" style="margin-top:12px;">
           <img id="qr" alt="QR do jogo" width="120" height="120" />
           <button id="copy" class="btn btn-pill" style="background:#e9f4f8;color:#0a4561; margin-left:8px;">Copiar link</button>
@@ -115,7 +79,7 @@
     </div>
   </section>
 
-  <!-- Modal Dev -->
+  <!-- Modal Dev (igual ao V1, com dev ações úteis) -->
   <dialog id="dev-modal" class="dev-modal">
     <div class="dev-head">
       <strong>⚙️ Modo Desenvolvedor</strong>
@@ -133,7 +97,7 @@
         <summary>Debug</summary>
         <pre id="dev-debug" style="white-space:pre-wrap; background:#0b2f39; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.08); max-height:200px; overflow:auto;"></pre>
       </details>
-      <div class="muted">Atalho: <code>Ctrl + Alt + D</code> ou pressionar 2s sobre a bolinha da logo.</div>
+      <div class="muted">Atalho: <code>Ctrl + Alt + D</code> ou pressionar 2s sobre a bolinha/área da logo.</div>
     </div>
     <div class="dev-foot">
       <button id="dev-ok" style="padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:#0e3c49; color:#e8f7fb; font-weight:600;">OK</button>
@@ -143,10 +107,11 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import {
-      getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs,
-      deleteDoc, doc
+      getFirestore, collection, query, orderBy, limit,
+      onSnapshot, getDocs, deleteDoc, doc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+    // Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -156,48 +121,42 @@
       appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
       measurementId: "G-8CTLMNCZJN"
     };
-
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    /* =====================
-       Utils / Segurança leve (MODO TESTE: SEM VALIDAÇÃO)
-       ===================== */
-    // deixe o DEV_HASH caso queira depois voltar a verificação; não usado abaixo
-    const DEV_HASH = "";
+    // ===== Utils
+    const DEV_HASH = ""; // opcional, para proteger modal dev
+    const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+    const norm = (s)=> (s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 
     async function sha256Hex(str){
       const enc = new TextEncoder().encode(str);
       const buf = await crypto.subtle.digest("SHA-256", enc);
-      const arr = Array.from(new Uint8Array(buf));
-      return arr.map(b=>b.toString(16).padStart(2,"0")).join("");
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
     }
-    // helper exposto pra você gerar hash no console, se quiser
-    window.__hash = sha256Hex;
+    window.__hash = sha256Hex; // helper no console
 
-    function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-    function norm(s){ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
-
-    /* =====================
-       Estado
-       ===================== */
+    // ===== Estado
     let participants = [];
     let filtered = [], chosen=null, active=-1;
-    let allowFreeName = false;
+    let allowFreeName = false; // produção: false
     let participantsLoaded = false;
 
-    /* =====================
-       DOM
-       ===================== */
-    const nameEl = document.getElementById('name');
-    const sugEl  = document.getElementById('suggestions');
+    // ===== DOM
+    const nameEl   = document.getElementById('name');
+    const sugEl    = document.getElementById('suggestions');
     const startBtn = document.getElementById('start-btn');
     const loadMsg  = document.getElementById('loadMsg');
-    const rows = document.getElementById('ranking-rows');
+    const rows     = document.getElementById('ranking-rows');
 
-    /* =====================
-       Carrega participantes
-       ===================== */
+    // Tela cheia (mobile menos distração)
+    document.getElementById('fs').onclick = async ()=>{
+      const el = document.documentElement;
+      if (document.fullscreenElement) { await document.exitFullscreen(); }
+      else if (el.requestFullscreen)  { await el.requestFullscreen(); }
+    };
+
+    // ===== Participantes
     async function loadParticipants(){
       const tryPaths = ["participants.json", "data/participants.json"];
       for (const p of tryPaths){
@@ -206,9 +165,9 @@
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
           if (Array.isArray(data.participants) && data.participants.length){
-            participants = data.participants;
+            participants = data.participants; // [{id, name, hint?}]
             participantsLoaded = true;
-            loadMsg.textContent = `Lista carregada (${participants.length}).`;
+            loadMsg.textContent = "Lista de participantes carregada.";
             startBtn.disabled = false;
             debug(`participants de: ${p} — ${participants.length} itens`);
             return;
@@ -224,18 +183,14 @@
     }
     loadParticipants();
 
-    /* =====================
-       Autocomplete (nome)
-       ===================== */
+    // ===== Autocomplete
     function filterNames(q){
       const n = norm(q);
       if (n.length < 1) return [];
       return (participants||[])
-        .map(p => ({...p,score: norm(p.name).includes(n)?1:0}))
-        .filter(x => x.score>0)
+        .filter(p => norm(p.name).includes(n))
         .slice(0,8);
     }
-
     function renderSuggestions(list){
       sugEl.innerHTML='';
       if(!list.length){ hideSug(); return; }
@@ -290,9 +245,13 @@
       if(!e.target.closest('.autocomplete')) hideSug();
     });
 
-    /* =====================
-       Submit
-       ===================== */
+    // Centraliza input quando teclado sobe (mobile)
+    if (window.visualViewport) {
+      const fix = ()=> nameEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      nameEl.addEventListener('focus', fix);
+    }
+
+    // ===== Submit
     document.getElementById('start-form').addEventListener('submit',(e)=>{
       e.preventDefault();
       if(!participantsLoaded){
@@ -309,26 +268,7 @@
       location.href = `quiz.html?${qs}`;
     });
 
-    /* =====================
-       QR & Copiar link
-       ===================== */
-    const homeURL = (()=> {
-      // remove "index.html" do final se existir (melhor para GitHub Pages)
-      const url = new URL(location.href);
-      const path = url.pathname.replace(/index\.html?$/i,'');
-      return url.origin + path;
-    })();
-    const qrURL   = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(homeURL)}`;
-    document.getElementById('qr').src = qrURL;
-    document.getElementById('copy').onclick = async ()=>{
-      await navigator.clipboard.writeText(homeURL);
-      const ok=document.getElementById('copied');
-      ok.style.display='inline'; setTimeout(()=>ok.style.display='none',1500);
-    };
-
-    /* =====================
-       Ranking ao vivo
-       ===================== */
+    // ===== Ranking ao vivo (com ordenação composta no Firestore)
     const fmt  = (t)=> Number.isFinite(+t) ? `${(+t).toFixed(1)}s` : "-";
 
     function renderData(data){
@@ -353,24 +293,29 @@
 
     async function startLive(){
       try{
-        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(10));
+        // IMPORTANTE: cria índice composto no Firestore quando ele pedir no console
+        const baseQ = query(
+          collection(db,"scores"),
+          orderBy("score","desc"),
+          orderBy("totalTime","asc"),
+          limit(10)
+        );
+
+        // Pré-carga única
         const snap  = await getDocs(baseQ);
-        const pre   = snap.docs.map(d=>d.data())
-                         .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+        const pre   = snap.docs.map(d=>d.data());
         renderData(pre);
 
+        // Tempo real
         onSnapshot(baseQ, (s)=>{
-          const arr = s.docs.map(d=>d.data())
-                       .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+          const arr = s.docs.map(d=>d.data());
           renderData(arr);
         });
       }catch(e){ console.error(e); }
     }
     startLive();
 
-    /* =====================
-       Modo Dev (LIBERADO - SEM SENHA)
-       ===================== */
+    // ===== Modo Dev (liberado — ajuste DEV_HASH p/ produção)
     const devModal = document.getElementById('dev-modal');
     const devFreeState = document.getElementById('dev-free-state');
     const devDebug = document.getElementById('dev-debug');
@@ -380,24 +325,14 @@
       const time = new Date().toLocaleTimeString();
       devDebug.textContent = `[${time}] ${msg}\n` + (devDebug.textContent||"");
     }
-
     function updateFreeNameBadge(){
       devFreeState.textContent = allowFreeName ? 'ON' : 'OFF';
       devFreeState.style.color = allowFreeName ? '#59C085' : '#e8f7fb';
     }
-
-    // MODO TESTE: sempre retorna true -> abre o modal sem validação
-    async function askDevPassword(){
-      return true;
-    }
-
-    function openDev(){
-      devModal.showModal();
-      updateFreeNameBadge();
-    }
+    async function askDevPassword(){ return true; /* produção: validar hash */ }
+    function openDev(){ devModal.showModal(); updateFreeNameBadge(); }
     function closeDev(){ devModal.close(); }
 
-    // Abertura por long-press na bolinha da logo (2s)
     const hotspot = document.getElementById('dev-hotspot');
     let pressTimer=null;
     hotspot.addEventListener('pointerdown', ()=>{
@@ -409,14 +344,11 @@
       hotspot.addEventListener(ev, ()=>{ clearTimeout(pressTimer); pressTimer=null; });
     });
 
-    // Atalho: Ctrl + Alt + D
     document.addEventListener('keydown', async (e)=>{
       if(e.ctrlKey && e.altKey && (e.key==='d' || e.key==='D')){
         if(await askDevPassword()) openDev();
       }
     });
-
-    // Botões do modal
     document.getElementById('dev-close').onclick = closeDev;
     document.getElementById('dev-ok').onclick = closeDev;
 
@@ -424,21 +356,15 @@
       await loadParticipants();
       alert("Participantes recarregados.");
     };
-
     document.getElementById('dev-toggle-free').onclick = ()=>{
       allowFreeName = !allowFreeName;
       updateFreeNameBadge();
       alert(`Nome livre ${allowFreeName? 'ativado' : 'desativado'}.`);
     };
-
     document.getElementById('dev-clear-cache').onclick = ()=>{
-      try{
-        localStorage.clear();
-        sessionStorage.clear();
-        alert("Cache local limpo (localStorage/sessionStorage).");
-      }catch(e){ alert("Falha ao limpar cache: "+e.message); }
+      try{ localStorage.clear(); sessionStorage.clear(); alert("Cache local limpo."); }
+      catch(e){ alert("Falha ao limpar cache: "+e.message); }
     };
-
     document.getElementById('dev-wipe').onclick = async ()=>{
       if(!confirm("Tem certeza? Isso APAGARÁ TODOS os scores.")) return;
       try{
@@ -451,11 +377,10 @@
         }
         alert(`Pronto. Removidos ${n} scores.`);
       }catch(e){
-        alert("Erro ao apagar scores (verifique regras do Firestore). Detalhe no console.");
+        alert("Erro ao apagar scores (verifique regras do Firestore).");
         console.error(e);
       }
     };
   </script>
 </body>
 </html>
-
