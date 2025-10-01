@@ -94,7 +94,7 @@
     let QS = shuffle(QUESTIONS).map(q => ({ ...q, options: shuffle(q.options.slice()) }));
 
     // ===== Estado de pergunta/tempo
-    const QTIME = 20; // segundos por pergunta
+    const QTIME = 30; // segundos por pergunta
     let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
     let startTs=0, tickId=null, remaining=QTIME;
     let paused=false, pauseStart=0, pausedTotal=0;
