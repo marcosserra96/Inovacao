@@ -11,7 +11,7 @@
 
   <link rel="stylesheet" href="assets/styles.css?v=2"/>
 
-  <!-- Confetti (carregado on-demand no finalize, ver abaixo) -->
+  <!-- Confetti (defer) -->
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 </head>
 <body>
@@ -44,16 +44,12 @@
         <p class="inter-sub">Próxima pergunta em instantes…</p>
       </div>
     </div>
-    <!-- Overlay de Tempo Esgotado -->
-<div id="timeup" class="timeup-wrap" aria-hidden="true">
-  <div class="timeup-pulse">⏰ Tempo esgotado!</div>
-</div>
   </section>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { QUESTIONS, computeScore } from "./js/questions.js?v=dev"; // mantém seu arquivo
+    import { QUESTIONS, computeScore } from "./js/questions.js?v=dev";
 
     // Firebase
     const firebaseConfig = {
@@ -76,7 +72,7 @@
       name:  params.get('name') || 'Participante'
     };
 
-    // ===== Persistência local (versãoada)
+    // ===== Persistência local (versionada)
     const VERSION="v2";
     const SESSION_KEY = `quiz-emr:${VERSION}:${player.id}`;
     function loadState(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||{}}catch{return {}} }
@@ -89,17 +85,25 @@
       saveState(state);
     }
 
-    // ===== Embaralhamento (sem seed aqui; se quiser seed, dá pra adicionar depois)
+    // ===== Embaralhamento
     const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
     let QS = shuffle(QUESTIONS).map(q => ({ ...q, options: shuffle(q.options.slice()) }));
 
     // ===== Estado de pergunta/tempo
-    const QTIME = 30; // segundos por pergunta
+    const QTIME = 20; // segundos por pergunta
     let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
-    let startTs=0, tickId=null, remaining=QTIME;
+
+    let tickId=null, startTs=0, remaining=QTIME;
     let paused=false, pauseStart=0, pausedTotal=0;
+    let questionLocked=false;     // evita duplo avanço (clique + timeout)
+    let interLock=false;          // bloqueia teclas durante intersticial
+    let submitting=false;         // evita duplo finalize
 
     const elCount=$('#q-count'), elBar=$('#progress'), elTimer=$('#q-time'), elTitle=$('#q-title'), elOpts=$('#q-options');
+    const interWrap = document.getElementById('interstitial');
+    const interNum  = document.getElementById('inter-num');
+    const HAPTICS   = false; // mude para true se quiser vibrar no Android
+    function haptic(){ if (HAPTICS && 'vibrate' in navigator) navigator.vibrate(20); }
 
     // Pausa quando a aba perde foco (timer justo)
     document.addEventListener('visibilitychange', ()=>{
@@ -107,51 +111,57 @@
       else if (paused){ paused=false; pausedTotal += performance.now()-pauseStart; }
     });
 
-    // ===== Intersticial 3-2-1
-    const INTER_ENABLED = true;
-    const interWrap = document.getElementById('interstitial');
-    const interNum  = document.getElementById('inter-num');
-    const HAPTICS   = false; // mude para true se quiser vibrar no Android
-    function hapticTick(){ if (HAPTICS && 'vibrate' in navigator) navigator.vibrate(20); }
-
+    // ===== Intersticial 3-2-1 robusto
     function showIntermission(seconds = 3){
-      if (!INTER_ENABLED) return Promise.resolve();
+      interLock = true; // bloqueia teclas
       return new Promise(resolve=>{
         interWrap.classList.add('show');
         interWrap.setAttribute('aria-hidden','false');
-
         let n = seconds;
         interNum.textContent = n;
-
-        const tick = ()=>{
+        const iv = setInterval(()=>{
           n -= 1;
           if (n <= 0){
-            hideIntermission();
+            clearInterval(iv);
+            interWrap.classList.remove('show');
+            interWrap.setAttribute('aria-hidden','true');
+            interLock = false;
             resolve();
             return;
           }
-          hapticTick();
+          haptic();
           interNum.textContent = n;
-          setTimeout(tick, 1000);
-        };
-        setTimeout(tick, 1000);
+        }, 1000);
       });
     }
-    function hideIntermission(){
-      interWrap.classList.remove('show');
-      interWrap.setAttribute('aria-hidden','true');
+
+    // ===== Teclado (1–4) apenas em fase de pergunta
+    function handleKeys(e){
+      if (interLock || questionLocked) return;
+      if (['1','2','3','4'].includes(e.key)){
+        const n = Number(e.key)-1;
+        const btn = elOpts.children[n];
+        if (btn && !btn.disabled) btn.click();
+      }
     }
+    document.addEventListener('keydown', handleKeys);
 
     // ===== UI
     function setProgress(){
+      // idx está sempre 0..QS.length-1 quando renderizando
       elBar.style.width = `${Math.round((idx/QS.length)*100)}%`;
-      elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
+      elCount.textContent = `Pergunta ${Math.min(idx+1, QS.length)} de ${QS.length}`;
     }
 
-    // Lock anti toques duplos
-    let answering = false;
+    function lockOptions(){
+      [...elOpts.querySelectorAll('.option')].forEach(b=>b.disabled=true);
+    }
+    function cancelTick(){
+      if (tickId){ cancelAnimationFrame(tickId); tickId=null; }
+    }
 
     function render(){
+      questionLocked=false; // liberado para responder
       setProgress();
       const q = QS[idx];
       elTitle.textContent = q.title;
@@ -166,37 +176,64 @@
         elOpts.appendChild(b);
       });
 
-      // Atalhos de teclado (1–4 / Enter)
-      document.onkeydown = (e)=>{
-        if (['1','2','3','4'].includes(e.key)){
-          const n = Number(e.key)-1;
-          if (elOpts.children[n]) elOpts.children[n].click();
-        }
-      };
-
       // timer
       paused=false; pausedTotal=0;
       remaining = QTIME;
       startTs = performance.now();
-      if (tickId) cancelAnimationFrame(tickId);
+      cancelTick();
       const tick=()=>{
         const passed=(performance.now()-startTs - pausedTotal)/1000;
         const left=Math.max(0,QTIME-passed);
         remaining=left;
         elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
-        if (left<=0){ lockOptions(); next(false,QTIME); return; }
+        if (left<=0){
+          onTimeUp(); // registra erro e avança
+          return;
+        }
         tickId=requestAnimationFrame(tick);
       };
       tickId=requestAnimationFrame(tick);
     }
 
-    function lockOptions(){ [...elOpts.querySelectorAll('.option')].forEach(b=>b.disabled=true); }
+    // ===== Quando o tempo zera (sem resposta)
+    function onTimeUp(){
+      if (questionLocked) return;
+      questionLocked = true;
+      cancelTick();
+      lockOptions();
 
+      // registra tentativa incorreta (-1) com tempo máximo QTIME
+      const q=QS[idx];
+      const used = QTIME;
+      const correct = false;
+      const pts = computeScore ? computeScore(correct, used) : 0;
+      totalScore += pts;
+      totalTime  += used;
+
+      state.answers = state.answers || [];
+      state.times   = state.times   || [];
+      state.answers[idx] = -1;   // -1 indica sem resposta
+      state.times[idx]   = used;
+
+      // destaca a correta (feedback visual)
+      [...elOpts.children].forEach((btn,ii)=>{
+        if (ii===q.answerIndex) btn.classList.add('success');
+      });
+
+      saveState({ idx, totalScore, totalTime, answers: state.answers, times: state.times });
+
+      // pequena pausa para ver o highlight e segue
+      setTimeout(()=> next(), 380);
+    }
+
+    // ===== Resposta do usuário
     function answer(i){
-      if (answering) return;
-      answering = true; setTimeout(()=> answering=false, 500);
+      if (questionLocked || interLock) return;
+      questionLocked = true;
 
       lockOptions();
+      cancelTick();
+
       const used=Math.min(QTIME,(performance.now()-startTs - pausedTotal)/1000);
       const q=QS[idx];
       const correct=(i===q.answerIndex);
@@ -214,15 +251,16 @@
       });
 
       saveState({ idx, totalScore, totalTime, answers: state.answers, times: state.times });
-      setTimeout(()=> next(true,used),380);
+      setTimeout(()=> next(),380);
     }
 
+    // ===== Próxima pergunta / finalizar
     async function next(){
-      if (tickId) cancelAnimationFrame(tickId);
+      cancelTick();
       idx++;
       saveState({ idx, totalScore, totalTime });
 
-      if (idx<QS.length) {
+      if (idx < QS.length) {
         await showIntermission(2); // 2-1 entre questões
         render();
         return;
@@ -230,12 +268,10 @@
       finalize();
     }
 
-    // Evita duplo envio
-    let submitting=false;
+    // ===== Finalização segura
     async function finalize(){
       if(submitting) return; submitting=true;
       try{
-        // ID do documento agora é o player.id (só nome/ID, sem e-mail)
         const ref=doc(db,"scores", String(player.id).toLowerCase());
         const prev=await getDoc(ref);
         const newData={
@@ -247,24 +283,25 @@
         let canWrite=true;
         if (prev.exists()){
           const p=prev.data();
-          canWrite=(newData.score>(p.score||0)) || (newData.score===(p.score||0) && (newData.totalTime||9e9)<(p.totalTime||9e9));
+          canWrite=(newData.score>(p.score||0)) ||
+                   (newData.score===(p.score||0) && (newData.totalTime||9e9)<(p.totalTime||9e9));
         }
         if (canWrite) await setDoc(ref,newData);
 
-        // Confetti (lib já carregada com defer)
         if (window.confetti) {
           window.confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
         }
 
-        clearState(); // limpa sessão local
+        clearState();
         const me=encodeURIComponent(String(player.id)||'');
         setTimeout(()=> location.href=`index.html?me=${me}`,900);
       }catch(err){
-        console.error(err); alert("Falha ao enviar sua pontuação.");
+        console.error(err);
+        alert("Falha ao enviar sua pontuação.");
       }
     }
 
-    // protege contra refresh acidental
+    // protege contra refresh acidental (só durante o quiz)
     window.addEventListener('beforeunload',e=>{
       if (idx<QS.length){ e.preventDefault(); e.returnValue=''; }
     });
