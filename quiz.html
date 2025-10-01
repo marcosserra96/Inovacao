@@ -2,16 +2,23 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>Quiz EMR — Perguntas</title>
-  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
-  <!-- Confetti -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Preconnect p/ performance -->
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+
+  <link rel="stylesheet" href="assets/styles.css?v=2"/>
+
+  <!-- Confetti (carregado on-demand no finalize, ver abaixo) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 </head>
 <body>
   <header class="header">
     <div class="brand">
-      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
+      <img src="assets/logo.jpg" alt="Logo do evento" class="logo-img" />
+      <span class="title">Quiz EMR</span>
     </div>
     <div class="badge">Perguntas</div>
   </header>
@@ -21,19 +28,30 @@
     <div class="topbar">
       <span id="q-count" class="pill">Pergunta 1</span>
       <div class="progress"><div id="progress" class="bar"></div></div>
-      <span id="q-time" class="timer">⏱ 0.0s</span>
+      <span id="q-time" class="timer" role="status" aria-live="polite">⏱ 0.0s</span>
     </div>
 
     <h2 id="q-title" class="q-title">Carregando…</h2>
     <div id="q-options"></div>
+
+    <!-- Intersticial: “Prepare-se” 3-2-1 -->
+    <div id="interstitial" class="inter-wrap" aria-hidden="true">
+      <div class="inter-card" role="dialog" aria-live="assertive" aria-label="Próxima pergunta em breve">
+        <p class="inter-title">Prepare-se</p>
+        <div class="inter-count">
+          <span id="inter-num">3</span>
+        </div>
+        <p class="inter-sub">Próxima pergunta em instantes…</p>
+      </div>
+    </div>
   </section>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { QUESTIONS, computeScore } from "./js/questions.js?v=dev";
+    import { QUESTIONS, computeScore } from "./js/questions.js?v=dev"; // mantém seu arquivo
 
-    // Firebase config
+    // Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -43,45 +61,91 @@
       appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
       measurementId: "G-8CTLMNCZJN"
     };
-
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // util
+    // ===== Util & Player
     const $ = s => document.querySelector(s);
     const params = new URLSearchParams(location.search);
     const player = {
-      name:  params.get('name')  || 'Participante',
-      email: (params.get('email')|| '').trim()
+      id:    params.get('id')   || 'anon',
+      name:  params.get('name') || 'Participante'
     };
 
-    // ===== Persistência local =====
-    const SESSION_KEY = `quiz-emr:${player.email||'anon'}`;
+    // ===== Persistência local (versãoada)
+    const VERSION="v2";
+    const SESSION_KEY = `quiz-emr:${VERSION}:${player.id}`;
     function loadState(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||{}}catch{return {}} }
     function saveState(p){ localStorage.setItem(SESSION_KEY, JSON.stringify({ ...loadState(), ...p })); }
     function clearState(){ localStorage.removeItem(SESSION_KEY); }
 
     let state = loadState();
     if (!state.startedAt){
-      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0, answers:[] };
+      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0, answers:[], times:[] };
       saveState(state);
     }
 
-    // embaralhar
+    // ===== Embaralhamento (sem seed aqui; se quiser seed, dá pra adicionar depois)
     const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
     let QS = shuffle(QUESTIONS).map(q => ({ ...q, options: shuffle(q.options.slice()) }));
 
-    // estado
+    // ===== Estado de pergunta/tempo
     const QTIME = 20; // segundos por pergunta
     let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
     let startTs=0, tickId=null, remaining=QTIME;
+    let paused=false, pauseStart=0, pausedTotal=0;
 
     const elCount=$('#q-count'), elBar=$('#progress'), elTimer=$('#q-time'), elTitle=$('#q-title'), elOpts=$('#q-options');
 
+    // Pausa quando a aba perde foco (timer justo)
+    document.addEventListener('visibilitychange', ()=>{
+      if (document.hidden){ paused=true; pauseStart=performance.now(); }
+      else if (paused){ paused=false; pausedTotal += performance.now()-pauseStart; }
+    });
+
+    // ===== Intersticial 3-2-1
+    const INTER_ENABLED = true;
+    const interWrap = document.getElementById('interstitial');
+    const interNum  = document.getElementById('inter-num');
+    const HAPTICS   = false; // mude para true se quiser vibrar no Android
+    function hapticTick(){ if (HAPTICS && 'vibrate' in navigator) navigator.vibrate(20); }
+
+    function showIntermission(seconds = 3){
+      if (!INTER_ENABLED) return Promise.resolve();
+      return new Promise(resolve=>{
+        interWrap.classList.add('show');
+        interWrap.setAttribute('aria-hidden','false');
+
+        let n = seconds;
+        interNum.textContent = n;
+
+        const tick = ()=>{
+          n -= 1;
+          if (n <= 0){
+            hideIntermission();
+            resolve();
+            return;
+          }
+          hapticTick();
+          interNum.textContent = n;
+          setTimeout(tick, 1000);
+        };
+        setTimeout(tick, 1000);
+      });
+    }
+    function hideIntermission(){
+      interWrap.classList.remove('show');
+      interWrap.setAttribute('aria-hidden','true');
+    }
+
+    // ===== UI
     function setProgress(){
       elBar.style.width = `${Math.round((idx/QS.length)*100)}%`;
       elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
     }
+
+    // Lock anti toques duplos
+    let answering = false;
 
     function render(){
       setProgress();
@@ -93,16 +157,26 @@
         const b=document.createElement('button');
         b.className='option';
         b.innerHTML = `<div class="bullet">${i+1}</div><div>${text}</div>`;
+        b.setAttribute('aria-label', `Alternativa ${i+1}: ${text}`);
         b.onclick = ()=> answer(i);
         elOpts.appendChild(b);
       });
 
+      // Atalhos de teclado (1–4 / Enter)
+      document.onkeydown = (e)=>{
+        if (['1','2','3','4'].includes(e.key)){
+          const n = Number(e.key)-1;
+          if (elOpts.children[n]) elOpts.children[n].click();
+        }
+      };
+
       // timer
+      paused=false; pausedTotal=0;
       remaining = QTIME;
       startTs = performance.now();
       if (tickId) cancelAnimationFrame(tickId);
       const tick=()=>{
-        const passed=(performance.now()-startTs)/1000;
+        const passed=(performance.now()-startTs - pausedTotal)/1000;
         const left=Math.max(0,QTIME-passed);
         remaining=left;
         elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
@@ -115,38 +189,53 @@
     function lockOptions(){ [...elOpts.querySelectorAll('.option')].forEach(b=>b.disabled=true); }
 
     function answer(i){
+      if (answering) return;
+      answering = true; setTimeout(()=> answering=false, 500);
+
       lockOptions();
-      const used=Math.min(QTIME,(performance.now()-startTs)/1000);
+      const used=Math.min(QTIME,(performance.now()-startTs - pausedTotal)/1000);
       const q=QS[idx];
       const correct=(i===q.answerIndex);
       const pts=computeScore?computeScore(correct,used):(correct?1000:0);
       totalScore+=pts; totalTime+=used;
+
+      state.answers = state.answers || [];
+      state.times   = state.times   || [];
+      state.answers[idx] = i;
+      state.times[idx]   = used;
 
       [...elOpts.children].forEach((btn,ii)=>{
         if (ii===q.answerIndex) btn.classList.add('success');
         if (ii===i && ii!==q.answerIndex) btn.classList.add('danger');
       });
 
-      saveState({ idx, totalScore, totalTime });
+      saveState({ idx, totalScore, totalTime, answers: state.answers, times: state.times });
       setTimeout(()=> next(true,used),380);
     }
 
-    function next(){
+    async function next(){
       if (tickId) cancelAnimationFrame(tickId);
       idx++;
       saveState({ idx, totalScore, totalTime });
-      if (idx<QS.length) { render(); return; }
+
+      if (idx<QS.length) {
+        await showIntermission(2); // 2-1 entre questões
+        render();
+        return;
+      }
       finalize();
     }
 
+    // Evita duplo envio
+    let submitting=false;
     async function finalize(){
-      const emailId=(player.email||'anon').toLowerCase();
-      const ref=doc(db,"scores",emailId);
+      if(submitting) return; submitting=true;
       try{
+        // ID do documento agora é o player.id (só nome/ID, sem e-mail)
+        const ref=doc(db,"scores", String(player.id).toLowerCase());
         const prev=await getDoc(ref);
         const newData={
           name:player.name,
-          email:player.email,
           score:Math.round(totalScore),
           totalTime:Math.round(totalTime*10)/10,
           updatedAt:serverTimestamp()
@@ -158,12 +247,17 @@
         }
         if (canWrite) await setDoc(ref,newData);
 
-        confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
+        // Confetti (lib já carregada com defer)
+        if (window.confetti) {
+          window.confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
+        }
 
-        clearState(); // 🔑 limpa sessão
-        const me=encodeURIComponent(player.email||'');
+        clearState(); // limpa sessão local
+        const me=encodeURIComponent(String(player.id)||'');
         setTimeout(()=> location.href=`index.html?me=${me}`,900);
-      }catch(err){ console.error(err); alert("Falha ao enviar sua pontuação."); }
+      }catch(err){
+        console.error(err); alert("Falha ao enviar sua pontuação.");
+      }
     }
 
     // protege contra refresh acidental
@@ -171,7 +265,11 @@
       if (idx<QS.length){ e.preventDefault(); e.returnValue=''; }
     });
 
-    render();
+    // Arranque com intersticial
+    (async ()=>{
+      await showIntermission(3);
+      render();
+    })();
   </script>
 </body>
 </html>
