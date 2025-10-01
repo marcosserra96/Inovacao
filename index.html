@@ -5,17 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>Quiz Innovation Break</title>
 
-  <!-- Preconnect p/ performance em rede móvel -->
+  <!-- Performance em rede móvel -->
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 
   <!-- Styles -->
   <link rel="stylesheet" href="assets/styles.css?v=2"/>
+
   <style>
-    /* Esconde o QR sem remover (pra poder voltar fácil) */
+    /* Esconde o QR e o badge “Evento” sem remover do HTML */
     .qr { display: none !important; }
-    /* Esconde o badge “Evento” sem apagar do HTML */
     .badge { display: none !important; }
+
+    /* ===== Dev Modal (estilo mínimo) ===== */
+    .dev-hidden-hotspot{
+      position:absolute; inset:0; background:transparent; border:none; padding:0; margin:0;
+      cursor:default; opacity:0;
+    }
+    dialog.dev-modal{
+      width:min(720px, 92vw);
+      border:none; border-radius:16px; padding:0; overflow:hidden;
+      box-shadow:0 20px 60px rgba(0,0,0,.45);
+      background:#09232a; color:#dff3f9;
+    }
+    .dev-modal::backdrop{ background:rgba(0,0,0,.45); }
+    .dev-head{ display:flex; align-items:center; justify-content:space-between;
+               padding:16px 18px; background:#0b2f39; border-bottom:1px solid rgba(255,255,255,.06); }
+    .dev-body{ padding:16px 18px; display:grid; gap:12px; }
+    .dev-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .dev-actions button{
+      padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.08);
+      background:#0e3c49; color:#e8f7fb; font-weight:600; cursor:pointer;
+    }
+    .dev-actions button:hover{ background:#0f4654; }
+    .dev-danger{ background:#4b1212 !important; border-color:#7a2222 !important; }
+    .dev-danger:hover{ background:#5a1616 !important; }
+    .dev-foot{ display:flex; justify-content:flex-end; gap:8px; padding:12px 18px; border-top:1px solid rgba(255,255,255,.06); }
+    .muted{ opacity:.9; }
   </style>
 </head>
 <body>
@@ -124,16 +150,14 @@
     const db  = getFirestore(app);
 
     // ===== Utils
-    const DEV_HASH = ""; // opcional, para proteger modal dev
     const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
-    const norm = (s)=> (s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-
-    async function sha256Hex(str){
-      const enc = new TextEncoder().encode(str);
-      const buf = await crypto.subtle.digest("SHA-256", enc);
-      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    const norm  = (s)=> (s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    function debug(msg){
+      const el = document.getElementById('dev-debug');
+      if (!el) return;
+      const t = new Date().toLocaleTimeString();
+      el.textContent = `[${t}] ${msg}\n` + (el.textContent||"");
     }
-    window.__hash = sha256Hex; // helper no console
 
     // ===== Estado
     let participants = [];
@@ -317,7 +341,7 @@
           renderData(arr);
         }, (err)=>{
           console.error("onSnapshot erro:", err);
-          // Mantém dados já renderizados; opcionalmente, poderia ativar um polling simples aqui
+          // Mantém dados já renderizados; (opcional) ativar polling aqui
         });
 
       }catch(err){
@@ -352,15 +376,10 @@
     // ===== Modo Dev
     const devModal = document.getElementById('dev-modal');
     const devFreeState = document.getElementById('dev-free-state');
-    const devDebug = document.getElementById('dev-debug');
 
-    function debug(msg){
-      if(!devDebug) return;
-      const time = new Date().toLocaleTimeString();
-      devDebug.textContent = `[${time}] ${msg}\n` + (devDebug.textContent||"");
-    }
     function updateFreeNameBadge(){
-      devFreeState.textContent = allowFreeName ? 'ON' : 'OFF';
+      if (!devFreeState) return;
+      devFreeNameState.textContent = allowFreeName ? 'ON' : 'OFF';
       devFreeState.style.color = allowFreeName ? '#59C085' : '#e8f7fb';
     }
     async function askDevPassword(){ return true; /* produção: validar hash */ }
