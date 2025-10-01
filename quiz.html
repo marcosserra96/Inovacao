@@ -56,14 +56,8 @@
     function clearState(){ localStorage.removeItem(SESSION_KEY); }
 
     let state = loadState();
-    if (!state.idx && state.idx !== 0){
-      state = { idx:0, totalScore:0, totalTime:0 };
-      saveState(state);
-    }
-
-    // Corrige caso o idx esteja inválido (maior que total de questões)
-    if (state.idx >= QUESTIONS.length){
-      state = { idx:0, totalScore:0, totalTime:0 };
+    if (!state.startedAt){
+      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0 };
       saveState(state);
     }
 
@@ -109,26 +103,26 @@
       },1000);
     }
 
-    // ===== Feedback estilo Face ID =====
+    // ===== Feedback tipo Bullet =====
     function showFeedback(type){
-      const card = document.createElement('div');
-      card.className = `feedback-card ${type}`;
+      const bf = document.createElement('div');
+      bf.className = `bullet-feedback ${type}`;
       let msg = "";
       if(type==="correct") msg = "✔️ Correto!";
-      if(type==="wrong")   msg = "❌ Errado!";
+      if(type==="wrong") msg = "❌ Errado!";
       if(type==="timeout") msg = "⏳ Tempo esgotado!";
-      card.textContent = msg;
+      bf.textContent = msg;
 
       const container = document.querySelector('.quiz-wrap') || document.body;
-      container.appendChild(card);
+      container.appendChild(bf);
 
       setTimeout(()=>{
-        card.style.animation = "card-fade-out 0.4s ease-in forwards";
+        bf.style.animation = "bf-fade-out 0.3s ease-in forwards";
         setTimeout(()=>{
-          card.remove();
+          bf.remove();
           next();
-        }, 400);
-      }, 2000);
+        }, 300);
+      },2000);
     }
 
     function render(){
@@ -145,11 +139,13 @@
         elOpts.appendChild(b);
       });
 
-      // Reseta timer ao começar a pergunta
-      startTs = performance.now();
-      state.startedAt = Date.now();
-      saveState(state);
+      // tempo persistente
+      const now = Date.now();
+      if (!state.startedAt) state.startedAt = now;
+      const elapsed = (now - state.startedAt) / 1000;
+      remaining = Math.max(0, QTIME - elapsed);
 
+      startTs = performance.now() - (elapsed*1000);
       if (tickId) cancelAnimationFrame(tickId);
       const tick=()=>{
         const passed=(performance.now()-startTs)/1000;
@@ -185,8 +181,6 @@
     function timeExpired(){
       lockOptions();
       totalTime += QTIME;
-      const pts = 0;
-      totalScore += pts;
       saveState({ idx, totalScore, totalTime });
       showFeedback("timeout");
     }
@@ -194,14 +188,9 @@
     function next(){
       if (tickId) cancelAnimationFrame(tickId);
       idx++;
-
-      if (idx < QS.length){
-        saveState({ idx, totalScore, totalTime });
-        prepareNextQuestion();
-      } else {
-        clearState();
-        finalize();
-      }
+      saveState({ idx, totalScore, totalTime, startedAt: Date.now() });
+      if (idx<QS.length) { prepareNextQuestion(); return; }
+      finalize();
     }
 
     async function finalize(){
