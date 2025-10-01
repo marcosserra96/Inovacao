@@ -61,6 +61,12 @@
       saveState(state);
     }
 
+    // Corrige caso o idx esteja inválido (maior que total de questões)
+    if (state.idx >= QUESTIONS.length){
+      state = { idx:0, totalScore:0, totalTime:0 };
+      saveState(state);
+    }
+
     const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
     let QS = shuffle(QUESTIONS).map(q => ({ ...q, options: shuffle(q.options.slice()) }));
 
@@ -179,6 +185,8 @@
     function timeExpired(){
       lockOptions();
       totalTime += QTIME;
+      const pts = 0;
+      totalScore += pts;
       saveState({ idx, totalScore, totalTime });
       showFeedback("timeout");
     }
@@ -186,9 +194,14 @@
     function next(){
       if (tickId) cancelAnimationFrame(tickId);
       idx++;
-      saveState({ idx, totalScore, totalTime });
-      if (idx<QS.length) { prepareNextQuestion(); return; }
-      finalize();
+
+      if (idx < QS.length){
+        saveState({ idx, totalScore, totalTime });
+        prepareNextQuestion();
+      } else {
+        clearState();
+        finalize();
+      }
     }
 
     async function finalize(){
