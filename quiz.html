@@ -6,6 +6,16 @@
   <title>Quiz EMR — Perguntas</title>
   <link rel="stylesheet" href="assets/styles.css?v=dev"/>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    .overlay-msg {
+      position: fixed;
+      top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.8);
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-size:1.5rem; text-align:center;
+      padding:20px; z-index:9999;
+    }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -23,6 +33,8 @@
     <h2 id="q-title" class="q-title">Carregando…</h2>
     <div id="q-options"></div>
   </section>
+
+  <div id="final-overlay" class="overlay-msg" style="display:none;"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -129,7 +141,17 @@
       };
       await setDoc(ref,newData);
       confetti();
-      setTimeout(()=>location.href="index.html",1500);
+
+      // Mensagem final amigável
+      document.getElementById("final-overlay").style.display="flex";
+      document.getElementById("final-overlay").innerHTML = `
+        <div>
+          <h2>🎉 Você concluiu a fase ${player.fase}!</h2>
+          <p>Sua pontuação desta fase foi <strong>${totalScore}</strong>.</p>
+          <p>Volte no horário da próxima fase para continuar jogando.</p>
+          <p style="margin-top:15px;"><a href="index.html" style="color:#fff; text-decoration:underline;">Voltar ao ranking</a></p>
+        </div>
+      `;
     }
 
     render();
