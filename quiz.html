@@ -27,7 +27,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, doc, setDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     import { QUESTIONS, computeScore } from "./js/questions.js?v=dev";
 
     const firebaseConfig = {
@@ -46,12 +46,14 @@
     const $ = s => document.querySelector(s);
     const params = new URLSearchParams(location.search);
     const player = {
-      name:  params.get('name')  || 'Participante',
-      email: (params.get('email')|| '').trim()
+      name: params.get('name') || 'Participante',
+      id: (params.get('id') || '').trim()
     };
 
-    // usa email OU nome como chave
-    const SESSION_KEY = `quiz-emr:${player.email || player.name || 'anon'}`;
+    // padroniza docId
+    const docId = (player.id || player.name).toLowerCase().replace(/\s+/g,'-');
+
+    const SESSION_KEY = `quiz-emr:${docId}`;
     function loadState(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||{}}catch{return {}} }
     function saveState(p){ localStorage.setItem(SESSION_KEY, JSON.stringify({ ...loadState(), ...p })); }
     function clearState(){ localStorage.removeItem(SESSION_KEY); }
@@ -62,10 +64,8 @@
       saveState(state);
     }
 
-    // shuffle
     const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
 
-    // embaralha perguntas e alternativas apenas uma vez por usuário
     let QS = state.QS;
     if (!QS) {
       QS = shuffle(QUESTIONS).map(q => {
@@ -88,7 +88,7 @@
       elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
     }
 
-    // ===== Overlay Prepare-se =====
+    // Overlay prepare-se
     function prepareNextQuestion(){
       const overlay = document.createElement('div');
       overlay.className = 'prepare-overlay';
@@ -116,7 +116,6 @@
       },1000);
     }
 
-    // ===== Feedback tipo Bullet =====
     function showFeedback(type){
       const bf = document.createElement('div');
       bf.className = `bullet-feedback ${type}`;
@@ -205,22 +204,10 @@
     }
 
     async function finalize(){
-      const docId = (player.email || player.name || 'anon').toLowerCase().replace(/\s+/g,'-');
       const ref=doc(db,"scores",docId);
-
       try{
-        // verifica se já existe score
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          alert("Você já participou do quiz e só é permitido jogar uma vez.");
-          clearState();
-          location.href = `index.html?me=${encodeURIComponent(player.email || player.name || '')}`;
-          return;
-        }
-
         const newData={
           name:player.name,
-          email:player.email,
           score:Math.round(totalScore),
           totalTime:Math.round(totalTime*10)/10,
           updatedAt:serverTimestamp()
@@ -229,8 +216,7 @@
 
         confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
         clearState();
-        const me=encodeURIComponent(player.email || player.name || '');
-        setTimeout(()=> location.href=`index.html?me=${me}`,1200);
+        setTimeout(()=> location.href=`index.html?me=${encodeURIComponent(player.name)}`,1200);
 
       }catch(err){ console.error(err); alert("Falha ao enviar sua pontuação."); }
     }
