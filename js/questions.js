@@ -1,110 +1,134 @@
 export const QUESTIONS = [
 
   {
-    title: "O que significa inovação disruptiva?",
+    title: "O que é inovação no setor de energia?",
     options: [
-      "Melhorias graduais em produtos existentes",
-      "Criação de algo totalmente novo que muda o mercado",
-      "Redução de custos em processos internos",
-      "Adoção de tecnologias digitais em empresas"
+      "Apenas construir novas usinas",
+      "Uso de soluções criativas para gerar eficiência, sustentabilidade e valor",
+      "Trocar equipamentos antigos por novos",
+      "Aumentar tarifas de energia"
     ],
     answerIndex: 1
   },
   {
-    title: "Qual destas é considerada uma prática de inovação aberta?",
+    title: "Na Energisa, o que representa a cultura data-driven?",
     options: [
-      "Guardar todas as ideias em segredo",
-      "Criar soluções apenas dentro da empresa",
-      "Colaborar com universidades, startups ou clientes",
-      "Investir apenas em equipamentos novos"
-    ],
-    answerIndex: 2
-  },
-  {
-    title: "Design Thinking é uma metodologia voltada para:",
-    options: [
-      "Reduzir custos operacionais",
-      "Resolução de problemas centrada no ser humano",
-      "Planejamento estratégico de marketing",
-      "Controle financeiro e orçamentário"
+      "Tomar decisões baseadas em opiniões",
+      "Utilizar dados e análises para orientar decisões e estratégias",
+      "Depender apenas da experiência dos gestores",
+      "Evitar o uso de relatórios digitais"
     ],
     answerIndex: 1
   },
   {
-    title: "O termo 'Prototipagem Rápida' se refere a:",
+    title: "Qual destes exemplos pode ser considerado inovação dentro da Energisa?",
     options: [
-      "Criar uma versão inicial de uma ideia para testar",
-      "Comprar equipamentos mais velozes",
-      "Contratar equipes rapidamente",
-      "Melhorar a velocidade de um sistema"
+      "Automatizar processos repetitivos com uso de RPA (Robotic Process Automation)",
+      "Trocar computadores da equipe por modelos mais novos",
+      "Ampliar a frota de veículos da empresa",
+      "Aumentar a carga horária de treinamentos obrigatórios"
     ],
     answerIndex: 0
   },
   {
-    title: "Qual tecnologia é considerada essencial para a Indústria 4.0?",
+    title: "O que significa 'Eficiência Operacional' quando falamos em inovação?",
     options: [
-      "Máquinas a vapor",
-      "Impressão 3D",
-      "Papeis e arquivos físicos",
-      "Energia a carvão"
-    ],
-    answerIndex: 1
-  },
-  {
-    title: "Inovação incremental é caracterizada por:",
-    options: [
-      "Mudanças pequenas e contínuas em produtos/processos",
-      "Criação de algo totalmente novo no mercado",
-      "Substituição completa de um setor por outro",
-      "Uso de IA para automação"
+      "Reduzir custos sem comprometer a qualidade e aumentar a produtividade",
+      "Contratar menos pessoas para os mesmos processos",
+      "Aumentar a carga de trabalho da equipe",
+      "Diminuir a quantidade de relatórios gerenciais"
     ],
     answerIndex: 0
   },
   {
-    title: "O que é cultura de inovação dentro de uma empresa?",
+    title: "Qual é o nome do programa de inovação da Energisa?",
     options: [
-      "Apenas criar laboratórios de pesquisa",
-      "Incentivar todos os colaboradores a propor melhorias",
-      "Ter um setor exclusivo de P&D",
-      "Contratar consultorias externas"
-    ],
-    answerIndex: 1
-  },
-  {
-    title: "Qual destas tecnologias é exemplo de transformação digital?",
-    options: [
-      "Uso de planilhas impressas",
-      "Chatbots e Inteligência Artificial no atendimento",
-      "Máquina de escrever moderna",
-      "Fax corporativo"
-    ],
-    answerIndex: 1
-  },
-  {
-    title: "O que significa 'fail fast, learn fast' no contexto da inovação?",
-    options: [
-      "Evitar falhas a qualquer custo",
-      "Investir pouco em inovação",
-      "Errar rápido para aprender e ajustar a solução",
-      "Copiar práticas já existentes no mercado"
+      "Inova+",
+      "Transforma",
+      "e-Nova",
+      "Inspira"
     ],
     answerIndex: 2
   },
   {
-    title: "Hackathons são eventos que têm como objetivo:",
+    title: "Qual é o lema do valor Inovação na Energisa?",
     options: [
-      "Encontrar falhas de segurança em sistemas",
-      "Criar soluções inovadoras em curto espaço de tempo",
-      "Realizar treinamentos obrigatórios",
-      "Apresentar relatórios financeiros"
+      "Trabalhar sempre em equipe",
+      "Coragem para ousar e inovar",
+      "Foco total no cliente",
+      "Disciplina e execução"
     ],
     answerIndex: 1
+  },
+  {
+    title: "Por que a inovação é estratégica para uma distribuidora de energia como a Energisa?",
+    options: [
+      "Para manter a empresa competitiva, sustentável e preparada para o futuro",
+      "Para reduzir o número de clientes atendidos",
+      "Para aumentar apenas os lucros de curto prazo",
+      "Para substituir completamente as fontes de energia tradicionais"
+    ],
+    answerIndex: 0
+  },
+  {
+    title: "Qual dessas ações fortalece o engajamento dos colaboradores com a inovação?",
+    options: [
+      "Centralizar as decisões apenas na diretoria",
+      "Incentivar a proposição de ideias em programas de inovação",
+      "Impedir testes de novas soluções",
+      "Restringir o acesso a tecnologias emergentes"
+    ],
+    answerIndex: 1
+  },
+  {
+    title: "Qual prática está alinhada à inovação sustentável?",
+    options: [
+      "Investir apenas em combustíveis fósseis",
+      "Desenvolver projetos que reduzam impacto ambiental e aumentem eficiência",
+      "Ignorar indicadores de ESG",
+      "Focar apenas em expansão de mercado"
+    ],
+    answerIndex: 1
+  },
+  {
+    title: "O que diferencia inovação incremental da disruptiva?",
+    options: [
+      "Incremental melhora gradualmente processos; disruptiva transforma radicalmente o mercado",
+      "Incremental depende de tecnologia; disruptiva não usa tecnologia",
+      "Incremental acontece só em grandes empresas; disruptiva apenas em startups",
+      "Incremental é voltada para clientes; disruptiva para fornecedores"
+    ],
+    answerIndex: 0
+  },
+  {
+    title: "Quem é o Padrinho de Inovação da Energisa Minas Rio?",
+    options: [
+      "Filipe Dini",
+      "Janaina Lacerda",
+      "Victor Rispoli",
+      "Eduardo Mantovani"
+    ],
+    answerIndex: 2
+  },
+  {
+    title: "Qual é a moeda utilizada na plataforma e-Nova?",
+    options: [
+      "InovaCash",
+      "E-Coin",
+      "NovaPoints",
+      "EnergiCoin"
+    ],
+    answerIndex: 1
+  },
+  {
+    title: "Quantos Multiplicadores de Inovação temos na Energisa Minas Rio?",
+    options: [
+      "5",
+      "7",
+      "9",
+      "11"
+    ],
+    answerIndex: 2
   }
 
 ];
-
-export function computeScore(correct, elapsedSeconds) {
-  if (!correct) return 0;
-  const bonus = Math.max(0, 600 - Math.floor((elapsedSeconds * 1000) / 80));
-  return 1000 + bonus;
-}
