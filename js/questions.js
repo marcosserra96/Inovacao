@@ -1,5 +1,4 @@
 export const QUESTIONS = [
-
   {
     title: "O que é inovação no setor de energia?",
     options: [
@@ -130,5 +129,12 @@ export const QUESTIONS = [
     ],
     answerIndex: 2
   }
-
 ];
+
+// Função de pontuação baseada em acerto e tempo
+export function computeScore(correct, usedTime) {
+  if (!correct) return 0;
+  const maxTime = 20; // mesmo limite do quiz
+  const factor = Math.max(0.2, 1 - usedTime / maxTime);
+  return Math.round(1000 * factor);
+}
