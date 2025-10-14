@@ -81,10 +81,11 @@
     const nameEl = document.getElementById('name');
     const sugEl  = document.getElementById('suggestions');
     const startBtn = document.getElementById('start-btn');
+        startBtn.disabled = false;
+loadMsg.textContent = ""; // opcional: esconde a mensagem "Carregando lista..."
     const loadMsg  = document.getElementById('loadMsg');
     const rows = document.getElementById('ranking-rows');
-    startBtn.disabled = false;
-loadMsg.textContent = ""; // opcional: esconde a mensagem "Carregando lista..."
+
 
     async function loadParticipants(){
       const tryPaths = ["participants.json", "data/participants.json"];
