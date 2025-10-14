@@ -156,14 +156,10 @@
     // ===== BLOQUEIO ANTES DE INICIAR =====
     document.getElementById('start-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      if(!participantsLoaded){
-        alert("Aguarde carregar a lista de participantes.");
-        return;
-      }
-      if(!chosen && !allowFreeName){
-        alert("Selecione seu nome da lista oficial.");
-        return;
-      }
+      if(!nameEl.value.trim()){
+  alert("Informe seu nome para começar.");
+  return;
+}
 
       const person = chosen || { name: nameEl.value.trim() };
       if(!person.name){ 
