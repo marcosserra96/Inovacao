@@ -75,7 +75,7 @@
 
     let participants = [];
     let filtered = [], chosen=null, active=-1;
-    let allowFreeName = false;
+    let allowFreeName = true;
     let participantsLoaded = false;
 
     const nameEl = document.getElementById('name');
@@ -105,7 +105,7 @@
       loadMsg.textContent = "Não encontrei a lista de participantes.";
       startBtn.disabled = true;
     }
-    loadParticipants();
+    //loadParticipants();
 
     function norm(s){ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
     function filterNames(q){
