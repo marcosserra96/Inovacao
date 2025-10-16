@@ -121,54 +121,72 @@
     .delete { background: #d9534f; }
     .delete:hover { background: #b63c39; }
 
-    /* Alinhamento das alternativas */
-    .options-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 8px;
-    }
+   /* Alinhamento das alternativas */
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
 
-    .option-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      background: #fafafa;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 8px 10px;
-    }
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fafafa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s ease;
+}
 
-    .option-item input[type="radio"] {
-      flex-shrink: 0;
-      transform: scale(1.1);
-      margin-right: 8px;
-    }
+.option-item:hover {
+  box-shadow: 0 0 0 2px rgba(0, 155, 193, 0.2);
+}
 
-    .option-item input.opt-text {
-      flex: 1;
-      padding: 6px 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      height: 32px;
-      font-size: 14px;
-    }
+.option-item input[type="radio"] {
+  flex-shrink: 0;
+  transform: scale(1.1);
+  accent-color: #009BC1;
+}
 
-    .option-item .remove-opt {
-      flex-shrink: 0;
-      background: #d9534f;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 4px 8px;
-      cursor: pointer;
-      font-size: 14px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+.option-item input.opt-text {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  height: 36px;
+  font-size: 14px;
+  background: #fff;
+  color: #333;
+}
+
+.option-item input.opt-text:focus {
+  outline: none;
+  border-color: #009BC1;
+  box-shadow: 0 0 0 2px rgba(0, 155, 193, 0.15);
+}
+
+.option-item .remove-opt {
+  background: #d9534f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.option-item .remove-opt:hover {
+  background: #b63c39;
+}
+
 
     /* Toast */
     .toast-container {
@@ -372,16 +390,16 @@
 
       const qid = "q-" + Math.random().toString(36).substring(2, 8);
       function createOption(text = "", isCorrect = false) {
-        const optDiv = document.createElement("div");
-        optDiv.className = "option-item";
-        optDiv.innerHTML = `
-          <input type="radio" name="${qid}" ${isCorrect ? "checked" : ""}>
-          <input type="text" class="opt-text" value="${text}" placeholder="Texto da opção">
-          <button class="remove-opt">🗑</button>
-        `;
-        optDiv.querySelector(".remove-opt").onclick = () => optDiv.remove();
-        optList.appendChild(optDiv);
-      }
+  const optDiv = document.createElement("div");
+  optDiv.className = "option-item";
+  optDiv.innerHTML = `
+    <input type="radio" name="${qid}" ${isCorrect ? "checked" : ""}>
+    <input type="text" class="opt-text" value="${text}" placeholder="Texto da opção">
+    <button class="remove-opt">🗑</button>
+  `;
+  optDiv.querySelector(".remove-opt").onclick = () => optDiv.remove();
+  optList.appendChild(optDiv);
+}
 
       if (q.options?.length) q.options.forEach((o, i) => createOption(o, i === q.answerIndex));
       else { createOption(); createOption(); }
