@@ -149,5 +149,24 @@
     }
     startLive();
   </script>
+  <!-- Ícone de engrenagem translúcido -->
+<div id="settingsBtn" 
+     style="position: fixed; bottom: 20px; right: 20px; font-size: 24px; color: rgba(255,255,255,0.6);
+            cursor: pointer; z-index: 999; transition: all 0.3s ease;">
+  ⚙️
+</div>
+
+<script>
+  const settingsBtn = document.getElementById("settingsBtn");
+  settingsBtn.addEventListener("click", () => {
+    const senha = prompt("Digite a senha de administrador:");
+    if (senha && senha.trim() === "emr2025") {
+      window.location.href = "admin.html?auth=ok";
+    } else if (senha !== null) {
+      alert("Senha incorreta.");
+    }
+  });
+</script>
+
 </body>
 </html>
