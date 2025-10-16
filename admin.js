@@ -1,267 +1,415 @@
-// ============================
-// 🔒 Autenticação simples
-// ============================
-const senhaCorreta = "emr2025";
-const senha = prompt("Digite a senha de administrador:");
-if (senha !== senhaCorreta) {
-  alert("Acesso negado.");
-  window.location.href = "index.html";
-  throw new Error("Acesso negado");
-}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>⚙️ Painel do Quiz EMR</title>
 
-// ============================
-// 🔥 Firebase
-// ============================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  doc,
-  getDoc,
-  setDoc,
-  onSnapshot,
-  getDocs,
-  deleteDoc
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import {
-  getStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
+  <!-- Fonte moderna -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-// Configuração Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
-  authDomain: "inovacao-emr.firebaseapp.com",
-  projectId: "inovacao-emr",
-  storageBucket: "inovacao-emr.appspot.com",
-  messagingSenderId: "1075399271811",
-  appId: "1:1075399271811:web:f532f25547125d6a8f42b6"
-};
-
-// Inicialização
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-// ============================
-// ⚙️ Referências DOM
-// ============================
-const sections = document.querySelectorAll(".section");
-const navItems = document.querySelectorAll(".nav-item[data-target]");
-const toastContainer = document.getElementById("toastContainer");
-
-const nomeQuiz = document.getElementById("nomeQuiz");
-const corPrincipal = document.getElementById("corPrincipal");
-const logoFile = document.getElementById("logoFile");
-const logoPreview = document.getElementById("logoPreview");
-const tituloInicial = document.getElementById("tituloInicial");
-const subtituloInicial = document.getElementById("subtituloInicial");
-const tempoPorPergunta = document.getElementById("tempoPorPergunta");
-const pontosPorAcerto = document.getElementById("pontosPorAcerto");
-const saveConfigBtn = document.getElementById("saveConfig");
-
-const container = document.getElementById("questionsContainer");
-const addQuestionBtn = document.getElementById("addQuestion");
-const saveAllBtn = document.getElementById("saveAll");
-
-// ============================
-// 🚀 Funções auxiliares
-// ============================
-function showToast(msg) {
-  const toast = document.createElement("div");
-  toast.className = "toast";
-  toast.textContent = msg;
-  toastContainer.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
-
-function clearElement(el) {
-  while (el.firstChild) el.removeChild(el.firstChild);
-}
-
-// ============================
-// 🧭 Navegação entre seções
-// ============================
-navItems.forEach(item => {
-  item.addEventListener("click", () => {
-    navItems.forEach(i => i.classList.remove("active"));
-    item.classList.add("active");
-    sections.forEach(sec => sec.classList.remove("active"));
-    document.getElementById(`section-${item.dataset.target}`).classList.add("active");
-  });
-});
-
-document.getElementById("viewQuiz").onclick = () => window.open("quiz.html", "_blank");
-document.getElementById("logout").onclick = () => (window.location.href = "index.html");
-
-// ============================
-// ⚙️ CONFIGURAÇÕES
-// ============================
-async function loadConfig() {
-  const refCfg = doc(db, "config", "quizSettings");
-  const snap = await getDoc(refCfg);
-  if (snap.exists()) {
-    const cfg = snap.data();
-    nomeQuiz.value = cfg.nomeQuiz || "";
-    corPrincipal.value = cfg.corPrincipal || "#009BC1";
-    tituloInicial.value = cfg.tituloInicial || "";
-    subtituloInicial.value = cfg.subtituloInicial || "";
-    tempoPorPergunta.value = cfg.tempoPorPergunta ?? 20;
-    pontosPorAcerto.value = cfg.pontosPorAcerto ?? 1000;
-    if (cfg.logoURL) logoPreview.src = cfg.logoURL;
-  }
-}
-
-saveConfigBtn.onclick = async () => {
-  await setDoc(doc(db, "config", "quizSettings"), {
-    nomeQuiz: nomeQuiz.value,
-    corPrincipal: corPrincipal.value,
-    tituloInicial: tituloInicial.value,
-    subtituloInicial: subtituloInicial.value,
-    tempoPorPergunta: Number(tempoPorPergunta.value),
-    pontosPorAcerto: Number(pontosPorAcerto.value)
-  }, { merge: true });
-  showToast("Configurações salvas!");
-};
-
-// Upload da logo
-logoFile.addEventListener("change", async () => {
-  const file = logoFile.files[0];
-  if (!file) return;
-  const fileRef = ref(storage, `logos/${file.name}`);
-  await uploadBytes(fileRef, file);
-  const url = await getDownloadURL(fileRef);
-  logoPreview.src = url;
-  await setDoc(doc(db, "config", "quizSettings"), { logoURL: url }, { merge: true });
-  showToast("Logo atualizada!");
-});
-
-// Sincronização em tempo real das configurações
-onSnapshot(doc(db, "config", "quizSettings"), (snap) => {
-  if (snap.exists()) {
-    const cfg = snap.data();
-    nomeQuiz.value = cfg.nomeQuiz || "";
-    corPrincipal.value = cfg.corPrincipal || "#009BC1";
-    tituloInicial.value = cfg.tituloInicial || "";
-    subtituloInicial.value = cfg.subtituloInicial || "";
-    tempoPorPergunta.value = cfg.tempoPorPergunta ?? 20;
-    pontosPorAcerto.value = cfg.pontosPorAcerto ?? 1000;
-    if (cfg.logoURL) logoPreview.src = cfg.logoURL;
-  }
-});
-
-// ============================
-// ❓ PERGUNTAS
-// ============================
-function createOption(optList, qid, text = "", isCorrect = false) {
-  const optDiv = document.createElement("div");
-  optDiv.className = "option-item";
-
-  const radio = document.createElement("input");
-  radio.type = "radio";
-  radio.name = qid;
-  radio.checked = isCorrect;
-  radio.addEventListener("change", () => {
-    optList.querySelectorAll(".option-item").forEach(el => el.classList.remove("correct"));
-    optDiv.classList.add("correct");
-  });
-
-  const textInput = document.createElement("input");
-  textInput.type = "text";
-  textInput.className = "opt-text";
-  textInput.value = text;
-  textInput.placeholder = "Digite a alternativa";
-
-  const delBtn = document.createElement("button");
-  delBtn.className = "remove-opt";
-  delBtn.innerHTML = "🗑️";
-  delBtn.onclick = () => optDiv.remove();
-
-  optDiv.appendChild(radio);
-  optDiv.appendChild(textInput);
-  optDiv.appendChild(delBtn);
-  optList.appendChild(optDiv);
-
-  if (isCorrect) optDiv.classList.add("correct");
-}
-
-function createQuestionCard(q = { title: "", options: ["", ""], answerIndex: -1 }) {
-  const card = document.createElement("div");
-  card.className = "question-card";
-
-  const qid = "q_" + Math.random().toString(36).substr(2, 9);
-
-  const titleInput = document.createElement("input");
-  titleInput.type = "text";
-  titleInput.placeholder = "Digite a pergunta";
-  titleInput.value = q.title;
-
-  const optList = document.createElement("div");
-  optList.className = "options-list";
-
-  q.options.forEach((o, i) => createOption(optList, qid, o, i === q.answerIndex));
-
-  const addOptBtn = document.createElement("button");
-  addOptBtn.className = "btn-add";
-  addOptBtn.textContent = "+ Adicionar alternativa";
-  addOptBtn.onclick = () => createOption(optList, qid);
-
-  const delQBtn = document.createElement("button");
-  delQBtn.className = "remove-opt";
-  delQBtn.textContent = "Excluir pergunta";
-  delQBtn.onclick = async () => {
-    if (confirm("Excluir esta pergunta?")) {
-      await deleteDoc(doc(db, "questions", q.title.toLowerCase().replace(/\s+/g, "-")));
-      showToast("Pergunta excluída!");
-      card.remove();
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f7f9fa;
+      color: #333;
+      margin: 0;
+      padding: 0;
     }
-  };
 
-  const bottom = document.createElement("div");
-  bottom.className = "actions";
-  bottom.appendChild(addOptBtn);
-  bottom.appendChild(delQBtn);
+    /* Cabeçalho fixo */
+    nav.navbar {
+      background-color: #009BC1;
+      color: #fff;
+      padding: 0.75rem 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
 
-  card.appendChild(titleInput);
-  card.appendChild(optList);
-  card.appendChild(bottom);
-  container.appendChild(card);
-}
+    nav .navbar-brand {
+      font-weight: 600;
+      color: #fff !important;
+      font-size: 1.25rem;
+    }
 
-async function saveAllQuestions() {
-  const cards = container.querySelectorAll(".question-card");
-  for (const card of cards) {
-    const title = card.querySelector("input[type='text']").value.trim();
-    const opts = [...card.querySelectorAll(".opt-text")].map(o => o.value.trim());
-    const correctIndex = [...card.querySelectorAll("input[type='radio']")].findIndex(r => r.checked);
-    if (!title || opts.length < 2 || correctIndex === -1) continue;
-    await setDoc(doc(db, "questions", title.toLowerCase().replace(/\s+/g, "-")), {
-      title,
-      options: opts,
-      answerIndex: correctIndex
+    nav .btn-outline-light {
+      border-radius: 8px;
+      padding: 4px 14px;
+      font-weight: 500;
+      border: 2px solid rgba(255,255,255,0.8);
+    }
+
+    .container {
+      margin-top: 1.5rem;
+      padding-bottom: 4rem;
+    }
+
+    .card {
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+    }
+
+    /* Abas */
+    .nav-tabs .nav-link.active {
+      background-color: #009BC1;
+      color: #fff !important;
+      border: none;
+      border-radius: 8px 8px 0 0;
+    }
+    .nav-tabs .nav-link {
+      color: #009BC1;
+      font-weight: 500;
+      border: none;
+      margin-right: 4px;
+    }
+
+    /* Botão salvar */
+    #saveBtn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background-color: #009BC1;
+      color: #fff;
+      border: none;
+      border-radius: 40px;
+      padding: 14px 28px;
+      font-weight: 600;
+      font-size: 1rem;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+
+    #saveBtn:hover {
+      transform: scale(1.05);
+      background-color: #007a99;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      opacity: 0;
+      transition: all 0.4s ease;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateY(-5px);
+    }
+
+    /* Inputs */
+    input, textarea, select {
+      border-radius: 8px !important;
+      box-shadow: none !important;
+      border: 1px solid #ccc !important;
+      font-size: 0.95rem;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: #009BC1 !important;
+    }
+
+    .form-label {
+      font-weight: 500;
+    }
+
+    /* Cards de perguntas */
+    .question-card {
+      border-left: 4px solid #009BC1;
+    }
+
+    .btn-outline-danger {
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cabeçalho -->
+  <nav class="navbar d-flex justify-content-between align-items-center">
+    <span class="navbar-brand">⚙️ Painel do Quiz EMR</span>
+    <button id="logoutBtn" class="btn btn-outline-light btn-sm">Sair</button>
+  </nav>
+
+  <div class="container">
+    <!-- Abas -->
+    <ul class="nav nav-tabs mb-3" id="adminTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-questions" data-bs-toggle="tab" data-bs-target="#questions" type="button" role="tab">🧠 Perguntas</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-general" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">⚙️ Configurações</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-appearance" data-bs-toggle="tab" data-bs-target="#appearance" type="button" role="tab">🎨 Aparência</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-homepage" data-bs-toggle="tab" data-bs-target="#homepage" type="button" role="tab">🏠 Página Inicial</button>
+      </li>
+    </ul>
+
+    <!-- Conteúdo das abas -->
+    <div class="tab-content" id="adminTabsContent">
+      <!-- Perguntas -->
+      <div class="tab-pane fade show active" id="questions" role="tabpanel">
+        <div id="questionsList" class="mt-3"></div>
+        <button class="btn btn-outline-primary mt-3" id="addQuestion">+ Adicionar Pergunta</button>
+      </div>
+
+      <!-- Configurações -->
+      <div class="tab-pane fade" id="general" role="tabpanel">
+        <div class="mt-3">
+          <label class="form-label">⏱ Tempo por pergunta (segundos)</label>
+          <input id="timePerQuestion" type="number" class="form-control" min="5" max="120"/>
+
+          <label class="form-label mt-3">🗨️ Mensagem de carregamento</label>
+          <input id="loadingMessage" type="text" class="form-control" placeholder="Ex: Prepare-se para começar!"/>
+
+          <div class="form-check mt-3">
+            <input id="debugMode" class="form-check-input" type="checkbox"/>
+            <label class="form-check-label" for="debugMode">🧪 Modo Diagnóstico (mostrar logs)</label>
+          </div>
+
+          <hr class="my-4"/>
+          <h5>Gerenciar Ranking</h5>
+          <p class="text-muted">Apague resultados específicos ou limpe todo o ranking.</p>
+
+          <div class="d-flex gap-2 mb-3">
+            <input id="deletePlayerName" class="form-control" placeholder="Nome ou ID do participante">
+            <button id="deleteOne" class="btn btn-outline-danger">Remover Registro</button>
+          </div>
+
+          <button id="clearRanking" class="btn btn-danger">🧹 Apagar Todo o Ranking</button>
+        </div>
+      </div>
+
+      <!-- Aparência -->
+      <div class="tab-pane fade" id="appearance" role="tabpanel">
+        <div class="mt-3">
+          <label class="form-label">🏷️ Título do quiz</label>
+          <input id="quizTitle" type="text" class="form-control"/>
+          <label class="form-label mt-3">🎨 Cor principal</label>
+          <input id="primaryColor" type="color" class="form-control form-control-color"/>
+        </div>
+      </div>
+
+      <!-- Página Inicial -->
+      <div class="tab-pane fade" id="homepage" role="tabpanel">
+        <div class="mt-3">
+          <label class="form-label">🏠 Título principal</label>
+          <input id="homeTitle" type="text" class="form-control" placeholder="Pronto para jogar? 🎯">
+
+          <label class="form-label mt-3">📝 Descrição</label>
+          <textarea id="homeDescription" class="form-control" rows="2" placeholder="Digite seu nome para começar o desafio!"></textarea>
+
+          <label class="form-label mt-3">🔘 Texto do botão</label>
+          <input id="homeButton" type="text" class="form-control" placeholder="Começar agora">
+
+          <label class="form-label mt-3">🏆 Texto do ranking</label>
+          <input id="homeRanking" type="text" class="form-control" placeholder="Mostrando os 10 melhores (desempate por tempo)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botão de salvar -->
+  <button id="saveBtn">Salvar alterações</button>
+
+  <!-- Toast -->
+  <div id="toast">Alterações salvas com sucesso ✅</div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { 
+      getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc 
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    /* === Config Firebase === */
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    /* === Utilidades === */
+    const $ = (sel) => document.querySelector(sel);
+    const toast = $("#toast");
+
+    function showToast(msg = "Alterações salvas com sucesso ✅") {
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2500);
+    }
+
+    /* === Autenticação simples === */
+    const params = new URLSearchParams(window.location.search);
+    const auth = params.get("auth");
+    if (auth !== "ok") {
+      const input = prompt("Digite a senha de administrador:");
+      if (input !== "emr2025") window.location.href = "index.html";
+    }
+
+    $("#logoutBtn").addEventListener("click", () => window.location.href = "index.html");
+
+    /* === Carregar dados === */
+    async function loadData() {
+      const qSnap = await getDoc(doc(db, "config", "questions"));
+      const gSnap = await getDoc(doc(db, "config", "general"));
+      const aSnap = await getDoc(doc(db, "config", "appearance"));
+      const hSnap = await getDoc(doc(db, "config", "homepage"));
+
+      const questions = qSnap.exists() ? qSnap.data().list : [];
+      const general = gSnap.exists() ? gSnap.data() : {};
+      const appearance = aSnap.exists() ? aSnap.data() : {};
+      const homepage = hSnap.exists() ? hSnap.data() : {};
+
+      renderQuestions(questions);
+      $("#timePerQuestion").value = general.timePerQuestion || 20;
+      $("#loadingMessage").value = general.loadingMessage || "Carregando configurações…";
+      $("#debugMode").checked = !!general.debugMode;
+      $("#quizTitle").value = appearance.quizTitle || "Quiz EMR";
+      $("#primaryColor").value = appearance.primaryColor || "#009BC1";
+
+      $("#homeTitle").value = homepage.title || "Pronto para jogar? 🎯";
+      $("#homeDescription").value = homepage.description || "Digite seu nome para começar o desafio!";
+      $("#homeButton").value = homepage.button || "Começar agora";
+      $("#homeRanking").value = homepage.rankingText || "Mostrando os 10 melhores (desempate por tempo)";
+    }
+
+    /* === Renderizar perguntas === */
+    function renderQuestions(questions) {
+      const container = $("#questionsList");
+      container.innerHTML = "";
+      questions.forEach((q, i) => {
+        const div = document.createElement("div");
+        div.className = "card question-card mb-3 p-3";
+        div.innerHTML = `
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>Pergunta ${i + 1}</strong>
+            <button class="btn btn-sm btn-outline-danger remove-btn">🗑️</button>
+          </div>
+          <input type="text" class="form-control mb-2" placeholder="Título da pergunta" value="${q.title}" />
+          ${q.options.map((opt, j) => `<input type="text" class="form-control mb-1" placeholder="Opção ${j + 1}" value="${opt}" />`).join("")}
+          <input type="number" class="form-control mt-1" min="0" max="3" value="${q.answerIndex}" placeholder="Índice da resposta correta"/>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    /* === Adicionar pergunta === */
+    $("#addQuestion").addEventListener("click", () => {
+      const container = $("#questionsList");
+      container.insertAdjacentHTML("beforeend", `
+        <div class="card question-card mb-3 p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>Nova pergunta</strong>
+            <button class="btn btn-sm btn-outline-danger remove-btn">🗑️</button>
+          </div>
+          <input type="text" class="form-control mb-2" placeholder="Título da pergunta"/>
+          <input type="text" class="form-control mb-1" placeholder="Opção 1"/>
+          <input type="text" class="form-control mb-1" placeholder="Opção 2"/>
+          <input type="text" class="form-control mb-1" placeholder="Opção 3"/>
+          <input type="text" class="form-control mb-1" placeholder="Opção 4"/>
+          <input type="number" class="form-control mt-1" placeholder="Índice da resposta correta" min="0" max="3"/>
+        </div>
+      `);
     });
-  }
-  showToast("Perguntas salvas!");
-}
 
-addQuestionBtn.onclick = () => createQuestionCard();
-saveAllBtn.onclick = saveAllQuestions;
+    /* === Remover pergunta === */
+    document.addEventListener("click", (e) => {
+      if (e.target.classList.contains("remove-btn")) {
+        e.target.closest(".card").remove();
+      }
+    });
 
-// Sincronização em tempo real das perguntas
-onSnapshot(collection(db, "questions"), (snapshot) => {
-  clearElement(container);
-  snapshot.forEach(docSnap => {
-    createQuestionCard(docSnap.data());
-  });
-});
+    /* === Salvar tudo === */
+    async function saveAll() {
+      const btn = $("#saveBtn");
+      btn.textContent = "Salvando...";
+      btn.disabled = true;
 
-// ============================
-// 🚀 Inicialização
-// ============================
-(async () => {
-  await loadConfig();
-  const snap = await getDocs(collection(db, "questions"));
-  snap.forEach(docSnap => createQuestionCard(docSnap.data()));
-})();
+      const cards = document.querySelectorAll("#questionsList .card");
+      const list = Array.from(cards).map((card) => {
+        const inputs = card.querySelectorAll("input");
+        const title = inputs[0].value;
+        const options = [inputs[1].value, inputs[2].value, inputs[3].value, inputs[4].value];
+        const answerIndex = parseInt(inputs[5].value || 0);
+        return { title, options, answerIndex };
+      });
+
+      const general = {
+        timePerQuestion: parseInt($("#timePerQuestion").value) || 20,
+        loadingMessage: $("#loadingMessage").value,
+        debugMode: $("#debugMode").checked
+      };
+
+      const appearance = {
+        quizTitle: $("#quizTitle").value,
+        primaryColor: $("#primaryColor").value
+      };
+
+      const homepage = {
+        title: $("#homeTitle").value,
+        description: $("#homeDescription").value,
+        button: $("#homeButton").value,
+        rankingText: $("#homeRanking").value
+      };
+
+      await setDoc(doc(db, "config", "questions"), { list });
+      await setDoc(doc(db, "config", "general"), general);
+      await setDoc(doc(db, "config", "appearance"), appearance);
+      await setDoc(doc(db, "config", "homepage"), homepage);
+
+      btn.textContent = "Salvar alterações";
+      btn.disabled = false;
+      showToast();
+    }
+
+    $("#saveBtn").addEventListener("click", saveAll);
+
+    /* === Gerenciar Ranking === */
+    $("#clearRanking").addEventListener("click", async () => {
+      if (!confirm("Tem certeza que deseja apagar todo o ranking?")) return;
+      const querySnapshot = await getDocs(collection(db, "scores"));
+      for (const d of querySnapshot.docs) await deleteDoc(d.ref);
+      showToast("Ranking apagado com sucesso 🧹");
+    });
+
+    $("#deleteOne").addEventListener("click", async () => {
+      const name = $("#deletePlayerName").value.trim();
+      if (!name) return alert("Digite o nome ou ID do participante.");
+      const id = name.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/\\s+/g, "-");
+      try {
+        await deleteDoc(doc(db, "scores", id));
+        showToast(`Registro de '${name}' removido ✅`);
+        $("#deletePlayerName").value = "";
+      } catch (e) {
+        alert("Erro ao remover registro: " + e.message);
+      }
+    });
+
+    /* === Inicialização === */
+    loadData();
+  </script>
+</body>
+</html>
+
