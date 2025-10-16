@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Painel de Administração - Quiz EMR</title>
+  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
+  <style>
+    body { background:#f5f5f5; font-family:Arial, sans-serif; }
+    .admin-container { max-width:800px; margin:40px auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:none; }
+    h1 { color:#0074A6; text-align:center; margin-bottom:20px; }
+    .question { border:1px solid #ccc; border-radius:8px; padding:10px; margin-bottom:10px; background:#fafafa; }
+    input[type=text], textarea, input[type=number] { width:100%; padding:6px; border-radius:6px; border:1px solid #ccc; margin-bottom:6px; }
+    button { background:#009BC1; color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
+    button:hover { background:#007a98; }
+    .delete { background:#d9534f; }
+  </style>
+</head>
+<body>
+  <div class="admin-container" id="panel">
+    <h1>🧠 Gerenciador de Perguntas</h1>
+    <button id="addQ">+ Nova Pergunta</button>
+    <button id="saveAll" style="float:right;">💾 Salvar tudo</button>
+    <div id="questions"></div>
+    <hr/>
+    <button id="resetRank">🧹 Resetar Ranking</button>
+  </div>
+
+  <script type="module">
+    // ======= Proteção por senha simples =======
+    const senhaCorreta = "emr2025"; // 🔐 altere aqui a senha do painel
+    const senha = prompt("Digite a senha de administrador:");
+    if (senha !== senhaCorreta) {
+      alert("Acesso negado.");
+      window.location.href = "index.html";
+      throw new Error("Acesso negado");
+    }
+    document.getElementById("panel").style.display = "block";
+
+    // ======= Lógica principal do painel =======
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { 
+      getFirestore, collection, getDocs, setDoc, doc, deleteDoc 
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
+      authDomain: "inovacao-emr.firebaseapp.com",
+      projectId: "inovacao-emr",
+      storageBucket: "inovacao-emr.firebasestorage.app",
+      messagingSenderId: "1075399271811",
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    const container = document.getElementById('questions');
+    const addBtn = document.getElementById('addQ');
+    const saveBtn = document.getElementById('saveAll');
+    const resetBtn = document.getElementById('resetRank');
+
+    async function loadQuestions(){
+      const snap = await getDocs(collection(db, "questions"));
+      return snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    }
+
+    function render(questions){
+      container.innerHTML = "";
+      questions.forEach((q)=>{
+        const div=document.createElement('div');
+        div.className="question";
+        div.innerHTML=`
+          <input type="text" value="${q.title||''}" placeholder="Título da pergunta">
+          <textarea placeholder="Opções (uma por linha)">${(q.options||[]).join('\n')}</textarea>
+          <input type="number" min="0" value="${q.answerIndex??0}" placeholder="Índice da resposta correta">
+          <button class="delete">Excluir</button>
+        `;
+        div.querySelector('.delete').onclick=()=>{ div.remove(); };
+        container.appendChild(div);
+      });
+    }
+
+    addBtn.onclick=()=>{
+      const div=document.createElement('div');
+      div.className="question";
+      div.innerHTML=`
+        <input type="text" placeholder="Título da pergunta">
+        <textarea placeholder="Opções (uma por linha)"></textarea>
+        <input type="number" min="0" value="0" placeholder="Índice da resposta correta">
+        <button class="delete">Excluir</button>
+      `;
+      div.querySelector('.delete').onclick=()=>{ div.remove(); };
+      container.appendChild(div);
+    };
+
+    saveBtn.onclick=async()=>{
+      const blocks=[...container.querySelectorAll('.question')];
+      for(const [i,div] of blocks.entries()){
+        const title=div.querySelector('input[type=text]').value.trim();
+        const opts=div.querySelector('textarea').value.split('\n').map(s=>s.trim()).filter(Boolean);
+        const ans=Number(div.querySelector('input[type=number]').value);
+        if(!title||!opts.length){ alert(`Pergunta ${i+1} inválida`); return; }
+        const ref=doc(db,"questions",title.toLowerCase().replace(/\s+/g,'-'));
+        await setDoc(ref,{title,options:opts,answerIndex:ans});
+      }
+      alert("Perguntas salvas com sucesso!");
+      location.reload();
+    };
+
+    resetBtn.onclick=async()=>{
+      if(!confirm("Deseja realmente limpar o ranking?")) return;
+      const snap = await getDocs(collection(db,"scores"));
+      for(const d of snap.docs){ await deleteDoc(doc(db,"scores",d.id)); }
+      alert("Ranking resetado!");
+    };
+
+    (async()=>{
+      const data=await loadQuestions();
+      render(data);
+    })();
+  </script>
+</body>
+</html>
