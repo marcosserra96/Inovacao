@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz de Inovação - EMR</title>
   <link rel="stylesheet" href="assets/styles.css?v=dev"/>
@@ -13,13 +13,13 @@
       bottom: 18px;
       right: 18px;
       font-size: 24px;
-      color: rgba(0,0,0,0.3);
+      color: rgba(255,255,255,0.6);
       cursor: pointer;
       z-index: 50;
       transition: all 0.3s ease;
     }
     .settings-icon:hover {
-      color: #009bc1;
+      color: #fff;
       transform: rotate(45deg);
     }
 
@@ -94,93 +94,11 @@
       font-size: 0.9rem;
       display: none;
     }
-    /* === Correção visual (restaura estilo original do quiz) === */
-.hero {
-  background: linear-gradient(135deg, #00a0c6, #36c99e);
-  color: white;
-  padding: 50px 40px;
-  border-radius: 20px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.hero h1 {
-  font-weight: 700;
-  font-size: 2rem;
-  color: #fff;
-}
-
-.hero p {
-  font-size: 1rem;
-  color: rgba(255,255,255,0.9);
-}
-
-.hero input[type="text"] {
-  border: none;
-  border-radius: 8px;
-  padding: 10px 14px;
-  width: 70%;
-  margin-right: 10px;
-  font-size: 0.95rem;
-}
-
-.hero button {
-  background: linear-gradient(180deg, #005b6b, #003949);
-  color: #fff;
-  border: none;
-  border-radius: 40px;
-  padding: 12px 28px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transition: transform 0.2s ease;
-}
-
-.hero button:hover {
-  transform: scale(1.05);
-}
-
-/* Ranking box ao lado */
-.ranking-box {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-  padding: 30px;
-}
-
-/* Ícone da engrenagem */
-#config-btn {
-  position: fixed;
-  bottom: 18px;
-  right: 18px;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 50%;
-  border: none;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  backdrop-filter: blur(8px);
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.9);
-  transition: all 0.3s ease;
-  z-index: 999;
-}
-
-#config-btn:hover {
-  background: rgba(255, 255, 255, 0.4);
-  transform: rotate(45deg);
-}
-
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="brand">
+  <header class="header" style="position:relative">
+    <div class="brand" id="brand" style="position:relative">
       <span class="logo-dot"></span><span class="title">Quiz de Inovação - EMR</span>
     </div>
   </header>
@@ -252,7 +170,7 @@
       });
     }
 
-    // ===== Textos do index (config/homepage) =====
+    // ===== Textos da página inicial (dinâmicos) =====
     async function loadHomeConfig() {
       try {
         const snap = await getDoc(doc(db, "config", "homepage"));
@@ -271,7 +189,7 @@
     loadRanking();
     loadHomeConfig();
 
-    // ===== Acesso ao admin =====
+    // ===== Modal de senha =====
     const modal = document.getElementById("passwordModal");
     const settingsBtn = document.getElementById("settingsBtn");
     const confirmPassword = document.getElementById("confirmPassword");
