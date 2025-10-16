@@ -62,27 +62,32 @@
       vertical-align:middle;
     }
 
-    /* Correção definitiva dos campos de alternativas */
+    /* 🔧 Correção final do alinhamento das alternativas */
     .options-list {
       margin-top: 8px;
+      width: 100%;
     }
 
     .option-item {
-      display: flex !important;
+      display: flex;
       align-items: center;
+      justify-content: flex-start;
       gap: 10px;
       margin-bottom: 6px;
+      width: 100%;
     }
 
     .option-item input[type="radio"] {
       flex-shrink: 0;
       transform: scale(1.1);
-      margin-left: 2px;
+      margin-left: 4px;
     }
 
     .option-item input.opt-text {
-      flex: 1;
-      height: 32px !important;
+      flex-grow: 1;
+      width: 100%;
+      max-width: 600px;
+      height: 32px;
       line-height: 32px;
       padding: 0 10px;
       border: 1px solid #ccc;
@@ -90,13 +95,9 @@
       background: #fff;
       color: #333;
       font-size: 14px;
-      display: inline-block !important;
-      width: auto !important;
-      min-width: 200px;
     }
 
     .option-item .remove-opt {
-      flex-shrink: 0;
       background: #bbb;
       color: #fff;
       border: none;
@@ -195,7 +196,6 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script type="module" defer>
-    // ========= Toasts =========
     const toastContainer = document.getElementById("toastContainer");
     function showToast(message, type = "success") {
       const toast = document.createElement("div");
@@ -208,7 +208,6 @@
       }, 2800);
     }
 
-    // ========= Autenticação simples =========
     const senhaCorreta = "emr2025";
     const senha = prompt("Digite a senha de administrador:");
     if (senha !== senhaCorreta) {
@@ -218,7 +217,6 @@
     }
     document.getElementById("panel").style.display = "block";
 
-    // ========= Firebase =========
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, collection, getDocs, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
@@ -236,7 +234,6 @@
     const db = getFirestore(app);
     const storage = getStorage(app);
 
-    // ========= Elementos =========
     const nomeQuiz = document.getElementById("nomeQuiz");
     const corPrincipal = document.getElementById("corPrincipal");
     const corPreview = document.getElementById("corPreview");
@@ -253,7 +250,6 @@
 
     corPrincipal.addEventListener("input", () => corPreview.style.backgroundColor = corPrincipal.value);
 
-    // ========= Carregar Config =========
     async function loadConfig() {
       try {
         const refCfg = doc(db, "config", "quizSettings");
@@ -275,7 +271,6 @@
       }
     }
 
-    // ========= Salvar Config =========
     saveConfigBtn.onclick = async () => {
       try {
         await setDoc(doc(db, "config", "quizSettings"), {
@@ -286,14 +281,13 @@
           tempoPorPergunta: Number(tempoInput.value),
           pontosPorAcerto: Number(pontosInput.value)
         }, { merge: true });
-        showToast("Configurações salvas com sucesso!");
+        showToast("Configurações salvas!");
       } catch (err) {
         console.error(err);
         showToast("Erro ao salvar configurações", "error");
       }
     };
 
-    // ========= Upload Logo =========
     logoFile.addEventListener("change", async () => {
       const file = logoFile.files[0];
       if (!file) return;
@@ -303,14 +297,13 @@
         const url = await getDownloadURL(fileRef);
         logoPreview.src = url;
         await setDoc(doc(db, "config", "quizSettings"), { logoURL: url }, { merge: true });
-        showToast("Logo atualizada com sucesso!");
+        showToast("Logo atualizada!");
       } catch (err) {
         console.error(err);
         showToast("Erro ao enviar logo", "error");
       }
     });
 
-    // ========= Perguntas =========
     async function loadQuestions() {
       const snap = await getDocs(collection(db, "questions"));
       return snap.docs.map(d => d.data());
