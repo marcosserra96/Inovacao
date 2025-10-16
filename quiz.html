@@ -1,26 +1,24 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+>
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz EMR</title>
-  <link rel="stylesheet" href="assets/styles.css?v=2" />
+  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script type="module">
-
-    // ===========================
-    // 🔥 Firebase Configuração
-    // ===========================
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import {
       getFirestore,
       collection,
       getDocs,
-      doc,
       getDoc,
+      doc,
       setDoc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+    // 🔥 Firebase Configuração
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -33,29 +31,32 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // ===========================
-    // ⚙️ Variáveis Globais
-    // ===========================
+    // 🔹 Variáveis globais
     let questions = [];
-    let currentQuestionIndex = 0;
+    let currentQuestion = 0;
     let score = 0;
-    let timerInterval;
+    let timer;
+    let timeLeft;
     let tempoPorPergunta = 20;
     let pontosPorAcerto = 1000;
+    let totalTime = 0;
 
-    const playerName = localStorage.getItem("quiz_player_name") || "Jogador";
-    const questionContainer = document.getElementById("question-container");
-    const questionTitle = document.getElementById("question-title");
-    const optionsContainer = document.getElementById("options-container");
-    const progressText = document.getElementById("progress-text");
-    const timerBar = document.getElementById("timer-bar");
-    const feedback = document.getElementById("feedback");
-    const overlay = document.getElementById("overlay");
+    // 🔹 Recupera dados da URL
+    const params = new URLSearchParams(window.location.search);
+    const playerId = params.get("id");
+    const playerName = params.get("name") || "Jogador";
 
-    // ===========================
-    // 📥 Carregar Configurações + Perguntas
-    // ===========================
-    async function loadQuizData() {
+    const questionEl = document.querySelector(".question");
+    const optionsEl = document.querySelector(".options");
+    const timerBarEl = document.querySelector(".timer-bar");
+    const overlayEl = document.querySelector(".overlay");
+    const feedbackEl = document.querySelector(".feedback");
+    const progressEl = document.querySelector(".progress");
+
+    // =============================
+    // 📥 Carrega perguntas e configs
+    // =============================
+    async function loadData() {
       // Configurações
       const cfgSnap = await getDoc(doc(db, "config", "quizSettings"));
       if (cfgSnap.exists()) {
@@ -65,121 +66,124 @@
       }
 
       // Perguntas
-      const querySnapshot = await getDocs(collection(db, "questions"));
-      questions = querySnapshot.docs.map(doc => doc.data());
+      const snap = await getDocs(collection(db, "questions"));
+      questions = snap.docs.map(doc => doc.data());
 
       // Embaralhar perguntas
-      questions = questions.sort(() => Math.random() - 0.5);
+      questions.sort(() => Math.random() - 0.5);
       startQuiz();
     }
 
-    // ===========================
-    // ▶️ Iniciar Quiz
-    // ===========================
+    // =============================
+    // ▶️ Inicia o Quiz
+    // =============================
     function startQuiz() {
-      currentQuestionIndex = 0;
+      currentQuestion = 0;
       score = 0;
+      totalTime = 0;
       showQuestion();
     }
 
-    // ===========================
-    // 💬 Exibir Pergunta
-    // ===========================
+    // =============================
+    // 💬 Exibe pergunta
+    // =============================
     function showQuestion() {
-      if (currentQuestionIndex >= questions.length) {
+      if (currentQuestion >= questions.length) {
         endQuiz();
         return;
       }
 
-      const q = questions[currentQuestionIndex];
-      questionTitle.textContent = q.title;
+      const q = questions[currentQuestion];
+      questionEl.textContent = q.title;
+      optionsEl.innerHTML = "";
 
-      // Embaralhar alternativas
-      const shuffledOptions = q.options
-        .map((opt, i) => ({ text: opt, index: i }))
+      const shuffled = q.options
+        .map((text, i) => ({ text, i }))
         .sort(() => Math.random() - 0.5);
 
-      optionsContainer.innerHTML = "";
-      shuffledOptions.forEach((optObj) => {
+      shuffled.forEach(opt => {
         const btn = document.createElement("button");
-        btn.classList.add("option-btn");
-        btn.textContent = optObj.text;
-        btn.onclick = () => handleAnswer(optObj.index === q.answerIndex);
-        optionsContainer.appendChild(btn);
+        btn.textContent = opt.text;
+        btn.className = "option";
+        btn.onclick = () => selectAnswer(opt.i === q.answerIndex);
+        optionsEl.appendChild(btn);
       });
 
-      progressText.textContent = `Pergunta ${currentQuestionIndex + 1} de ${questions.length}`;
+      progressEl.textContent = `Pergunta ${currentQuestion + 1} de ${questions.length}`;
       startTimer();
     }
 
-    // ===========================
+    // =============================
     // ⏱️ Timer
-    // ===========================
+    // =============================
     function startTimer() {
-      clearInterval(timerInterval);
-      let timeLeft = tempoPorPergunta;
-      timerBar.style.width = "100%";
+      clearInterval(timer);
+      timeLeft = tempoPorPergunta;
+      timerBarEl.style.width = "100%";
 
-      timerInterval = setInterval(() => {
+      timer = setInterval(() => {
         timeLeft--;
-        timerBar.style.width = `${(timeLeft / tempoPorPergunta) * 100}%`;
+        totalTime++;
 
+        timerBarEl.style.width = `${(timeLeft / tempoPorPergunta) * 100}%`;
         if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          handleAnswer(false, true);
+          clearInterval(timer);
+          selectAnswer(false, true);
         }
       }, 1000);
     }
 
-    // ===========================
-    // 🧠 Resposta
-    // ===========================
-    function handleAnswer(correct, timeout = false) {
-      clearInterval(timerInterval);
+    // =============================
+    // 🧠 Seleciona resposta
+    // =============================
+    function selectAnswer(correct, timeout = false) {
+      clearInterval(timer);
 
       if (correct) {
         score += pontosPorAcerto;
-        feedback.textContent = "✔️ Correto!";
-        feedback.className = "feedback correct";
+        feedbackEl.textContent = "✔️ Correto!";
+        feedbackEl.className = "feedback correct";
         launchConfetti();
       } else if (timeout) {
-        feedback.textContent = "⏳ Tempo esgotado!";
-        feedback.className = "feedback timeout";
+        feedbackEl.textContent = "⏳ Tempo esgotado!";
+        feedbackEl.className = "feedback timeout";
       } else {
-        feedback.textContent = "❌ Errado!";
-        feedback.className = "feedback wrong";
+        feedbackEl.textContent = "❌ Errado!";
+        feedbackEl.className = "feedback wrong";
       }
 
-      overlay.style.display = "flex";
+      overlayEl.style.display = "flex";
       setTimeout(() => {
-        overlay.style.display = "none";
-        feedback.textContent = "";
-        currentQuestionIndex++;
+        overlayEl.style.display = "none";
+        feedbackEl.textContent = "";
+        currentQuestion++;
         showQuestion();
       }, 1500);
     }
 
-    // ===========================
+    // =============================
     // 🎉 Confete
-    // ===========================
+    // =============================
     function launchConfetti() {
       confetti({
-        particleCount: 80,
+        particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
       });
     }
 
-    // ===========================
-    // 🏁 Finalizar Quiz
-    // ===========================
+    // =============================
+    // 🏁 Fim do Quiz
+    // =============================
     async function endQuiz() {
-      overlay.style.display = "flex";
-      feedback.textContent = "🏆 Parabéns! Quiz finalizado!";
+      overlayEl.style.display = "flex";
+      feedbackEl.textContent = "🏆 Parabéns! Quiz concluído!";
 
-      await setDoc(doc(db, "scores", playerName.toLowerCase()), {
+      await setDoc(doc(db, "scores", playerId), {
+        id: playerId,
         name: playerName,
         score: score,
+        time: (totalTime).toFixed(1),
         timestamp: new Date()
       });
 
@@ -188,104 +192,23 @@
       }, 3000);
     }
 
-    // ===========================
-    // 🚀 Iniciar Tudo
-    // ===========================
-    loadQuizData();
-
+    // 🚀 Inicia tudo
+    loadData();
   </script>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f5f8fa;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    #question-container {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-      width: 90%;
-      max-width: 600px;
-      padding: 24px;
-      text-align: center;
-    }
-
-    #question-title {
-      font-size: 22px;
-      font-weight: bold;
-      color: #009bc1;
-      margin-bottom: 16px;
-    }
-
-    .option-btn {
-      display: block;
-      width: 100%;
-      background: #009bc1;
-      color: white;
-      border: none;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    .option-btn:hover {
-      background: #007ea3;
-    }
-
-    #progress-text {
-      margin-top: 10px;
-      font-weight: 500;
-    }
-
-    #timer-bar {
-      height: 6px;
-      background: linear-gradient(90deg, #009BC1, #59C085);
-      border-radius: 6px;
-      width: 100%;
-      margin-top: 8px;
-      transition: width 1s linear;
-    }
-
-    #overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 24px;
-      z-index: 100;
-    }
-
-    .feedback.correct { color: #4CAF50; }
-    .feedback.wrong { color: #F44336; }
-    .feedback.timeout { color: #FF9800; }
-
-  </style>
 </head>
 
 <body>
-  <div id="question-container">
-    <div id="question-title">Carregando...</div>
-    <div id="options-container"></div>
-    <div id="progress-text"></div>
-    <div id="timer-bar"></div>
+  <div class="quiz">
+    <div class="progress"></div>
+    <div class="question">Carregando perguntas...</div>
+    <div class="options"></div>
+    <div class="timer">
+      <div class="timer-bar"></div>
+    </div>
   </div>
 
-  <div id="overlay">
-    <div id="feedback"></div>
+  <div class="overlay">
+    <div class="feedback"></div>
   </div>
 </body>
 </html>
