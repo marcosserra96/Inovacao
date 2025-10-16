@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Painel de Administração - Quiz EMR</title>
-  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
   <style>
     body { background:#f5f5f5; font-family:Arial, sans-serif; }
     .admin-container { max-width:900px; margin:40px auto; background:#fff; padding:24px; border-radius:14px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:none; }
@@ -92,7 +91,7 @@
     // ======= Firebase =======
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
@@ -124,10 +123,10 @@
     const saveBtn = document.getElementById('saveAll');
     const resetBtn = document.getElementById('resetRank');
 
-    // Atualiza preview da cor
+    // ======= Cor preview =======
     corPrincipal.addEventListener("input", () => corPreview.style.backgroundColor = corPrincipal.value);
 
-    // ======= Função para criar bloco de pergunta =======
+    // ======= Criar perguntas =======
     function createQuestionBlock(q = { title: "", options: [], answerIndex: -1 }) {
       const div = document.createElement("div");
       div.className = "question";
@@ -159,33 +158,27 @@
       container.appendChild(div);
     }
 
-    // ======= Carregar Configurações =======
+    // ======= Carregar configurações =======
     async function loadConfig() {
-      try {
-        const refCfg = doc(db, "config", "quizSettings");
-        const snap = await getDoc(refCfg);
-        if (snap.exists()) {
-          const cfg = snap.data();
-          nomeQuiz.value = cfg.nomeQuiz || "";
-          corPrincipal.value = cfg.corPrincipal || "#009BC1";
-          corPreview.style.backgroundColor = corPrincipal.value;
-          tituloInicial.value = cfg.tituloInicial || "";
-          subtituloInicial.value = cfg.subtituloInicial || "";
-          tempoInput.value = cfg.tempoPorPergunta ?? 20;
-          pontosInput.value = cfg.pontosPorAcerto ?? 1000;
-          if (cfg.logoURL) {
-            logoPreview.src = cfg.logoURL;
-            logoPreview.dataset.url = cfg.logoURL;
-          }
-        } else {
-          console.log("Nenhuma configuração encontrada ainda.");
+      const refCfg = doc(db, "config", "quizSettings");
+      const snap = await getDoc(refCfg);
+      if (snap.exists()) {
+        const cfg = snap.data();
+        nomeQuiz.value = cfg.nomeQuiz || "";
+        corPrincipal.value = cfg.corPrincipal || "#009BC1";
+        corPreview.style.backgroundColor = corPrincipal.value;
+        tituloInicial.value = cfg.tituloInicial || "";
+        subtituloInicial.value = cfg.subtituloInicial || "";
+        tempoInput.value = cfg.tempoPorPergunta ?? 20;
+        pontosInput.value = cfg.pontosPorAcerto ?? 1000;
+        if (cfg.logoURL) {
+          logoPreview.src = cfg.logoURL;
+          logoPreview.dataset.url = cfg.logoURL;
         }
-      } catch (e) {
-        console.error("Erro ao carregar configurações:", e);
       }
     }
 
-    // ======= Salvar Configurações =======
+    // ======= Salvar configurações =======
     saveConfigBtn.onclick = async () => {
       await setDoc(doc(db, "config", "quizSettings"), {
         nomeQuiz: nomeQuiz.value,
@@ -198,7 +191,7 @@
       alert("Configurações salvas!");
     };
 
-    // ======= Logo =======
+    // ======= Upload de logo =======
     logoFile.addEventListener("change", async () => {
       const file = logoFile.files[0];
       if (!file) return;
@@ -212,8 +205,8 @@
     });
 
     removeLogoBtn.onclick = async () => {
-      await setDoc(doc(db, "config", "quizSettings"), { logoURL: "" }, { merge: true });
       logoPreview.src = "";
+      await setDoc(doc(db, "config", "quizSettings"), { logoURL: "" }, { merge: true });
       alert("Logo removida!");
     };
 
@@ -239,10 +232,11 @@
           title, options, answerIndex: correctIndex
         });
       }
-      alert("Perguntas salvas!");
+      alert("Perguntas salvas com sucesso!");
       location.reload();
     };
 
+    // ======= Resetar ranking =======
     resetBtn.onclick = async () => {
       if (!confirm("Deseja realmente limpar o ranking?")) return;
       const snap = await getDocs(collection(db, "scores"));
@@ -254,6 +248,7 @@
     (async () => {
       await loadConfig();
       const questions = await loadQuestions();
+      container.innerHTML = "";
       questions.forEach(q => createQuestionBlock(q));
     })();
   </script>
