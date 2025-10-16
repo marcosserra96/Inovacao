@@ -5,20 +5,99 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Painel do Quiz EMR</title>
   <style>
-    body { background:#f5f5f5; font-family:Arial, sans-serif; }
-    .admin-container { max-width:900px; margin:40px auto; background:#fff; padding:24px; border-radius:14px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:none; }
+    body {
+      background:#f5f5f5;
+      font-family:Arial, sans-serif;
+    }
+    .admin-container {
+      max-width:900px;
+      margin:40px auto;
+      background:#fff;
+      padding:24px;
+      border-radius:14px;
+      box-shadow:0 4px 10px rgba(0,0,0,0.1);
+      display:none;
+    }
     h1,h2 { color:#0074A6; margin-top:20px; }
     label { font-weight:bold; display:block; margin-top:10px; margin-bottom:4px; }
-    input, textarea { width:100%; padding:6px; border-radius:6px; border:1px solid #ccc; margin-bottom:8px; }
-    button { background:#009BC1; color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; transition:background 0.3s; }
+    input, textarea {
+      width:100%;
+      padding:6px;
+      border-radius:6px;
+      border:1px solid #ccc;
+      margin-bottom:8px;
+    }
+    button {
+      background:#009BC1;
+      color:#fff;
+      border:none;
+      padding:8px 12px;
+      border-radius:6px;
+      cursor:pointer;
+      transition:background 0.3s;
+    }
     button:hover { background:#007a98; }
     .delete { background:#d9534f; }
-    .config-section { border:1px solid #ccc; border-radius:8px; background:#f9f9f9; padding:12px; margin-bottom:20px; }
-    .option-item { display:flex; align-items:center; margin-bottom:6px; }
-    .option-item input[type=text]{ flex:1; margin-left:8px; }
-    .add-option { margin-bottom:8px; background:#00a5c6; }
-    img#logoPreview { max-width:120px; display:block; margin-top:8px; border-radius:6px; }
-    .color-preview { width:80px; height:30px; border-radius:6px; margin-top:6px; border:1px solid #ccc; display:inline-block; vertical-align:middle; }
+    .config-section {
+      border:1px solid #ccc;
+      border-radius:8px;
+      background:#f9f9f9;
+      padding:12px;
+      margin-bottom:20px;
+    }
+    .add-option {
+      margin-bottom:8px;
+      background:#00a5c6;
+    }
+    img#logoPreview {
+      max-width:120px;
+      display:block;
+      margin-top:8px;
+      border-radius:6px;
+    }
+    .color-preview {
+      width:80px;
+      height:30px;
+      border-radius:6px;
+      margin-top:6px;
+      border:1px solid #ccc;
+      display:inline-block;
+      vertical-align:middle;
+    }
+
+    /* --- Correção visual das opções --- */
+    .options-list { margin-top: 6px; }
+    .option-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+    .option-item input[type="radio"] {
+      flex-shrink: 0;
+      transform: scale(1.1);
+      margin-left: 2px;
+    }
+    .option-item input.opt-text {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+      color: #333;
+    }
+    .option-item .remove-opt {
+      background: #bbb;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .option-item .remove-opt:hover {
+      background: #999;
+    }
 
     /* Toasts */
     .toast-container {
@@ -161,7 +240,7 @@
           subtituloInicial.value = cfg.subtituloInicial || "";
           tempoInput.value = cfg.tempoPorPergunta ?? 20;
           pontosInput.value = cfg.pontosPorAcerto ?? 1000;
-          if (cfg.logoURL) { logoPreview.src = cfg.logoURL; }
+          if (cfg.logoURL) logoPreview.src = cfg.logoURL;
         }
       } catch (err) {
         console.error(err);
@@ -221,9 +300,9 @@
 
       div.innerHTML = `
         <input type="text" class="q-title" placeholder="Título da pergunta" value="${q.title}" style="width:100%;margin-bottom:8px;">
-        <div class="options-list" style="margin-bottom:8px;"></div>
+        <div class="options-list"></div>
         <button class="add-option">+ Adicionar opção</button>
-        <button class="delete" style="background:#d9534f;color:#fff;margin-left:8px;">Excluir</button>
+        <button class="delete" style="margin-left:8px;">Excluir</button>
       `;
 
       const optList = div.querySelector(".options-list");
@@ -233,13 +312,10 @@
       function createOption(text = "", isCorrect = false) {
         const optDiv = document.createElement("div");
         optDiv.className = "option-item";
-        optDiv.style.display = "flex";
-        optDiv.style.alignItems = "center";
-        optDiv.style.marginBottom = "6px";
         optDiv.innerHTML = `
-          <input type="radio" name="correct-${Date.now()}" ${isCorrect ? "checked" : ""} style="margin-right:6px;">
-          <input type="text" class="opt-text" value="${text}" placeholder="Texto da opção" style="flex:1;padding:4px;">
-          <button class="remove-opt" style="margin-left:8px;background:#bbb;color:white;border:none;padding:4px 8px;border-radius:4px;">🗑</button>
+          <input type="radio" name="correct-${Date.now()}" ${isCorrect ? "checked" : ""}>
+          <input type="text" class="opt-text" value="${text}" placeholder="Texto da opção">
+          <button class="remove-opt">🗑</button>
         `;
         optDiv.querySelector(".remove-opt").onclick = () => optDiv.remove();
         optList.appendChild(optDiv);
@@ -254,7 +330,6 @@
 
       addOptBtn.onclick = () => createOption();
       delBtn.onclick = () => div.remove();
-
       container.appendChild(div);
     }
 
