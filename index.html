@@ -2,14 +2,13 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz de Inovação - EMR</title>
-  <link rel="stylesheet" href="assets/styles.css?v=dev" />
+  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
 </head>
 <body>
-  <!-- === CONTEÚDO ORIGINAL INTACTO === -->
-  <header class="header">
-    <div class="brand">
+  <header class="header" style="position:relative">
+    <div class="brand" id="brand" style="position:relative">
       <span class="logo-dot"></span><span class="title">Quiz de Inovação - EMR</span>
     </div>
   </header>
@@ -18,52 +17,37 @@
     <div class="grid-home">
       <!-- HERO -->
       <div class="hero">
-        <h1 id="homeTitle">Pronto para jogar? 🎯</h1>
-        <p id="homeDescription">Digite seu nome e escolha sua fase para começar o desafio!</p>
+        <h1>Pronto para jogar? 🎯</h1>
+        <p>Digite seu nome para começar.</p>
 
-        <div class="actions">
-          <input id="nameInput" type="text" placeholder="Seu nome..." />
-          <button id="startBtn">Começar agora</button>
-        </div>
-
-        <p class="note" id="homeRanking">Mostrando os 10 melhores (desempate por tempo)</p>
+        <form id="start-form" class="form" novalidate>
+          <input id="name" class="input" type="text" placeholder="Digite seu nome" required autocomplete="off" />
+          <button id="start-btn" class="btn btn-pill btn-primary" type="submit">Começar agora</button>
+          <p id="loadMsg" class="muted" role="status"></p>
+        </form>
       </div>
 
       <!-- RANKING -->
-      <div class="ranking">
+      <aside class="side">
         <h2>🏆 Ranking</h2>
-        <ul id="rankingList"></ul>
-      </div>
+        <table class="table">
+          <thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Tempo</th></tr></thead>
+          <tbody id="ranking-rows">
+            <tr><td colspan="4"><div class="skel"></div></td></tr>
+            <tr><td colspan="4"><div class="skel"></div></td></tr>
+            <tr><td colspan="4"><div class="skel"></div></td></tr>
+          </tbody>
+        </table>
+        <p class="muted">Mostrando os 10 melhores (desempate por tempo).</p>
+      </aside>
     </div>
   </section>
 
-  <!-- === NOVO: ÍCONE DE ENGRENAGEM === -->
-  <div id="settingsBtn" 
-       style="position: fixed; bottom: 20px; right: 20px; font-size: 24px; color: rgba(255,255,255,0.6); cursor: pointer; z-index: 999; transition: all 0.3s ease;">
-    ⚙️
-  </div>
-
-  <!-- === NOVO: MODAL DE SENHA === -->
-  <div id="passwordModal"
-       style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
-              z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
-    <div style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 16px; padding: 28px; width: 90%;
-                max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); text-align: center;">
-      <h3 style="margin-bottom: 16px; font-size: 1.3rem; color: #009bc1;">🔒 Acesso Restrito</h3>
-      <input type="password" id="adminPassword" placeholder="Digite a senha"
-             style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; outline: none;">
-      <button id="confirmPassword"
-              style="margin-top: 16px; background: #009bc1; border: none; color: #fff; font-weight: 600; border-radius: 8px;
-                     padding: 10px 18px; cursor: pointer; width: 100%; transition: background 0.3s;">Entrar</button>
-      <div id="errorMsg" style="margin-top: 10px; color: #e53935; font-size: 0.9rem; display: none;">Senha incorreta.</div>
-    </div>
-  </div>
-
-  <!-- === SCRIPTS ORIGINAIS + AJUSTES === -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, doc, getDoc, collection, getDocs, query, orderBy, limit } 
-      from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import {
+      getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs, doc, getDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
@@ -76,92 +60,94 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db  = getFirestore(app);
 
-    // === RANKING (mesmo do original) ===
-    async function loadRanking() {
-      const q = query(collection(db, "scores"), orderBy("score", "desc"), orderBy("totalTime", "asc"), limit(10));
-      const querySnapshot = await getDocs(q);
-      const list = document.getElementById("rankingList");
-      list.innerHTML = "";
-      querySnapshot.forEach((doc) => {
-        const d = doc.data();
-        const li = document.createElement("li");
-        li.textContent = `${d.name} — ${d.score} pts (${d.totalTime}s)`;
-        list.appendChild(li);
-      });
+    function makeDocId(name){
+      return (name||'anon')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .toLowerCase()
+        .replace(/\s+/g,'-')
+        .trim();
     }
 
-    // === TEXTOS DINÂMICOS (config/homepage) ===
-    async function loadHomeConfig() {
+    const nameEl = document.getElementById('name');
+    const startBtn = document.getElementById('start-btn');
+    const loadMsg  = document.getElementById('loadMsg');
+    const rows = document.getElementById('ranking-rows');
+
+    // ✅ Habilita o botão e ajusta mensagem
+    startBtn.disabled = false;
+    loadMsg.textContent = "Digite seu nome para começar.";
+
+    // ====== FORM SUBMIT ======
+    document.getElementById('start-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+
+      const playerName = nameEl.value.trim();
+      if(!playerName){
+        alert("Informe seu nome para começar.");
+        return;
+      }
+
       try {
-        const snap = await getDoc(doc(db, "config", "homepage"));
+        const docId = makeDocId(playerName);
+        const ref = doc(db,"scores",docId);
+        const snap = await getDoc(ref);
+
         if (snap.exists()) {
-          const data = snap.data();
-          if (data.title) document.getElementById("homeTitle").textContent = data.title;
-          if (data.description) document.getElementById("homeDescription").textContent = data.description;
-          if (data.button) document.getElementById("startBtn").textContent = data.button;
-          if (data.rankingText) document.getElementById("homeRanking").textContent = data.rankingText;
+          alert("Você já participou do quiz e não pode jogar novamente.");
+          return;
         }
-      } catch (e) {
-        console.warn("Falha ao carregar textos:", e);
+
+        const qs = new URLSearchParams({ id: docId, name: playerName }).toString();
+        location.href = `quiz.html?${qs}`;
+
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao verificar sua participação. Tente novamente.");
+      }
+    });
+
+    // ====== RANKING ======
+    function renderData(data){
+      rows.innerHTML="";
+      const top = data.slice(0,10);
+      if(!top.length){
+        rows.innerHTML = `<tr><td colspan="4" class="muted" style="padding:14px;">Sem resultados ainda.</td></tr>`;
+        return;
+      }
+      let pos=1;
+      for(const d of top){
+        let medal=pos; 
+        if(pos===1) medal="🏆"; 
+        else if(pos===2) medal="🥈"; 
+        else if(pos===3) medal="🥉";
+        const tr=document.createElement('tr');
+        tr.innerHTML = `
+          <td>${medal}</td>
+          <td>${(d.name||"-").toString().slice(0,48)}</td>
+          <td><strong>${d.score ?? 0}</strong></td>
+          <td>${Number.isFinite(d.totalTime)? d.totalTime.toFixed(1)+"s":"-"}</td>`;
+        rows.appendChild(tr); pos++;
       }
     }
 
-    // === INICIALIZAÇÃO ===
-    loadRanking();
-    loadHomeConfig();
+    async function startLive(){
+      try{
+        const baseQ = query(collection(db,"scores"), orderBy("score","desc"), limit(10));
+        const snap  = await getDocs(baseQ);
+        const pre   = snap.docs.map(d=>d.data())
+                         .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+        renderData(pre);
 
-    // === AÇÕES ===
-    const modal = document.getElementById("passwordModal");
-    const settingsBtn = document.getElementById("settingsBtn");
-    const confirmPassword = document.getElementById("confirmPassword");
-    const passwordInput = document.getElementById("adminPassword");
-    const errorMsg = document.getElementById("errorMsg");
-
-    // abrir modal
-    settingsBtn.addEventListener("click", () => {
-      modal.style.opacity = "1";
-      modal.style.pointerEvents = "all";
-      passwordInput.focus();
-    });
-
-    // confirmar senha
-    confirmPassword.addEventListener("click", () => {
-      if (passwordInput.value.trim() === "emr2025") {
-        window.location.href = "admin.html?auth=ok";
-      } else {
-        errorMsg.style.display = "block";
-        passwordInput.value = "";
-      }
-    });
-
-    // fechar modal ao clicar fora
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) {
-        modal.style.opacity = "0";
-        modal.style.pointerEvents = "none";
-        errorMsg.style.display = "none";
-      }
-    });
-
-    // atalhos de teclado
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && modal.style.pointerEvents === "all") confirmPassword.click();
-      if (e.key === "Escape" && modal.style.pointerEvents === "all") {
-        modal.style.opacity = "0";
-        modal.style.pointerEvents = "none";
-        errorMsg.style.display = "none";
-      }
-    });
-
-    // iniciar quiz
-    document.getElementById("startBtn").addEventListener("click", () => {
-      const name = document.getElementById("nameInput").value.trim();
-      if (!name) return alert("Digite seu nome para começar!");
-      const id = name.normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/\\s+/g,"-");
-      window.location.href = `quiz.html?name=${encodeURIComponent(name)}&id=${id}`;
-    });
+        onSnapshot(baseQ, (s)=>{
+          const arr = s.docs.map(d=>d.data())
+                       .sort((a,b)=> (b.score??0)-(a.score??0) || (a.totalTime??9e9)-(b.totalTime??9e9));
+          renderData(arr);
+        });
+      }catch(e){ console.error("Erro ao carregar ranking:", e); }
+    }
+    startLive();
   </script>
 </body>
 </html>
