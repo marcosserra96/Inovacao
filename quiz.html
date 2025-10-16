@@ -26,6 +26,19 @@
   </section>
 
   <script type="module">
+// === Atualização automática do quiz ===
+// Sempre que atualizar as perguntas, mude o número abaixo:
+const QUIZ_VERSION = "v3"; // exemplo: v3, v4, etc.
+
+const LAST_VERSION = localStorage.getItem("quiz-version");
+
+// se a versão mudou, apaga o cache antigo e salva a nova
+if (LAST_VERSION !== QUIZ_VERSION) {
+  console.log("🧹 Limpando cache antigo do quiz...");
+  localStorage.clear();
+  localStorage.setItem("quiz-version", QUIZ_VERSION);
+}
+    
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     import { QUESTIONS, computeScore } from "./js/questions.js?v=5";
