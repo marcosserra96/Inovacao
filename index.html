@@ -5,10 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz de Inovação - EMR</title>
   <link rel="stylesheet" href="assets/styles.css?v=dev"/>
+  <style>
+    #admin-gear {
+      position: fixed;
+      bottom: 16px;
+      right: 18px;
+      opacity: 0.3;
+      cursor: pointer;
+      font-size: 22px;
+      transition: opacity 0.3s ease;
+      user-select: none;
+      z-index: 100;
+    }
+    #admin-gear:hover {
+      opacity: 0.9;
+    }
+  </style>
 </head>
 <body>
   <header class="header" style="position:relative">
-    <div class="brand" id="brand" style="position:relative; cursor:pointer;">
+    <div class="brand" id="brand" style="position:relative">
       <span class="logo-dot"></span><span class="title">Quiz de Inovação - EMR</span>
     </div>
   </header>
@@ -43,13 +59,7 @@
     </div>
   </section>
 
-  <!-- 🔹 Link discreto de administrador -->
-  <footer style="text-align:center; margin-top:30px;">
-    <a href="admin.html" 
-       style="font-size:12px; color:#ccc; text-decoration:none; opacity:0.5;">
-      Admin
-    </a>
-  </footer>
+  <div id="admin-gear" title="Administração">⚙️</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -83,11 +93,9 @@
     const loadMsg  = document.getElementById('loadMsg');
     const rows = document.getElementById('ranking-rows');
 
-    // ✅ Habilita o botão e ajusta mensagem
     startBtn.disabled = false;
     loadMsg.textContent = "Digite seu nome para começar.";
 
-    // ====== FORM SUBMIT ======
     document.getElementById('start-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
 
@@ -116,7 +124,6 @@
       }
     });
 
-    // ====== RANKING ======
     function renderData(data){
       rows.innerHTML="";
       const top = data.slice(0,10);
@@ -157,9 +164,10 @@
     }
     startLive();
 
-    // ====== Atalho secreto (duplo clique no logo) ======
-    document.getElementById('brand').addEventListener('dblclick', ()=>{
-      window.location.href = "admin.html";
+    document.getElementById("admin-gear").addEventListener("click", () => {
+      const pass = prompt("Digite a senha de administrador:");
+      if (pass === "emr2025") location.href = "admin.html";
+      else alert("Senha incorreta.");
     });
   </script>
 </body>
