@@ -28,9 +28,10 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { 
-      getFirestore, collection, getDocs, doc, setDoc, serverTimestamp 
+      getFirestore, collection, getDocs, doc, setDoc, serverTimestamp, getDoc 
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+    // ======= CONFIGURAÇÃO FIREBASE =======
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
@@ -44,27 +45,61 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
+    // ======= ELEMENTOS =======
     const $ = s => document.querySelector(s);
     const params = new URLSearchParams(location.search);
     const player = {
       name: params.get('name') || 'Participante',
-      id: params.get('id') || player.name.toLowerCase().replace(/\s+/g,'-')
+      id: params.get('id') || (params.get('name') || 'anon').toLowerCase().replace(/\s+/g,'-')
     };
 
-    const elCount=$('#q-count'), elBar=$('#progress'), elTimer=$('#q-time'), elTitle=$('#q-title'), elOpts=$('#q-options');
-    const QTIME = 20;
-    let QS=[], idx=0, totalScore=0, totalTime=0, startTs=0, tickId=null;
+    const elCount=$('#q-count'),
+          elBar=$('#progress'),
+          elTimer=$('#q-time'),
+          elTitle=$('#q-title'),
+          elOpts=$('#q-options');
 
+    // ======= VARIÁVEIS GLOBAIS =======
+    let QTIME = 20;        // valor padrão (será sobrescrito)
+    let BASE_SCORE = 1000; // valor padrão (será sobrescrito)
+    let QS = [];
+    let idx = 0, totalScore = 0, totalTime = 0, startTs = 0, tickId = null;
+
+    // ======= FUNÇÕES FIREBASE =======
+
+    // 🔹 Busca configurações do quiz
+    async function loadConfig() {
+      try {
+        const ref = doc(db, "config", "quizSettings");
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const cfg = snap.data();
+          QTIME = cfg.tempoPorPergunta ?? 20;
+          BASE_SCORE = cfg.pontosPorAcerto ?? 1000;
+        }
+      } catch (err) {
+        console.warn("Erro ao carregar configurações:", err);
+      }
+    }
+
+    // 🔹 Busca perguntas no Firestore
     async function loadQuestions(){
       const snap = await getDocs(collection(db, "questions"));
       return snap.docs.map(d => d.data());
     }
 
+    // ======= LÓGICA DO QUIZ =======
     const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
-    const computeScore = (correct, time)=> correct ? Math.round(1000*(1 - (time/QTIME)*0.5)) : 0;
+    const computeScore = (correct, time)=> correct ? Math.round(BASE_SCORE*(1 - (time/QTIME)*0.5)) : 0;
 
     async function startQuiz(){
-      const questions = await loadQuestions();
+      elTitle.textContent = "Carregando perguntas…";
+      await loadConfig();                     // lê tempo e pontuação do painel
+      const questions = await loadQuestions();// lê perguntas do Firebase
+      if (!questions.length) {
+        elTitle.textContent = "Nenhuma pergunta cadastrada.";
+        return;
+      }
       QS = shuffle(questions);
       render();
     }
@@ -143,6 +178,7 @@
       setTimeout(()=> location.href=`index.html?me=${encodeURIComponent(player.name)}`,1500);
     }
 
+    // ======= INICIAR QUIZ =======
     startQuiz();
   </script>
 </body>
