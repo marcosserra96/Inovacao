@@ -2,18 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quiz de Inovação - EMR</title>
-  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
+  <link rel="stylesheet" href="assets/styles.css?v=dev" />
 
   <style>
     /* Ícone de engrenagem translúcido */
     .settings-icon {
       position: fixed;
-      bottom: 18px;
-      right: 18px;
+      bottom: 20px;
+      right: 20px;
       font-size: 24px;
-      color: rgba(255,255,255,0.6);
+      color: rgba(255, 255, 255, 0.6);
       cursor: pointer;
       z-index: 50;
       transition: all 0.3s ease;
@@ -23,7 +23,7 @@
       transform: rotate(45deg);
     }
 
-    /* Modal de senha */
+    /* Modal moderno */
     .modal-backdrop {
       position: fixed;
       top: 0; left: 0;
@@ -43,23 +43,24 @@
     }
     .modal-box {
       background: rgba(255,255,255,0.95);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
       border-radius: 16px;
       padding: 28px;
       width: 90%;
       max-width: 360px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
       text-align: center;
       animation: slideIn 0.3s ease;
     }
     @keyframes slideIn {
-      from { transform: translateY(30px); opacity: 0; }
+      from { transform: translateY(20px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
     .modal-box h3 {
       margin-bottom: 16px;
       font-size: 1.3rem;
       color: #009bc1;
+      font-weight: 600;
     }
     .modal-box input {
       width: 100%;
@@ -97,15 +98,15 @@
   </style>
 </head>
 <body>
-  <header class="header" style="position:relative">
-    <div class="brand" id="brand" style="position:relative">
+  <!-- mantém o visual e estrutura originais -->
+  <header class="header">
+    <div class="brand">
       <span class="logo-dot"></span><span class="title">Quiz de Inovação - EMR</span>
     </div>
   </header>
 
   <section class="card">
     <div class="grid-home">
-      <!-- HERO -->
       <div class="hero">
         <h1 id="homeTitle">Pronto para jogar? 🎯</h1>
         <p id="homeDescription">Digite seu nome e escolha sua fase para começar o desafio!</p>
@@ -118,7 +119,6 @@
         <p class="note" id="homeRanking">Mostrando os 10 melhores (desempate por tempo)</p>
       </div>
 
-      <!-- RANKING -->
       <div class="ranking">
         <h2>🏆 Ranking</h2>
         <ul id="rankingList"></ul>
@@ -139,6 +139,7 @@
     </div>
   </div>
 
+  <!-- Firebase + scripts -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, doc, getDoc, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
@@ -156,7 +157,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // ===== Ranking =====
+    // === Ranking ===
     async function loadRanking() {
       const q = query(collection(db, "scores"), orderBy("score", "desc"), orderBy("totalTime", "asc"), limit(10));
       const querySnapshot = await getDocs(q);
@@ -170,7 +171,7 @@
       });
     }
 
-    // ===== Textos da página inicial (dinâmicos) =====
+    // === Textos dinâmicos da página ===
     async function loadHomeConfig() {
       try {
         const snap = await getDoc(doc(db, "config", "homepage"));
@@ -189,7 +190,7 @@
     loadRanking();
     loadHomeConfig();
 
-    // ===== Modal de senha =====
+    // === Modal de senha ===
     const modal = document.getElementById("passwordModal");
     const settingsBtn = document.getElementById("settingsBtn");
     const confirmPassword = document.getElementById("confirmPassword");
@@ -219,7 +220,7 @@
       if (e.key === "Escape") modal.classList.remove("active");
     });
 
-    // ===== Botão de início =====
+    // === Botão "Começar agora" ===
     document.getElementById("startBtn").addEventListener("click", () => {
       const name = document.getElementById("nameInput").value.trim();
       if (!name) return alert("Digite seu nome para começar!");
