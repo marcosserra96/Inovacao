@@ -3,434 +3,273 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quiz EMR - Administração</title>
-
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
+  <title>Admin - Quiz EMR</title>
   <style>
-    :root {
-      --azul: #009BC1;
-      --verde: #59C085;
-      --bg: #f5f8fa;
-      --card-bg: #ffffff;
-      --texto: #1f2d3d;
-      --borda: #dcdfe3;
-    }
-
     body {
       margin: 0;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: var(--bg);
-      color: var(--texto);
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f8fa;
+    }
+
+    .container {
       display: flex;
       height: 100vh;
-      overflow: hidden;
     }
 
-    /* Sidebar */
+    /* Menu lateral */
     .sidebar {
-      background: linear-gradient(135deg, var(--azul), var(--verde));
-      width: 240px;
+      width: 220px;
+      background: linear-gradient(135deg, #009BC1, #59C085);
+      color: #fff;
       display: flex;
       flex-direction: column;
-      color: #fff;
-      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
-    }
-
-    .sidebar-header {
-      text-align: center;
       padding: 20px;
-      font-size: 20px;
-      font-weight: bold;
-      letter-spacing: 0.5px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     }
 
-    .nav-item {
+    .sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 14px 20px;
-      font-size: 16px;
+      gap: 8px;
+    }
+
+    .sidebar button {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #fff;
+      text-align: left;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
       cursor: pointer;
       transition: background 0.3s;
+      font-size: 14px;
     }
 
-    .nav-item:hover, .nav-item.active {
-      background: rgba(255, 255, 255, 0.15);
+    .sidebar button:hover {
+      background: rgba(255, 255, 255, 0.3);
     }
 
-    .nav-item i {
-      font-size: 18px;
-      width: 22px;
-      text-align: center;
-    }
-
+    /* Conteúdo principal */
     .main {
       flex: 1;
+      padding: 25px;
       overflow-y: auto;
-      padding: 30px;
     }
 
-    .card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      padding: 24px;
-      margin-bottom: 24px;
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    h2 {
+    h3 {
+      font-size: 22px;
+      color: #004d61;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       margin-top: 0;
-      background: linear-gradient(135deg, var(--azul), var(--verde));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    }
+
+    .btn {
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
       font-weight: 600;
     }
 
-    input, textarea, select {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid var(--borda);
-      margin-top: 6px;
-      margin-bottom: 12px;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-
-    button {
-      background: linear-gradient(135deg, var(--azul), var(--verde));
+    .btn-primary {
+      background: linear-gradient(135deg, #009BC1, #59C085);
       color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 18px;
-      font-size: 15px;
-      cursor: pointer;
-      transition: transform 0.2s, opacity 0.2s;
     }
 
-    button:hover { transform: scale(1.03); opacity: 0.9; }
-    .delete { background: #d9534f; }
-    .delete:hover { background: #b63c39; }
+    .btn-danger {
+      background: #d9534f;
+      color: #fff;
+    }
 
-   /* Alinhamento das alternativas */
-.options-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-}
+    .btn-success {
+      background: #59C085;
+      color: #fff;
+    }
 
-.option-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fafafa;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 8px 12px;
-  box-sizing: border-box;
-  transition: box-shadow 0.2s ease;
-}
+    .question-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+    }
 
-.option-item:hover {
-  box-shadow: 0 0 0 2px rgba(0, 155, 193, 0.2);
-}
+    .question-card input[type="text"] {
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
 
-.option-item input[type="radio"] {
-  flex-shrink: 0;
-  transform: scale(1.1);
-  accent-color: #009BC1;
-}
-
-.option-item input.opt-text {
-  flex: 1;
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  height: 36px;
-  font-size: 14px;
-  background: #fff;
-  color: #333;
-}
-
-.option-item input.opt-text:focus {
-  outline: none;
-  border-color: #009BC1;
-  box-shadow: 0 0 0 2px rgba(0, 155, 193, 0.15);
-}
-
-.option-item .remove-opt {
-  background: #d9534f;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 10px;
-  cursor: pointer;
-  font-size: 14px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-}
-
-.option-item .remove-opt:hover {
-  background: #b63c39;
-}
-
-
-    /* Toast */
-    .toast-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
+    .options-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      z-index: 1000;
+      gap: 10px;
+      margin-bottom: 15px;
     }
 
-    .toast {
-      background: linear-gradient(135deg, var(--azul), var(--verde));
-      color: #fff;
-      padding: 12px 16px;
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fafafa;
+      border: 1px solid #ddd;
       border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-      animation: fadeIn 0.3s ease;
-      font-weight: 500;
+      padding: 8px 12px;
+      transition: 0.2s;
+    }
+
+    .option-item input[type="radio"] {
+      transform: scale(1.2);
+      accent-color: #009BC1;
+      flex-shrink: 0;
+    }
+
+    .option-item .opt-text {
+      flex: 1;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 14px;
+      height: 36px;
+      background: white;
+      color: #333;
+    }
+
+    .option-item .remove-opt {
+      background: #d9534f;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      width: 36px;
+      height: 36px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .option-item .remove-opt:hover {
+      background: #b63c39;
+    }
+
+    /* Indicador de correta */
+    .option-item.correct::after {
+      content: "✔";
+      color: #00a86b;
+      font-size: 16px;
+      margin-left: 4px;
+      font-weight: bold;
+    }
+
+    .bottom-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .save-all {
+      float: right;
+      margin-bottom: 20px;
     }
   </style>
 </head>
+
 <body>
-
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-header">📊 Quiz EMR</div>
-    <div class="nav-item active" data-target="config"><i class="fa-solid fa-gear"></i>Configurações</div>
-    <div class="nav-item" data-target="questions"><i class="fa-solid fa-circle-question"></i>Perguntas</div>
-    <div class="nav-item" id="viewQuiz"><i class="fa-solid fa-eye"></i>Visualizar Quiz</div>
-    <div class="nav-item" id="logout"><i class="fa-solid fa-right-from-bracket"></i>Sair</div>
-  </div>
-
-  <!-- Conteúdo -->
-  <div class="main">
-    <div id="section-config" class="section active">
-      <div class="card">
-        <h2>🏷️ Identidade do Quiz</h2>
-        <label>Nome do Quiz:</label>
-        <input type="text" id="nomeQuiz">
-        <label>Cor principal:</label>
-        <input type="color" id="corPrincipal" value="#009BC1">
-        <label>Logo:</label>
-        <input type="file" id="logoFile" accept="image/*">
-        <img id="logoPreview" alt="Prévia da Logo" style="max-width:120px;border-radius:8px;margin-top:8px;">
-      </div>
-
-      <div class="card">
-        <h2>🗣️ Textos da Tela Inicial</h2>
-        <label>Título:</label>
-        <input type="text" id="tituloInicial">
-        <label>Subtítulo:</label>
-        <input type="text" id="subtituloInicial">
-      </div>
-
-      <div class="card">
-        <h2>⚙️ Regras</h2>
-        <label>Tempo por pergunta (s):</label>
-        <input type="number" id="tempoPorPergunta" min="5" max="120" value="20">
-        <label>Pontos por acerto:</label>
-        <input type="number" id="pontosPorAcerto" min="100" max="5000" value="1000">
-        <button id="saveConfig">💾 Salvar Configurações</button>
-      </div>
+  <div class="container">
+    <div class="sidebar">
+      <h2>📘 Quiz EMR</h2>
+      <button>⚙️ Configurações</button>
+      <button class="active">❓ Perguntas</button>
+      <button>👀 Visualizar Quiz</button>
+      <button>🚪 Sair</button>
     </div>
 
-    <div id="section-questions" class="section" style="display:none;">
-      <div class="card">
-        <h2>📋 Perguntas</h2>
-        <button id="addQ">+ Nova Pergunta</button>
-        <button id="saveAll" style="float:right;">💾 Salvar Tudo</button>
-        <div id="questions"></div>
-      </div>
+    <div class="main">
+      <h3>📄 Perguntas</h3>
+      <button class="btn btn-primary" id="addQuestion">+ Nova Pergunta</button>
+      <button class="btn btn-success save-all" id="saveAll">💾 Salvar Tudo</button>
+
+      <div id="questionsContainer"></div>
     </div>
   </div>
-
-  <div class="toast-container" id="toastContainer"></div>
 
   <script type="module">
-    // Autenticação simples
-    const senhaCorreta = "emr2025";
-    const senha = prompt("Digite a senha de administrador:");
-    if (senha !== senhaCorreta) {
-      alert("Acesso negado.");
-      window.location.href = "index.html";
-      throw new Error("Acesso negado");
+    const container = document.getElementById("questionsContainer");
+
+    document.getElementById("addQuestion").addEventListener("click", () => addQuestion());
+    document.getElementById("saveAll").addEventListener("click", () => alert("Perguntas salvas com sucesso!"));
+
+    function addQuestion() {
+      const qid = "q_" + Math.random().toString(36).substr(2, 9);
+
+      const card = document.createElement("div");
+      card.className = "question-card";
+
+      const qInput = document.createElement("input");
+      qInput.type = "text";
+      qInput.placeholder = "Digite o enunciado da pergunta";
+
+      const optList = document.createElement("div");
+      optList.className = "options-list";
+
+      const addOptBtn = document.createElement("button");
+      addOptBtn.className = "btn btn-primary";
+      addOptBtn.textContent = "+ Adicionar opção";
+      addOptBtn.onclick = () => createOption(optList, qid);
+
+      const delQBtn = document.createElement("button");
+      delQBtn.className = "btn btn-danger";
+      delQBtn.textContent = "Excluir";
+      delQBtn.onclick = () => card.remove();
+
+      const bottom = document.createElement("div");
+      bottom.className = "bottom-actions";
+      bottom.appendChild(addOptBtn);
+      bottom.appendChild(delQBtn);
+
+      card.appendChild(qInput);
+      card.appendChild(optList);
+      card.appendChild(bottom);
+
+      container.appendChild(card);
+
+      // adiciona 3 opções padrão
+      for (let i = 0; i < 3; i++) createOption(optList, qid);
     }
 
-    // Navegação lateral
-    const navItems = document.querySelectorAll(".nav-item[data-target]");
-    const sections = document.querySelectorAll(".section");
-    navItems.forEach(item => {
-      item.addEventListener("click", () => {
-        navItems.forEach(i => i.classList.remove("active"));
-        item.classList.add("active");
-        sections.forEach(sec => sec.style.display = "none");
-        document.getElementById(`section-${item.dataset.target}`).style.display = "block";
+    function createOption(optList, qid, text = "", isCorrect = false) {
+      const optDiv = document.createElement("div");
+      optDiv.className = "option-item";
+
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = qid;
+      radio.checked = isCorrect;
+      radio.addEventListener("change", () => {
+        optList.querySelectorAll(".option-item").forEach(el => el.classList.remove("correct"));
+        optDiv.classList.add("correct");
       });
-    });
 
-    document.getElementById("viewQuiz").onclick = () => window.open("quiz.html", "_blank");
-    document.getElementById("logout").onclick = () => window.location.href = "index.html";
+      const textInput = document.createElement("input");
+      textInput.type = "text";
+      textInput.className = "opt-text";
+      textInput.value = text;
+      textInput.placeholder = "Digite a alternativa";
 
-    // Toast
-    const toastContainer = document.getElementById("toastContainer");
-    function showToast(msg) {
-      const t = document.createElement("div");
-      t.className = "toast";
-      t.textContent = msg;
-      toastContainer.appendChild(t);
-      setTimeout(() => t.remove(), 3000);
+      const delBtn = document.createElement("button");
+      delBtn.className = "remove-opt";
+      delBtn.innerHTML = "🗑️";
+      delBtn.onclick = () => optDiv.remove();
+
+      optDiv.appendChild(radio);
+      optDiv.appendChild(textInput);
+      optDiv.appendChild(delBtn);
+      optList.appendChild(optDiv);
     }
-
-    // Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, getDocs, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
-      authDomain: "inovacao-emr.firebaseapp.com",
-      projectId: "inovacao-emr",
-      storageBucket: "inovacao-emr.appspot.com",
-      messagingSenderId: "1075399271811",
-      appId: "1:1075399271811:web:f532f25547125d6a8f42b6"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
-
-    // Referências
-    const nomeQuiz = document.getElementById("nomeQuiz");
-    const corPrincipal = document.getElementById("corPrincipal");
-    const logoFile = document.getElementById("logoFile");
-    const logoPreview = document.getElementById("logoPreview");
-    const tituloInicial = document.getElementById("tituloInicial");
-    const subtituloInicial = document.getElementById("subtituloInicial");
-    const tempoInput = document.getElementById("tempoPorPergunta");
-    const pontosInput = document.getElementById("pontosPorAcerto");
-    const saveConfigBtn = document.getElementById("saveConfig");
-    const container = document.getElementById("questions");
-    const addBtn = document.getElementById("addQ");
-    const saveBtn = document.getElementById("saveAll");
-
-    async function loadConfig() {
-      const refCfg = doc(db, "config", "quizSettings");
-      const snap = await getDoc(refCfg);
-      if (snap.exists()) {
-        const cfg = snap.data();
-        nomeQuiz.value = cfg.nomeQuiz || "";
-        corPrincipal.value = cfg.corPrincipal || "#009BC1";
-        tituloInicial.value = cfg.tituloInicial || "";
-        subtituloInicial.value = cfg.subtituloInicial || "";
-        tempoInput.value = cfg.tempoPorPergunta ?? 20;
-        pontosInput.value = cfg.pontosPorAcerto ?? 1000;
-        if (cfg.logoURL) logoPreview.src = cfg.logoURL;
-      }
-    }
-
-    saveConfigBtn.onclick = async () => {
-      await setDoc(doc(db, "config", "quizSettings"), {
-        nomeQuiz: nomeQuiz.value,
-        corPrincipal: corPrincipal.value,
-        tituloInicial: tituloInicial.value,
-        subtituloInicial: subtituloInicial.value,
-        tempoPorPergunta: Number(tempoInput.value),
-        pontosPorAcerto: Number(pontosInput.value)
-      }, { merge: true });
-      showToast("Configurações salvas!");
-    };
-
-    logoFile.addEventListener("change", async () => {
-      const file = logoFile.files[0];
-      if (!file) return;
-      const fileRef = ref(storage, `logos/${file.name}`);
-      await uploadBytes(fileRef, file);
-      const url = await getDownloadURL(fileRef);
-      logoPreview.src = url;
-      await setDoc(doc(db, "config", "quizSettings"), { logoURL: url }, { merge: true });
-      showToast("Logo atualizada!");
-    });
-
-    async function loadQuestions() {
-      const snap = await getDocs(collection(db, "questions"));
-      return snap.docs.map(d => d.data());
-    }
-
-    function createQuestionBlock(q = { title: "", options: ["", ""], answerIndex: -1 }) {
-      const div = document.createElement("div");
-      div.className = "card";
-      div.innerHTML = `
-        <input type="text" class="q-title" placeholder="Título da pergunta" value="${q.title}">
-        <div class="options-list"></div>
-        <button class="add-option">+ Adicionar opção</button>
-        <button class="delete">Excluir</button>
-      `;
-      const optList = div.querySelector(".options-list");
-      const addOptBtn = div.querySelector(".add-option");
-      const delBtn = div.querySelector(".delete");
-
-      const qid = "q-" + Math.random().toString(36).substring(2, 8);
-      function createOption(text = "", isCorrect = false) {
-  const optDiv = document.createElement("div");
-  optDiv.className = "option-item";
-  optDiv.innerHTML = `
-    <input type="radio" name="${qid}" ${isCorrect ? "checked" : ""}>
-    <input type="text" class="opt-text" value="${text}" placeholder="Texto da opção">
-    <button class="remove-opt">🗑</button>
-  `;
-  optDiv.querySelector(".remove-opt").onclick = () => optDiv.remove();
-  optList.appendChild(optDiv);
-}
-
-      if (q.options?.length) q.options.forEach((o, i) => createOption(o, i === q.answerIndex));
-      else { createOption(); createOption(); }
-
-      addOptBtn.onclick = () => createOption();
-      delBtn.onclick = () => div.remove();
-      container.appendChild(div);
-    }
-
-    saveBtn.onclick = async () => {
-      const blocks = [...container.querySelectorAll(".card")];
-      for (const div of blocks) {
-        const title = div.querySelector(".q-title").value.trim();
-        const options = [...div.querySelectorAll(".opt-text")].map(o => o.value.trim()).filter(Boolean);
-        const correctIndex = [...div.querySelectorAll("input[type=radio]")].findIndex(r => r.checked);
-        if (!title || options.length < 2 || correctIndex === -1) {
-          showToast("Verifique uma pergunta incompleta.");
-          return;
-        }
-        await setDoc(doc(db, "questions", title.toLowerCase().replace(/\s+/g, "-")), { title, options, answerIndex: correctIndex });
-      }
-      showToast("Perguntas salvas!");
-    };
-
-    addBtn.onclick = () => createQuestionBlock();
-
-    (async () => {
-      await loadConfig();
-      const data = await loadQuestions();
-      data.forEach(q => createQuestionBlock(q));
-    })();
   </script>
 </body>
 </html>
