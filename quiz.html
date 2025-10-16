@@ -26,22 +26,10 @@
   </section>
 
   <script type="module">
-// === Atualização automática do quiz ===
-// Sempre que atualizar as perguntas, mude o número abaixo:
-const QUIZ_VERSION = "v3"; // exemplo: v3, v4, etc.
-
-const LAST_VERSION = localStorage.getItem("quiz-version");
-
-// se a versão mudou, apaga o cache antigo e salva a nova
-if (LAST_VERSION !== QUIZ_VERSION) {
-  console.log("🧹 Limpando cache antigo do quiz...");
-  localStorage.clear();
-  localStorage.setItem("quiz-version", QUIZ_VERSION);
-}
-    
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { QUESTIONS, computeScore } from "./js/questions.js?v=5";
+    import { 
+      getFirestore, collection, getDocs, doc, setDoc, serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
@@ -56,91 +44,34 @@ if (LAST_VERSION !== QUIZ_VERSION) {
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    function makeDocId(name){
-      return (name||'anon')
-        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-        .toLowerCase()
-        .replace(/\s+/g,'-')
-        .trim();
-    }
-
     const $ = s => document.querySelector(s);
     const params = new URLSearchParams(location.search);
     const player = {
       name: params.get('name') || 'Participante',
-      id: params.get('id') || makeDocId(params.get('name') || 'anon')
+      id: params.get('id') || player.name.toLowerCase().replace(/\s+/g,'-')
     };
 
-    const docId = player.id;
+    const elCount=$('#q-count'), elBar=$('#progress'), elTimer=$('#q-time'), elTitle=$('#q-title'), elOpts=$('#q-options');
+    const QTIME = 20;
+    let QS=[], idx=0, totalScore=0, totalTime=0, startTs=0, tickId=null;
 
-    const SESSION_KEY = `quiz-emr:${docId}`;
-    function loadState(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||{}}catch{return {}} }
-    function saveState(p){ localStorage.setItem(SESSION_KEY, JSON.stringify({ ...loadState(), ...p })); }
-    function clearState(){ localStorage.removeItem(SESSION_KEY); }
-
-    let state = loadState();
-    if (!state.startedAt){
-      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0 };
-      saveState(state);
+    async function loadQuestions(){
+      const snap = await getDocs(collection(db, "questions"));
+      return snap.docs.map(d => d.data());
     }
 
     const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+    const computeScore = (correct, time)=> correct ? Math.round(1000*(1 - (time/QTIME)*0.5)) : 0;
 
-    let QS = state.QS;
-    if (!QS) {
-      QS = shuffle(QUESTIONS).map(q => {
-        const options = shuffle(q.options.slice());
-        const answerText = q.options[q.answerIndex];
-        const newAnswerIndex = options.indexOf(answerText);
-        return { ...q, options, answerIndex: newAnswerIndex };
-      });
-      saveState({ ...state, QS });
+    async function startQuiz(){
+      const questions = await loadQuestions();
+      QS = shuffle(questions);
+      render();
     }
-
-    const QTIME = 20;
-    let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
-    let startTs=0, tickId=null, remaining=QTIME;
-
-    const elCount=$('#q-count'), elBar=$('#progress'), elTimer=$('#q-time'), elTitle=$('#q-title'), elOpts=$('#q-options');
 
     function setProgress(){
       elBar.style.width = `${Math.round((idx/QS.length)*100)}%`;
       elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
-    }
-
-    function prepareNextQuestion(){
-      const overlay = document.createElement('div');
-      overlay.className = 'prepare-overlay';
-      overlay.innerHTML = `
-        <div style="text-align:center;">
-          <div>Prepare-se!</div>
-          <div id="countdown" class="countdown">3</div>
-        </div>`;
-      document.body.appendChild(overlay);
-
-      let count = 3;
-      const countdownEl = overlay.querySelector('#countdown');
-      const timer = setInterval(()=>{
-        count--;
-        if(count>0){
-          countdownEl.textContent = count;
-        } else {
-          clearInterval(timer);
-          overlay.remove();
-          render();
-        }
-      },1000);
-    }
-
-    function showFeedback(type){
-      const bf = document.createElement('div');
-      bf.className = `bullet-feedback ${type}`;
-      bf.textContent = type==="correct" ? "✔️ Correto!" :
-                       type==="wrong"   ? "❌ Errado!"  :
-                                          "⏳ Tempo esgotado!";
-      const container = document.querySelector('.quiz-wrap') || document.body;
-      container.appendChild(bf);
-      setTimeout(()=>{ bf.remove(); next(); },2000);
     }
 
     function render(){
@@ -156,14 +87,14 @@ if (LAST_VERSION !== QUIZ_VERSION) {
         elOpts.appendChild(b);
       });
       startTs = performance.now();
-      const tick=()=>{
-        const passed=(performance.now()-startTs)/1000;
-        const left=Math.max(0,QTIME-passed);
-        remaining=left;
-        elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
-        if (left<=0){ timeExpired(); return; }
-        tickId=requestAnimationFrame(tick);
-      };
+      tick();
+    }
+
+    function tick(){
+      const passed=(performance.now()-startTs)/1000;
+      const left=Math.max(0,QTIME-passed);
+      elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
+      if(left<=0){ timeExpired(); return; }
       tickId=requestAnimationFrame(tick);
     }
 
@@ -171,47 +102,48 @@ if (LAST_VERSION !== QUIZ_VERSION) {
 
     function answer(i){
       lockOptions();
-      const used=Math.min(QTIME,(performance.now()-startTs)/1000);
+      const used=(performance.now()-startTs)/1000;
       const q=QS[idx];
       const correct=(i===q.answerIndex);
-      const pts=computeScore?computeScore(correct,used):(correct?1000:0);
+      const pts=computeScore(correct,used);
       totalScore+=pts; totalTime+=used;
-      saveState({ idx, totalScore, totalTime });
       showFeedback(correct?"correct":"wrong");
     }
 
     function timeExpired(){
       lockOptions();
       totalTime += QTIME;
-      saveState({ idx, totalScore, totalTime });
       showFeedback("timeout");
     }
 
-    function next(){
+    function showFeedback(type){
+      const bf=document.createElement('div');
+      bf.className=`bullet-feedback ${type}`;
+      bf.textContent = type==="correct"?"✔️ Correto!":type==="wrong"?"❌ Errado!":"⏳ Tempo esgotado!";
+      document.body.appendChild(bf);
+      setTimeout(()=>{ bf.remove(); next(); },2000);
+    }
+
+    async function next(){
       if (tickId) cancelAnimationFrame(tickId);
       idx++;
-      saveState({ idx, totalScore, totalTime, startedAt: Date.now(), QS });
-      if (idx<QS.length) { prepareNextQuestion(); return; }
-      finalize();
+      if(idx<QS.length){ render(); return; }
+      await finalize();
     }
 
     async function finalize(){
-      const ref=doc(db,"scores",docId);
-      try{
-        const newData={
-          name:player.name,
-          score:Math.round(totalScore),
-          totalTime:Math.round(totalTime*10)/10,
-          updatedAt:serverTimestamp()
-        };
-        await setDoc(ref,newData);
-        confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
-        clearState();
-        setTimeout(()=> location.href=`index.html?me=${encodeURIComponent(player.name)}`,1200);
-      }catch(err){ console.error(err); alert("Falha ao enviar sua pontuação."); }
+      const ref=doc(db,"scores",player.id);
+      await setDoc(ref,{
+        name:player.name,
+        score:Math.round(totalScore),
+        totalTime:Math.round(totalTime*10)/10,
+        updatedAt:serverTimestamp()
+      });
+      confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
+      setTimeout(()=> location.href=`index.html?me=${encodeURIComponent(player.name)}`,1500);
     }
 
-    prepareNextQuestion();
+    startQuiz();
   </script>
 </body>
 </html>
