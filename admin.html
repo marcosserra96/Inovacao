@@ -3,15 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel de Administração - Quiz EMR</title>
+  <title>Painel do Quiz EMR</title>
   <style>
     body { background:#f5f5f5; font-family:Arial, sans-serif; }
     .admin-container { max-width:900px; margin:40px auto; background:#fff; padding:24px; border-radius:14px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:none; }
     h1,h2 { color:#0074A6; margin-top:20px; }
     label { font-weight:bold; display:block; margin-top:10px; margin-bottom:4px; }
-    input[type=text], input[type=number], textarea, input[type=color] {
-      width:100%; padding:6px; border-radius:6px; border:1px solid #ccc; margin-bottom:8px;
-    }
+    input, textarea { width:100%; padding:6px; border-radius:6px; border:1px solid #ccc; margin-bottom:8px; }
     button { background:#009BC1; color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; transition:background 0.3s; }
     button:hover { background:#007a98; }
     .delete { background:#d9534f; }
@@ -19,66 +17,50 @@
     .option-item { display:flex; align-items:center; margin-bottom:6px; }
     .option-item input[type=text]{ flex:1; margin-left:8px; }
     .add-option { margin-bottom:8px; background:#00a5c6; }
-    .add-option:hover { background:#0088a5; }
-    img#logoPreview { max-width:120px; display:block; margin-top:8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+    img#logoPreview { max-width:120px; display:block; margin-top:8px; border-radius:6px; }
     .color-preview { width:80px; height:30px; border-radius:6px; margin-top:6px; border:1px solid #ccc; display:inline-block; vertical-align:middle; }
-    .remove-logo { background:#d9534f; margin-top:6px; }
-    .question { border:1px solid #ddd; border-radius:8px; padding:12px; margin-top:12px; background:#fefefe; }
   </style>
 </head>
 <body>
   <div class="admin-container" id="panel">
-    <h1>🧠 Painel do Quiz EMR</h1>
+    <h1>⚙️ Painel do Quiz EMR</h1>
 
-    <!-- IDENTIDADE -->
     <div class="config-section">
       <h2>🏷️ Identidade do Quiz</h2>
       <label>Nome do Quiz:</label>
       <input type="text" id="nomeQuiz">
-
       <label>Cor principal:</label>
       <input type="color" id="corPrincipal" value="#009BC1">
       <span class="color-preview" id="corPreview"></span>
-
-      <label>Logo do Quiz:</label>
+      <label>Logo:</label>
       <input type="file" id="logoFile" accept="image/*">
       <img id="logoPreview" alt="Prévia da Logo">
-      <button id="removeLogo" class="remove-logo">Remover Logo</button>
     </div>
 
-    <!-- TEXTOS -->
     <div class="config-section">
       <h2>🗣️ Textos da Tela Inicial</h2>
-      <label>Título principal:</label>
+      <label>Título:</label>
       <input type="text" id="tituloInicial">
-
       <label>Subtítulo:</label>
       <input type="text" id="subtituloInicial">
     </div>
 
-    <!-- REGRAS -->
     <div class="config-section">
-      <h2>⚙️ Regras do Quiz</h2>
-      <label>⏱ Tempo por pergunta (segundos):</label>
-      <input type="number" id="tempoPorPergunta" min="5" max="120" step="1" value="20">
-
-      <label>🏅 Pontos por acerto:</label>
-      <input type="number" id="pontosPorAcerto" min="100" max="5000" step="100" value="1000">
-
+      <h2>⚙️ Regras</h2>
+      <label>Tempo por pergunta (s):</label>
+      <input type="number" id="tempoPorPergunta" min="5" max="120" value="20">
+      <label>Pontos por acerto:</label>
+      <input type="number" id="pontosPorAcerto" min="100" max="5000" value="1000">
       <button id="saveConfig">💾 Salvar Configurações</button>
     </div>
 
-    <!-- PERGUNTAS -->
     <h2>📋 Perguntas</h2>
     <button id="addQ">+ Nova Pergunta</button>
     <button id="saveAll" style="float:right;">💾 Salvar Tudo</button>
     <div id="questions"></div>
-    <hr/>
-    <button id="resetRank">🧹 Resetar Ranking</button>
   </div>
 
-  <script type="module">
-    // ======= Proteção por senha =======
+  <script type="module" defer>
     const senhaCorreta = "emr2025";
     const senha = prompt("Digite a senha de administrador:");
     if (senha !== senhaCorreta) {
@@ -88,9 +70,8 @@
     }
     document.getElementById("panel").style.display = "block";
 
-    // ======= Firebase =======
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
     const firebaseConfig = {
@@ -106,150 +87,137 @@
     const db = getFirestore(app);
     const storage = getStorage(app);
 
-    // ======= Elementos =======
-    const nomeQuiz = document.getElementById('nomeQuiz');
-    const corPrincipal = document.getElementById('corPrincipal');
-    const corPreview = document.getElementById('corPreview');
-    const logoFile = document.getElementById('logoFile');
-    const logoPreview = document.getElementById('logoPreview');
-    const removeLogoBtn = document.getElementById('removeLogo');
-    const tituloInicial = document.getElementById('tituloInicial');
-    const subtituloInicial = document.getElementById('subtituloInicial');
-    const tempoInput = document.getElementById('tempoPorPergunta');
-    const pontosInput = document.getElementById('pontosPorAcerto');
-    const container = document.getElementById('questions');
-    const addBtn = document.getElementById('addQ');
-    const saveConfigBtn = document.getElementById('saveConfig');
-    const saveBtn = document.getElementById('saveAll');
-    const resetBtn = document.getElementById('resetRank');
+    // === Elementos ===
+    const nomeQuiz = document.getElementById("nomeQuiz");
+    const corPrincipal = document.getElementById("corPrincipal");
+    const corPreview = document.getElementById("corPreview");
+    const logoFile = document.getElementById("logoFile");
+    const logoPreview = document.getElementById("logoPreview");
+    const tituloInicial = document.getElementById("tituloInicial");
+    const subtituloInicial = document.getElementById("subtituloInicial");
+    const tempoInput = document.getElementById("tempoPorPergunta");
+    const pontosInput = document.getElementById("pontosPorAcerto");
+    const saveConfigBtn = document.getElementById("saveConfig");
+    const container = document.getElementById("questions");
+    const addBtn = document.getElementById("addQ");
+    const saveBtn = document.getElementById("saveAll");
 
-    // ======= Cor preview =======
     corPrincipal.addEventListener("input", () => corPreview.style.backgroundColor = corPrincipal.value);
 
-    // ======= Criar perguntas =======
+    // === Carregar configurações ===
+    async function loadConfig() {
+      const refCfg = doc(db, "config", "quizSettings");
+      try {
+        const snap = await getDoc(refCfg);
+        if (snap.exists()) {
+          const cfg = snap.data();
+          nomeQuiz.value = cfg.nomeQuiz || "";
+          corPrincipal.value = cfg.corPrincipal || "#009BC1";
+          corPreview.style.backgroundColor = corPrincipal.value;
+          tituloInicial.value = cfg.tituloInicial || "";
+          subtituloInicial.value = cfg.subtituloInicial || "";
+          tempoInput.value = cfg.tempoPorPergunta ?? 20;
+          pontosInput.value = cfg.pontosPorAcerto ?? 1000;
+          if (cfg.logoURL) { logoPreview.src = cfg.logoURL; }
+          console.log("Configurações carregadas com sucesso ✅");
+        } else {
+          console.log("Nenhuma configuração existente no Firestore.");
+        }
+      } catch (err) {
+        console.error("Erro ao carregar config:", err);
+      }
+    }
+
+    // === Salvar configurações ===
+    saveConfigBtn.onclick = async () => {
+      try {
+        await setDoc(doc(db, "config", "quizSettings"), {
+          nomeQuiz: nomeQuiz.value,
+          corPrincipal: corPrincipal.value,
+          tituloInicial: tituloInicial.value,
+          subtituloInicial: subtituloInicial.value,
+          tempoPorPergunta: Number(tempoInput.value),
+          pontosPorAcerto: Number(pontosInput.value)
+        }, { merge: true });
+        alert("Configurações salvas com sucesso!");
+      } catch (err) {
+        console.error("Erro ao salvar config:", err);
+        alert("Erro ao salvar. Verifique o console.");
+      }
+    };
+
+    // === Upload de logo ===
+    logoFile.addEventListener("change", async () => {
+      const file = logoFile.files[0];
+      if (!file) return;
+      try {
+        const fileRef = ref(storage, `logos/${file.name}`);
+        await uploadBytes(fileRef, file);
+        const url = await getDownloadURL(fileRef);
+        logoPreview.src = url;
+        await setDoc(doc(db, "config", "quizSettings"), { logoURL: url }, { merge: true });
+        alert("Logo atualizada!");
+      } catch (err) {
+        console.error("Erro ao enviar logo:", err);
+      }
+    });
+
+    // === Perguntas ===
+    async function loadQuestions() {
+      const snap = await getDocs(collection(db, "questions"));
+      return snap.docs.map(d => d.data());
+    }
+
     function createQuestionBlock(q = { title: "", options: [], answerIndex: -1 }) {
       const div = document.createElement("div");
       div.className = "question";
       div.innerHTML = `
-        <input type="text" class="q-title" placeholder="Título da pergunta" value="${q.title}">
+        <input type="text" class="q-title" placeholder="Título" value="${q.title}">
         <div class="options-list"></div>
         <button class="add-option">+ Adicionar opção</button>
-        <button class="delete">Excluir Pergunta</button>
       `;
       const optList = div.querySelector(".options-list");
       const addOptBtn = div.querySelector(".add-option");
-      const deleteBtn = div.querySelector(".delete");
-
       function createOption(text = "", isCorrect = false) {
         const optDiv = document.createElement("div");
         optDiv.className = "option-item";
         optDiv.innerHTML = `
-          <input type="radio" name="correct-${Date.now()}" ${isCorrect ? "checked" : ""} class="opt-correct">
+          <input type="radio" name="correct-${Date.now()}" ${isCorrect ? "checked" : ""}>
           <input type="text" class="opt-text" value="${text}" placeholder="Texto da opção">
-          <button class="remove-opt" style="margin-left:8px;">🗑</button>
         `;
-        optDiv.querySelector(".remove-opt").onclick = () => optDiv.remove();
         optList.appendChild(optDiv);
       }
-
       (q.options || []).forEach((opt, i) => createOption(opt, i === q.answerIndex));
       addOptBtn.onclick = () => createOption();
-      deleteBtn.onclick = () => div.remove();
       container.appendChild(div);
     }
 
-    // ======= Carregar configurações =======
-    async function loadConfig() {
-      const refCfg = doc(db, "config", "quizSettings");
-      const snap = await getDoc(refCfg);
-      if (snap.exists()) {
-        const cfg = snap.data();
-        nomeQuiz.value = cfg.nomeQuiz || "";
-        corPrincipal.value = cfg.corPrincipal || "#009BC1";
-        corPreview.style.backgroundColor = corPrincipal.value;
-        tituloInicial.value = cfg.tituloInicial || "";
-        subtituloInicial.value = cfg.subtituloInicial || "";
-        tempoInput.value = cfg.tempoPorPergunta ?? 20;
-        pontosInput.value = cfg.pontosPorAcerto ?? 1000;
-        if (cfg.logoURL) {
-          logoPreview.src = cfg.logoURL;
-          logoPreview.dataset.url = cfg.logoURL;
+    saveBtn.onclick = async () => {
+      try {
+        const blocks = [...container.querySelectorAll(".question")];
+        for (const [i, div] of blocks.entries()) {
+          const title = div.querySelector(".q-title").value.trim();
+          const options = [...div.querySelectorAll(".opt-text")].map(o => o.value.trim()).filter(Boolean);
+          const correctIndex = [...div.querySelectorAll("input[type=radio]")].findIndex(r => r.checked);
+          if (!title || options.length < 2 || correctIndex === -1) {
+            alert(`Preencha corretamente a pergunta ${i + 1}`);
+            return;
+          }
+          await setDoc(doc(db, "questions", title.toLowerCase().replace(/\s+/g, "-")), { title, options, answerIndex: correctIndex });
         }
+        alert("Perguntas salvas!");
+      } catch (err) {
+        console.error("Erro ao salvar perguntas:", err);
+        alert("Erro ao salvar perguntas. Verifique o console.");
       }
-    }
-
-    // ======= Salvar configurações =======
-    saveConfigBtn.onclick = async () => {
-      await setDoc(doc(db, "config", "quizSettings"), {
-        nomeQuiz: nomeQuiz.value,
-        corPrincipal: corPrincipal.value,
-        tituloInicial: tituloInicial.value,
-        subtituloInicial: subtituloInicial.value,
-        tempoPorPergunta: Number(tempoInput.value),
-        pontosPorAcerto: Number(pontosInput.value)
-      }, { merge: true });
-      alert("Configurações salvas!");
     };
-
-    // ======= Upload de logo =======
-    logoFile.addEventListener("change", async () => {
-      const file = logoFile.files[0];
-      if (!file) return;
-      const fileRef = ref(storage, `logos/${file.name}`);
-      await uploadBytes(fileRef, file);
-      const url = await getDownloadURL(fileRef);
-      logoPreview.src = url;
-      logoPreview.dataset.url = url;
-      await setDoc(doc(db, "config", "quizSettings"), { logoURL: url }, { merge: true });
-      alert("Logo atualizada!");
-    });
-
-    removeLogoBtn.onclick = async () => {
-      logoPreview.src = "";
-      await setDoc(doc(db, "config", "quizSettings"), { logoURL: "" }, { merge: true });
-      alert("Logo removida!");
-    };
-
-    // ======= Perguntas =======
-    async function loadQuestions() {
-      const snap = await getDocs(collection(db, "questions"));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
 
     addBtn.onclick = () => createQuestionBlock();
 
-    saveBtn.onclick = async () => {
-      const blocks = [...container.querySelectorAll(".question")];
-      for (const [i, div] of blocks.entries()) {
-        const title = div.querySelector(".q-title").value.trim();
-        const options = [...div.querySelectorAll(".opt-text")].map(o => o.value.trim()).filter(Boolean);
-        const correctIndex = [...div.querySelectorAll(".opt-correct")].findIndex(o => o.checked);
-        if (!title || options.length < 2 || correctIndex === -1) {
-          alert(`Preencha corretamente a pergunta ${i + 1}`);
-          return;
-        }
-        await setDoc(doc(db, "questions", title.toLowerCase().replace(/\s+/g, "-")), {
-          title, options, answerIndex: correctIndex
-        });
-      }
-      alert("Perguntas salvas com sucesso!");
-      location.reload();
-    };
-
-    // ======= Resetar ranking =======
-    resetBtn.onclick = async () => {
-      if (!confirm("Deseja realmente limpar o ranking?")) return;
-      const snap = await getDocs(collection(db, "scores"));
-      for (const d of snap.docs) await deleteDoc(doc(db, "scores", d.id));
-      alert("Ranking resetado!");
-    };
-
-    // ======= Inicialização =======
     (async () => {
       await loadConfig();
-      const questions = await loadQuestions();
-      container.innerHTML = "";
-      questions.forEach(q => createQuestionBlock(q));
+      const data = await loadQuestions();
+      data.forEach(q => createQuestionBlock(q));
     })();
   </script>
 </body>
