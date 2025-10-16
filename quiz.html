@@ -1,214 +1,257 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
->
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quiz EMR</title>
+  <title>Quiz EMR — Perguntas</title>
   <link rel="stylesheet" href="assets/styles.css?v=dev"/>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    .loading-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #f4f4f4;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 1.2rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
+    </div>
+  </header>
+
+  <section class="card quiz-wrap" id="quiz-container" style="display:none;">
+    <div class="topbar">
+      <span id="q-count" class="pill">Pergunta 1</span>
+      <div class="progress"><div id="progress" class="bar"></div></div>
+      <span id="q-time" class="timer">⏱ 0.0s</span>
+    </div>
+
+    <h2 id="q-title" class="q-title">Carregando…</h2>
+    <div id="q-options"></div>
+  </section>
+
+  <div class="loading-screen" id="loading">Carregando configurações…</div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      getDoc,
-      doc,
-      setDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    // 🔥 Firebase Configuração
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
       projectId: "inovacao-emr",
-      storageBucket: "inovacao-emr.appspot.com",
+      storageBucket: "inovacao-emr.firebasestorage.app",
       messagingSenderId: "1075399271811",
-      appId: "1:1075399271811:web:f532f25547125d6a8f42b6"
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
+      measurementId: "G-8CTLMNCZJN"
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db  = getFirestore(app);
 
-    // 🔹 Variáveis globais
-    let questions = [];
-    let currentQuestion = 0;
-    let score = 0;
-    let timer;
-    let timeLeft;
-    let tempoPorPergunta = 20;
-    let pontosPorAcerto = 1000;
-    let totalTime = 0;
+    const $ = s => document.querySelector(s);
+    const params = new URLSearchParams(location.search);
 
-    // 🔹 Recupera dados da URL
-    const params = new URLSearchParams(window.location.search);
-    const playerId = params.get("id");
-    const playerName = params.get("name") || "Jogador";
+    const player = {
+      name: params.get('name') || 'Participante',
+      id: (params.get('id') || 'anon')
+        .normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')
+        .toLowerCase()
+        .replace(/\\s+/g,'-')
+        .trim()
+    };
 
-    const questionEl = document.querySelector(".question");
-    const optionsEl = document.querySelector(".options");
-    const timerBarEl = document.querySelector(".timer-bar");
-    const overlayEl = document.querySelector(".overlay");
-    const feedbackEl = document.querySelector(".feedback");
-    const progressEl = document.querySelector(".progress");
+    let CONFIG = { timePerQuestion: 20 };
+    let QUESTIONS = [];
 
-    // =============================
-    // 📥 Carrega perguntas e configs
-    // =============================
-    async function loadData() {
-      // Configurações
-      const cfgSnap = await getDoc(doc(db, "config", "quizSettings"));
-      if (cfgSnap.exists()) {
-        const cfg = cfgSnap.data();
-        tempoPorPergunta = cfg.tempoPorPergunta ?? 20;
-        pontosPorAcerto = cfg.pontosPorAcerto ?? 1000;
+    // === carregar configurações ===
+    async function loadConfig() {
+      try {
+        const qSnap = await getDoc(doc(db, "config", "questions"));
+        const gSnap = await getDoc(doc(db, "config", "general"));
+        const aSnap = await getDoc(doc(db, "config", "appearance"));
+
+        if (qSnap.exists()) QUESTIONS = qSnap.data().list;
+        if (gSnap.exists()) CONFIG = { ...CONFIG, ...gSnap.data() };
+        if (aSnap.exists()) {
+          const appData = aSnap.data();
+          if (appData.quizTitle) $(".title").textContent = appData.quizTitle;
+          if (appData.primaryColor) {
+            document.documentElement.style.setProperty("--primary", appData.primaryColor);
+          }
+        }
+      } catch (e) {
+        console.warn("Falha ao carregar configs:", e);
       }
-
-      // Perguntas
-      const snap = await getDocs(collection(db, "questions"));
-      questions = snap.docs.map(doc => doc.data());
-
-      // Embaralhar perguntas
-      questions.sort(() => Math.random() - 0.5);
       startQuiz();
     }
 
-    // =============================
-    // ▶️ Inicia o Quiz
-    // =============================
-    function startQuiz() {
-      currentQuestion = 0;
-      score = 0;
-      totalTime = 0;
-      showQuestion();
+    loadConfig();
+
+    // === lógica principal ===
+    const SESSION_KEY = `quiz-emr:${player.id}`;
+    function loadState(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||{}}catch{return {}} }
+    function saveState(p){ localStorage.setItem(SESSION_KEY, JSON.stringify({ ...loadState(), ...p })); }
+    function clearState(){ localStorage.removeItem(SESSION_KEY); }
+
+    let state = loadState();
+    if (!state.startedAt){
+      state = { startedAt: Date.now(), idx:0, totalScore:0, totalTime:0 };
+      saveState(state);
     }
 
-    // =============================
-    // 💬 Exibe pergunta
-    // =============================
-    function showQuestion() {
-      if (currentQuestion >= questions.length) {
-        endQuiz();
+    const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+
+    function computeScore(correct, used){
+      if (!correct) return 0;
+      const bonus = Math.max(0, (CONFIG.timePerQuestion - used));
+      return Math.round(1000 + bonus * 10);
+    }
+
+    function startQuiz(){
+      if (!QUESTIONS.length) {
+        alert("Nenhuma pergunta encontrada no banco de dados.");
+        location.href = "index.html";
         return;
       }
 
-      const q = questions[currentQuestion];
-      questionEl.textContent = q.title;
-      optionsEl.innerHTML = "";
+      $("#loading").style.display = "none";
+      $("#quiz-container").style.display = "block";
 
-      const shuffled = q.options
-        .map((text, i) => ({ text, i }))
-        .sort(() => Math.random() - 0.5);
-
-      shuffled.forEach(opt => {
-        const btn = document.createElement("button");
-        btn.textContent = opt.text;
-        btn.className = "option";
-        btn.onclick = () => selectAnswer(opt.i === q.answerIndex);
-        optionsEl.appendChild(btn);
-      });
-
-      progressEl.textContent = `Pergunta ${currentQuestion + 1} de ${questions.length}`;
-      startTimer();
-    }
-
-    // =============================
-    // ⏱️ Timer
-    // =============================
-    function startTimer() {
-      clearInterval(timer);
-      timeLeft = tempoPorPergunta;
-      timerBarEl.style.width = "100%";
-
-      timer = setInterval(() => {
-        timeLeft--;
-        totalTime++;
-
-        timerBarEl.style.width = `${(timeLeft / tempoPorPergunta) * 100}%`;
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          selectAnswer(false, true);
-        }
-      }, 1000);
-    }
-
-    // =============================
-    // 🧠 Seleciona resposta
-    // =============================
-    function selectAnswer(correct, timeout = false) {
-      clearInterval(timer);
-
-      if (correct) {
-        score += pontosPorAcerto;
-        feedbackEl.textContent = "✔️ Correto!";
-        feedbackEl.className = "feedback correct";
-        launchConfetti();
-      } else if (timeout) {
-        feedbackEl.textContent = "⏳ Tempo esgotado!";
-        feedbackEl.className = "feedback timeout";
-      } else {
-        feedbackEl.textContent = "❌ Errado!";
-        feedbackEl.className = "feedback wrong";
+      let QS = state.QS;
+      if (!QS) {
+        QS = shuffle(QUESTIONS).map(q => {
+          const options = shuffle(q.options.slice());
+          const answerText = q.options[q.answerIndex];
+          const newAnswerIndex = options.indexOf(answerText);
+          return { ...q, options, answerIndex: newAnswerIndex };
+        });
+        saveState({ ...state, QS });
       }
 
-      overlayEl.style.display = "flex";
-      setTimeout(() => {
-        overlayEl.style.display = "none";
-        feedbackEl.textContent = "";
-        currentQuestion++;
-        showQuestion();
-      }, 1500);
+      const QTIME = CONFIG.timePerQuestion || 20;
+      let idx=state.idx, totalScore=state.totalScore, totalTime=state.totalTime;
+      let startTs=0, tickId=null, remaining=QTIME;
+
+      const elCount=$('#q-count'), elBar=$('#progress'), elTimer=$('#q-time'), elTitle=$('#q-title'), elOpts=$('#q-options');
+
+      function setProgress(){
+        elBar.style.width = `${Math.round((idx/QS.length)*100)}%`;
+        elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
+      }
+
+      function prepareNextQuestion(){
+        const overlay = document.createElement('div');
+        overlay.className = 'prepare-overlay';
+        overlay.innerHTML = `
+          <div style=\"text-align:center;\">
+            <div>Prepare-se!</div>
+            <div id=\"countdown\" class=\"countdown\">3</div>
+          </div>`;
+        document.body.appendChild(overlay);
+
+        let count = 3;
+        const countdownEl = overlay.querySelector('#countdown');
+        const timer = setInterval(()=>{
+          count--;
+          if(count>0){
+            countdownEl.textContent = count;
+          } else {
+            clearInterval(timer);
+            overlay.remove();
+            render();
+          }
+        },1000);
+      }
+
+      function showFeedback(type){
+        const bf = document.createElement('div');
+        bf.className = `bullet-feedback ${type}`;
+        bf.textContent = type === \"correct\" ? \"✔️ Correto!\" :
+                         type === \"wrong\" ? \"❌ Errado!\"  :
+                                             \"⏳ Tempo esgotado!\";
+        const container = document.querySelector('.quiz-wrap') || document.body;
+        container.appendChild(bf);
+        setTimeout(()=>{ bf.remove(); next(); },2000);
+      }
+
+      function render(){
+        setProgress();
+        const q = QS[idx];
+        elTitle.textContent = q.title;
+        elOpts.innerHTML = \"\";
+        q.options.forEach((text,i)=>{
+          const b=document.createElement('button');
+          b.className='option';
+          b.innerHTML = `<div class=\"bullet\">${i+1}</div><div>${text}</div>`;
+          b.onclick = ()=> answer(i);
+          elOpts.appendChild(b);
+        });
+        startTs = performance.now();
+        const tick=()=>{
+          const passed=(performance.now()-startTs)/1000;
+          const left=Math.max(0,QTIME-passed);
+          remaining=left;
+          elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
+          if (left<=0){ timeExpired(); return; }
+          tickId=requestAnimationFrame(tick);
+        };
+        tickId=requestAnimationFrame(tick);
+      }
+
+      function lockOptions(){ [...elOpts.querySelectorAll('.option')].forEach(b=>b.disabled=true); }
+
+      function answer(i){
+        lockOptions();
+        const used=Math.min(QTIME,(performance.now()-startTs)/1000);
+        const q=QS[idx];
+        const correct=(i===q.answerIndex);
+        const pts=computeScore(correct,used);
+        totalScore+=pts; totalTime+=used;
+        saveState({ idx, totalScore, totalTime });
+        showFeedback(correct?\"correct\":\"wrong\");
+      }
+
+      function timeExpired(){
+        lockOptions();
+        totalTime += QTIME;
+        saveState({ idx, totalScore, totalTime });
+        showFeedback(\"timeout\");
+      }
+
+      function next(){
+        if (tickId) cancelAnimationFrame(tickId);
+        idx++;
+        saveState({ idx, totalScore, totalTime, startedAt: Date.now(), QS });
+        if (idx<QS.length) { prepareNextQuestion(); return; }
+        finalize();
+      }
+
+      async function finalize(){
+        const ref=doc(db,\"scores\",player.id);
+        try{
+          const newData={
+            name:player.name,
+            score:Math.round(totalScore),
+            totalTime:Math.round(totalTime*10)/10,
+            updatedAt:serverTimestamp()
+          };
+          await setDoc(ref,newData);
+          confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
+          clearState();
+          setTimeout(()=> location.href=`index.html?me=${encodeURIComponent(player.name)}`,1200);
+        }catch(err){ console.error(err); alert(\"Falha ao enviar sua pontuação.\"); }
+      }
+
+      prepareNextQuestion();
     }
-
-    // =============================
-    // 🎉 Confete
-    // =============================
-    function launchConfetti() {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-    }
-
-    // =============================
-    // 🏁 Fim do Quiz
-    // =============================
-    async function endQuiz() {
-      overlayEl.style.display = "flex";
-      feedbackEl.textContent = "🏆 Parabéns! Quiz concluído!";
-
-      await setDoc(doc(db, "scores", playerId), {
-        id: playerId,
-        name: playerName,
-        score: score,
-        time: (totalTime).toFixed(1),
-        timestamp: new Date()
-      });
-
-      setTimeout(() => {
-        window.location.href = "index.html";
-      }, 3000);
-    }
-
-    // 🚀 Inicia tudo
-    loadData();
   </script>
-</head>
-
-<body>
-  <div class="quiz">
-    <div class="progress"></div>
-    <div class="question">Carregando perguntas...</div>
-    <div class="options"></div>
-    <div class="timer">
-      <div class="timer-bar"></div>
-    </div>
-  </div>
-
-  <div class="overlay">
-    <div class="feedback"></div>
-  </div>
 </body>
 </html>
