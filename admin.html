@@ -62,10 +62,13 @@
       vertical-align:middle;
     }
 
-    /* 🔧 Correção final do alinhamento das alternativas */
+    /* 🔧 Correção final e estável das alternativas */
     .options-list {
       margin-top: 8px;
       width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
     .option-item {
@@ -73,43 +76,46 @@
       align-items: center;
       justify-content: flex-start;
       gap: 10px;
-      margin-bottom: 6px;
       width: 100%;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 6px 8px;
     }
 
     .option-item input[type="radio"] {
       flex-shrink: 0;
       transform: scale(1.1);
-      margin-left: 4px;
+      margin: 0;
     }
 
     .option-item input.opt-text {
-      flex-grow: 1;
-      width: 100%;
-      max-width: 600px;
-      height: 32px;
-      line-height: 32px;
-      padding: 0 10px;
+      flex: 1;
+      min-width: 0;
+      padding: 6px 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
       background: #fff;
       color: #333;
       font-size: 14px;
+      height: 32px;
+      line-height: 32px;
     }
 
     .option-item .remove-opt {
-      background: #bbb;
+      flex-shrink: 0;
+      background: #d9534f;
       color: #fff;
       border: none;
       border-radius: 6px;
-      padding: 5px 9px;
+      padding: 4px 8px;
       cursor: pointer;
       font-size: 14px;
       transition: background 0.2s;
     }
 
     .option-item .remove-opt:hover {
-      background: #999;
+      background: #b63c39;
     }
 
     /* Toasts */
