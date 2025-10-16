@@ -62,36 +62,34 @@
       vertical-align:middle;
     }
 
-    /* 🔧 Correção final e estável das alternativas */
+    /* 🔧 Layout corrigido das alternativas */
     .options-list {
       margin-top: 8px;
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
 
     .option-item {
       display: flex;
       align-items: center;
-      justify-content: flex-start;
-      gap: 10px;
+      gap: 8px;
       width: 100%;
       background: #fafafa;
       border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 6px 8px;
+      border-radius: 8px;
+      padding: 6px 10px;
+      box-sizing: border-box;
     }
 
     .option-item input[type="radio"] {
       flex-shrink: 0;
       transform: scale(1.1);
-      margin: 0;
     }
 
     .option-item input.opt-text {
       flex: 1;
-      min-width: 0;
       padding: 6px 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
@@ -100,6 +98,7 @@
       font-size: 14px;
       height: 32px;
       line-height: 32px;
+      box-sizing: border-box;
     }
 
     .option-item .remove-opt {
@@ -112,6 +111,10 @@
       cursor: pointer;
       font-size: 14px;
       transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 32px;
     }
 
     .option-item .remove-opt:hover {
