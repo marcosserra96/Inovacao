@@ -17,6 +17,22 @@
       font-size: 1.2rem;
       color: #555;
     }
+    #debug-box {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.7);
+      color: #0f0;
+      padding: 8px 12px;
+      font-size: 12px;
+      border-radius: 8px;
+      max-width: 300px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      display: none;
+      z-index: 9999;
+    }
   </style>
 </head>
 <body>
@@ -38,6 +54,7 @@
   </section>
 
   <div class="loading-screen" id="loading">Carregando configurações…</div>
+  <div id="debug-box"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -62,40 +79,52 @@
     const player = {
       name: params.get('name') || 'Participante',
       id: (params.get('id') || 'anon')
-        .normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
         .toLowerCase()
-        .replace(/\\s+/g,'-')
+        .replace(/\s+/g,'-')
         .trim()
     };
 
-    let CONFIG = { timePerQuestion: 20 };
+    let CONFIG = { timePerQuestion: 20, loadingMessage: 'Carregando configurações…', debugMode: false };
     let QUESTIONS = [];
 
-    // === carregar configurações ===
+    const debugBox = document.getElementById('debug-box');
+    function logDebug(msg){
+      if(!CONFIG.debugMode) return;
+      debugBox.style.display = 'block';
+      const time = new Date().toLocaleTimeString();
+      debugBox.innerHTML += `[${time}] ${msg}<br/>`;
+      debugBox.scrollTop = debugBox.scrollHeight;
+      console.log('[QUIZ DEBUG]', msg);
+    }
+
     async function loadConfig() {
       try {
-        const qSnap = await getDoc(doc(db, "config", "questions"));
-        const gSnap = await getDoc(doc(db, "config", "general"));
-        const aSnap = await getDoc(doc(db, "config", "appearance"));
+        logDebug('Conectando ao Firebase...');
+        const qSnap = await getDoc(doc(db, 'config', 'questions'));
+        const gSnap = await getDoc(doc(db, 'config', 'general'));
+        const aSnap = await getDoc(doc(db, 'config', 'appearance'));
+        logDebug('Documentos carregados.');
 
-        if (qSnap.exists()) QUESTIONS = qSnap.data().list;
         if (gSnap.exists()) CONFIG = { ...CONFIG, ...gSnap.data() };
+        if (qSnap.exists()) QUESTIONS = qSnap.data().list || [];
         if (aSnap.exists()) {
           const appData = aSnap.data();
           if (appData.quizTitle) $(".title").textContent = appData.quizTitle;
-          if (appData.primaryColor) {
-            document.documentElement.style.setProperty("--primary", appData.primaryColor);
-          }
+          if (appData.primaryColor) document.documentElement.style.setProperty('--primary', appData.primaryColor);
         }
+
+        $('#loading').textContent = CONFIG.loadingMessage || 'Carregando configurações…';
+        logDebug(`Mensagem de carregamento: ${CONFIG.loadingMessage}`);
+
       } catch (e) {
-        console.warn("Falha ao carregar configs:", e);
+        logDebug('Erro ao carregar configurações: ' + e.message);
       }
       startQuiz();
     }
 
     loadConfig();
 
-    // === lógica principal ===
     const SESSION_KEY = `quiz-emr:${player.id}`;
     function loadState(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||{}}catch{return {}} }
     function saveState(p){ localStorage.setItem(SESSION_KEY, JSON.stringify({ ...loadState(), ...p })); }
@@ -116,14 +145,16 @@
     }
 
     function startQuiz(){
+      logDebug('Iniciando quiz...');
       if (!QUESTIONS.length) {
-        alert("Nenhuma pergunta encontrada no banco de dados.");
-        location.href = "index.html";
+        alert('Nenhuma pergunta encontrada.');
+        logDebug('Falha: Nenhuma pergunta carregada.');
+        location.href = 'index.html';
         return;
       }
 
-      $("#loading").style.display = "none";
-      $("#quiz-container").style.display = "block";
+      $('#loading').style.display = 'none';
+      $('#quiz-container').style.display = 'block';
 
       let QS = state.QS;
       if (!QS) {
@@ -148,22 +179,18 @@
       }
 
       function prepareNextQuestion(){
+        logDebug(`Preparando pergunta ${idx+1}`);
         const overlay = document.createElement('div');
         overlay.className = 'prepare-overlay';
-        overlay.innerHTML = `
-          <div style=\"text-align:center;\">
-            <div>Prepare-se!</div>
-            <div id=\"countdown\" class=\"countdown\">3</div>
-          </div>`;
+        overlay.innerHTML = `<div style="text-align:center;"><div>Prepare-se!</div><div id="countdown" class="countdown">3</div></div>`;
         document.body.appendChild(overlay);
 
         let count = 3;
         const countdownEl = overlay.querySelector('#countdown');
         const timer = setInterval(()=>{
           count--;
-          if(count>0){
-            countdownEl.textContent = count;
-          } else {
+          if(count>0){ countdownEl.textContent = count; }
+          else {
             clearInterval(timer);
             overlay.remove();
             render();
@@ -174,11 +201,9 @@
       function showFeedback(type){
         const bf = document.createElement('div');
         bf.className = `bullet-feedback ${type}`;
-        bf.textContent = type === \"correct\" ? \"✔️ Correto!\" :
-                         type === \"wrong\" ? \"❌ Errado!\"  :
-                                             \"⏳ Tempo esgotado!\";
-        const container = document.querySelector('.quiz-wrap') || document.body;
-        container.appendChild(bf);
+        bf.textContent = type === 'correct' ? '✔️ Correto!' : type === 'wrong' ? '❌ Errado!' : '⏳ Tempo esgotado!';
+        document.querySelector('.quiz-wrap').appendChild(bf);
+        logDebug(`Feedback: ${bf.textContent}`);
         setTimeout(()=>{ bf.remove(); next(); },2000);
       }
 
@@ -186,11 +211,11 @@
         setProgress();
         const q = QS[idx];
         elTitle.textContent = q.title;
-        elOpts.innerHTML = \"\";
+        elOpts.innerHTML = '';
         q.options.forEach((text,i)=>{
           const b=document.createElement('button');
           b.className='option';
-          b.innerHTML = `<div class=\"bullet\">${i+1}</div><div>${text}</div>`;
+          b.innerHTML = `<div class="bullet">${i+1}</div><div>${text}</div>`;
           b.onclick = ()=> answer(i);
           elOpts.appendChild(b);
         });
@@ -216,14 +241,16 @@
         const pts=computeScore(correct,used);
         totalScore+=pts; totalTime+=used;
         saveState({ idx, totalScore, totalTime });
-        showFeedback(correct?\"correct\":\"wrong\");
+        logDebug(`Pergunta ${idx+1}: ${correct?'Correta':'Errada'} (${used.toFixed(1)}s)`);
+        showFeedback(correct?'correct':'wrong');
       }
 
       function timeExpired(){
         lockOptions();
         totalTime += QTIME;
         saveState({ idx, totalScore, totalTime });
-        showFeedback(\"timeout\");
+        logDebug(`Tempo expirado na pergunta ${idx+1}`);
+        showFeedback('timeout');
       }
 
       function next(){
@@ -235,7 +262,8 @@
       }
 
       async function finalize(){
-        const ref=doc(db,\"scores\",player.id);
+        logDebug('Finalizando quiz, salvando pontuação...');
+        const ref=doc(db,'scores',player.id);
         try{
           const newData={
             name:player.name,
@@ -246,8 +274,13 @@
           await setDoc(ref,newData);
           confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
           clearState();
+          logDebug('Pontuação salva com sucesso!');
           setTimeout(()=> location.href=`index.html?me=${encodeURIComponent(player.name)}`,1200);
-        }catch(err){ console.error(err); alert(\"Falha ao enviar sua pontuação.\"); }
+        }catch(err){
+          console.error(err);
+          alert('Falha ao enviar sua pontuação.');
+          logDebug('Erro ao salvar pontuação: '+err.message);
+        }
       }
 
       prepareNextQuestion();
