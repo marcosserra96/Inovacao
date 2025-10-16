@@ -1,253 +1,114 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel do Quiz EMR</title>
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #009bc1, #59c085);
-      color: #222;
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Quiz EMR</title>
 
-    header {
-      background: rgba(255,255,255,0.9);
-      backdrop-filter: blur(6px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+  <!-- Font Awesome -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
 
-    header h1 {
-      margin: 0;
-      font-size: 22px;
-      color: #007f91;
-      font-weight: 700;
-    }
-
-    .main {
-      flex: 1;
-      background: #fff;
-      margin: 24px auto;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 900px;
-      padding: 24px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-
-    .form-section {
-      margin-bottom: 32px;
-    }
-
-    .form-section h2 {
-      font-size: 18px;
-      color: #007f91;
-      margin-bottom: 12px;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      font-size: 14px;
-    }
-
-    .options-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .option-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 8px 12px;
-      position: relative;
-    }
-
-    .option-item input[type="radio"] {
-      transform: scale(1.2);
-      accent-color: #009bc1;
-    }
-
-    .option-item .opt-text {
-      flex: 1;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 14px;
-      background: white;
-      color: #333;
-    }
-
-    .option-item .remove-opt {
-      background: #d9534f;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      width: 36px;
-      height: 36px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .option-item .remove-opt:hover {
-      background: #b63c39;
-    }
-
-    .option-item.correct {
-      border: 2px solid #28a745;
-      box-shadow: 0 0 5px #28a74566;
-    }
-
-    button.add-option, button.save {
-      background: #009bc1;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    button.add-option:hover, button.save:hover {
-      background: #007f91;
-    }
-
-    footer {
-      text-align: center;
-      padding: 16px;
-      font-size: 13px;
-      color: #fff;
-    }
-
-  </style>
+  <!-- Estilos -->
+  <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
-  <header>
-    <h1>🧠 Painel do Quiz EMR</h1>
-    <button class="save">💾 Salvar Perguntas</button>
-  </header>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-chart-simple"></i>
+        <span>Quiz EMR</span>
+      </div>
 
-  <div class="main">
-    <section class="form-section">
-      <h2>Adicionar Pergunta</h2>
-      <input type="text" id="question" placeholder="Digite a pergunta aqui" />
-      <div id="opt-list" class="options-list"></div>
-      <button class="add-option" id="add-opt">+ Adicionar Alternativa</button>
-    </section>
+      <nav class="menu">
+        <button class="nav-item active" data-target="config">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Configurações</span>
+        </button>
 
-    <button class="save" id="save-question">✅ Salvar Pergunta</button>
+        <button class="nav-item" data-target="questions">
+          <i class="fa-solid fa-circle-question"></i>
+          <span>Perguntas</span>
+        </button>
 
-    <section class="form-section" id="questions-list">
-      <h2>Perguntas Cadastradas</h2>
-      <div id="list"></div>
-    </section>
+        <button class="nav-item" id="viewQuiz">
+          <i class="fa-solid fa-display"></i>
+          <span>Visualizar Quiz</span>
+        </button>
+
+        <button class="nav-item" id="logout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span>Sair</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main class="main">
+      <!-- Seção Configurações -->
+      <section id="section-config" class="section active">
+        <div class="card">
+          <h2><i class="fa-solid fa-sliders"></i> Configurações Gerais</h2>
+
+          <label>Nome do Quiz</label>
+          <input type="text" id="nomeQuiz" placeholder="Ex: Quiz Inovação EMR" />
+
+          <label>Cor principal</label>
+          <input type="color" id="corPrincipal" value="#009BC1" />
+
+          <label>Logo do Quiz</label>
+          <input type="file" id="logoFile" accept="image/*" />
+          <img id="logoPreview" alt="Prévia da Logo" class="logo-preview" />
+
+          <hr />
+
+          <label>Título da Tela Inicial</label>
+          <input type="text" id="tituloInicial" placeholder="Título exibido na tela inicial" />
+
+          <label>Subtítulo</label>
+          <input type="text" id="subtituloInicial" placeholder="Mensagem introdutória" />
+
+          <hr />
+
+          <label>Tempo por pergunta (segundos)</label>
+          <input type="number" id="tempoPorPergunta" min="5" max="120" value="20" />
+
+          <label>Pontos por acerto</label>
+          <input type="number" id="pontosPorAcerto" min="100" max="5000" value="1000" />
+
+          <button id="saveConfig" class="btn-save">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar Configurações
+          </button>
+        </div>
+      </section>
+
+      <!-- Seção Perguntas -->
+      <section id="section-questions" class="section">
+        <div class="card">
+          <h2><i class="fa-solid fa-circle-question"></i> Gerenciar Perguntas</h2>
+
+          <div class="actions">
+            <button id="addQuestion" class="btn-add">
+              <i class="fa-solid fa-plus"></i> Nova Pergunta
+            </button>
+            <button id="saveAll" class="btn-save">
+              <i class="fa-solid fa-floppy-disk"></i> Salvar Tudo
+            </button>
+          </div>
+
+          <div id="questionsContainer"></div>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <footer>
-    Quiz EMR — Painel Administrativo © 2025
-  </footer>
+  <!-- Toast -->
+  <div id="toastContainer" class="toast-container"></div>
 
-  <script>
-    const optList = document.getElementById("opt-list");
-    const questionInput = document.getElementById("question");
-    const listDiv = document.getElementById("list");
-
-    let qid = 0;
-    const QUESTIONS = [];
-
-    document.getElementById("add-opt").onclick = () => createOption();
-
-    function createOption(text = "", isCorrect = false) {
-      const optDiv = document.createElement("div");
-      optDiv.className = "option-item";
-
-      const radio = document.createElement("input");
-      radio.type = "radio";
-      radio.name = "correctOpt";
-      radio.checked = isCorrect;
-
-      const textInput = document.createElement("input");
-      textInput.type = "text";
-      textInput.className = "opt-text";
-      textInput.value = text;
-      textInput.placeholder = "Digite a alternativa";
-
-      const delBtn = document.createElement("button");
-      delBtn.className = "remove-opt";
-      delBtn.innerHTML = "🗑️";
-      delBtn.onclick = () => optDiv.remove();
-
-      radio.onchange = () => {
-        document.querySelectorAll(".option-item").forEach(el => el.classList.remove("correct"));
-        optDiv.classList.add("correct");
-      };
-
-      if (isCorrect) optDiv.classList.add("correct");
-
-      optDiv.appendChild(radio);
-      optDiv.appendChild(textInput);
-      optDiv.appendChild(delBtn);
-      optList.appendChild(optDiv);
-    }
-
-    document.getElementById("save-question").onclick = () => {
-      const title = questionInput.value.trim();
-      if (!title) return alert("Digite o texto da pergunta.");
-
-      const opts = [...optList.querySelectorAll(".option-item")].map((el, i) => ({
-        text: el.querySelector(".opt-text").value,
-        isCorrect: el.querySelector("input[type='radio']").checked
-      }));
-
-      if (opts.length < 2) return alert("Adicione pelo menos duas alternativas.");
-
-      const answerIndex = opts.findIndex(o => o.isCorrect);
-      if (answerIndex === -1) return alert("Selecione a resposta correta.");
-
-      QUESTIONS.push({
-        title,
-        options: opts.map(o => o.text),
-        answerIndex
-      });
-
-      renderList();
-      questionInput.value = "";
-      optList.innerHTML = "";
-    };
-
-    function renderList() {
-      listDiv.innerHTML = QUESTIONS.map((q, i) => `
-        <div style="border:1px solid #ccc;border-radius:8px;padding:12px;margin-bottom:10px;">
-          <strong>${i + 1}. ${q.title}</strong>
-          <ul style="margin-top:6px;">
-            ${q.options.map((o, j) => `
-              <li style="color:${j === q.answerIndex ? '#28a745' : '#333'};">
-                ${o} ${j === q.answerIndex ? "✔️" : ""}
-              </li>`).join("")}
-          </ul>
-        </div>
-      `).join("");
-    }
-  </script>
+  <!-- Script -->
+  <script type="module" src="admin.js"></script>
 </body>
 </html>
