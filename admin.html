@@ -5,35 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>⚙️ Painel do Quiz EMR</title>
 
-  <!-- Fonte moderna -->
+  <!-- Fonte e Bootstrap -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: #f7f9fa;
-      color: #333;
-      margin: 0;
-      padding: 0;
+    :root {
+      --primary-color: #009BC1;
+      --primary-hover: #007FA0;
+      --bg-light: #f7f9fa;
+      --text-dark: #333;
     }
 
-    /* Cabeçalho fixo */
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-light);
+      color: var(--text-dark);
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Navbar */
     nav.navbar {
-      background-color: #009BC1;
+      background-color: rgba(0,155,193,0.95);
+      backdrop-filter: blur(8px);
       color: #fff;
       padding: 0.75rem 1rem;
       position: sticky;
       top: 0;
       z-index: 1000;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
     }
 
     nav .navbar-brand {
       font-weight: 600;
       color: #fff !important;
-      font-size: 1.25rem;
+      font-size: 1.2rem;
     }
 
     nav .btn-outline-light {
@@ -46,47 +56,101 @@
     .container {
       margin-top: 1.5rem;
       padding-bottom: 4rem;
+      max-width: 950px;
     }
 
-    .card {
-      border-radius: 14px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.05);
-    }
-
-    /* Abas */
-    .nav-tabs .nav-link.active {
-      background-color: #009BC1;
-      color: #fff !important;
-      border: none;
-      border-radius: 8px 8px 0 0;
+    /* Tabs */
+    .nav-tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(6px);
+      border-radius: 12px;
+      padding: 6px 10px;
     }
     .nav-tabs .nav-link {
-      color: #009BC1;
+      color: var(--primary-color);
       font-weight: 500;
       border: none;
       margin-right: 4px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s ease;
+    }
+    .nav-tabs .nav-link.active {
+      background-color: var(--primary-color);
+      color: #fff !important;
+      border-radius: 8px;
+    }
+    .tab-pane {
+      animation: fadeIn 0.3s ease;
     }
 
-    /* Botão salvar */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+
+    /* Cards */
+    .card {
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+      border: none;
+    }
+    .question-card {
+      border-left: 5px solid var(--primary-color);
+      transition: box-shadow 0.2s ease;
+    }
+    .question-card:hover {
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+    .question-card .action-buttons {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .question-card:hover .action-buttons {
+      opacity: 1;
+    }
+
+    /* Inputs */
+    input, textarea, select {
+      border-radius: 8px !important;
+      box-shadow: none !important;
+      border: 1px solid #ccc !important;
+      font-size: 0.95rem;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--primary-color) !important;
+    }
+    .form-label {
+      font-weight: 500;
+    }
+
+    /* Save Button */
     #saveBtn {
       position: fixed;
       bottom: 24px;
       right: 24px;
-      background-color: #009BC1;
+      background: linear-gradient(90deg, var(--primary-color), #00a7d1);
       color: #fff;
       border: none;
-      border-radius: 40px;
+      border-radius: 50px;
       padding: 14px 28px;
       font-weight: 600;
       font-size: 1rem;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+      box-shadow: 0 6px 16px rgba(0,155,193,0.25);
       transition: all 0.3s ease;
       z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-
     #saveBtn:hover {
-      transform: scale(1.05);
-      background-color: #007a99;
+      background: linear-gradient(90deg, #00a7d1, var(--primary-color));
+      transform: translateY(-2px);
     }
 
     /* Toast */
@@ -104,69 +168,73 @@
       pointer-events: none;
       z-index: 9999;
     }
-
     #toast.show {
       opacity: 1;
       transform: translateY(-5px);
     }
 
-    /* Inputs */
-    input, textarea, select {
-      border-radius: 8px !important;
-      box-shadow: none !important;
-      border: 1px solid #ccc !important;
-      font-size: 0.95rem;
-    }
-
-    input:focus, textarea:focus, select:focus {
-      border-color: #009BC1 !important;
-    }
-
-    .form-label {
-      font-weight: 500;
-    }
-
-    /* Cards de perguntas */
-    .question-card {
-      border-left: 4px solid #009BC1;
-    }
-
-    .btn-outline-danger {
-      border-radius: 8px;
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+      .container {
+        padding-bottom: 6rem;
+      }
+      nav.navbar .navbar-brand {
+        font-size: 1rem;
+      }
+      .nav-tabs .nav-link {
+        font-size: 0.9rem;
+        padding: 6px 10px;
+      }
+      #saveBtn {
+        bottom: 16px;
+        right: 16px;
+        padding: 10px 22px;
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- Cabeçalho -->
+  <!-- Navbar -->
   <nav class="navbar d-flex justify-content-between align-items-center">
     <span class="navbar-brand">⚙️ Painel do Quiz EMR</span>
     <button id="logoutBtn" class="btn btn-outline-light btn-sm">Sair</button>
   </nav>
 
   <div class="container">
-    <!-- Abas -->
+        <!-- Abas -->
     <ul class="nav nav-tabs mb-3" id="adminTabs" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-questions" data-bs-toggle="tab" data-bs-target="#questions" type="button" role="tab">🧠 Perguntas</button>
+        <button class="nav-link active" id="tab-questions" data-bs-toggle="tab" data-bs-target="#questions" type="button" role="tab">
+          <i class="bi bi-question-circle"></i> Perguntas
+        </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-general" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">⚙️ Configurações</button>
+        <button class="nav-link" id="tab-general" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+          <i class="bi bi-gear"></i> Configurações
+        </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-appearance" data-bs-toggle="tab" data-bs-target="#appearance" type="button" role="tab">🎨 Aparência</button>
+        <button class="nav-link" id="tab-appearance" data-bs-toggle="tab" data-bs-target="#appearance" type="button" role="tab">
+          <i class="bi bi-palette"></i> Aparência
+        </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-homepage" data-bs-toggle="tab" data-bs-target="#homepage" type="button" role="tab">🏠 Página Inicial</button>
+        <button class="nav-link" id="tab-homepage" data-bs-toggle="tab" data-bs-target="#homepage" type="button" role="tab">
+          <i class="bi bi-house-door"></i> Página Inicial
+        </button>
       </li>
     </ul>
 
-    <!-- Conteúdo das abas -->
+    <!-- Conteúdo das Abas -->
     <div class="tab-content" id="adminTabsContent">
       <!-- Perguntas -->
       <div class="tab-pane fade show active" id="questions" role="tabpanel">
         <div id="questionsList" class="mt-3"></div>
-        <button class="btn btn-outline-primary mt-3" id="addQuestion">+ Adicionar Pergunta</button>
+        <button class="btn btn-outline-primary mt-3" id="addQuestion">
+          <i class="bi bi-plus-circle"></i> Adicionar Pergunta
+        </button>
       </div>
 
       <!-- Configurações -->
@@ -187,12 +255,19 @@
           <h5>Gerenciar Ranking</h5>
           <p class="text-muted">Apague resultados específicos ou limpe todo o ranking.</p>
 
-          <div class="d-flex gap-2 mb-3">
-            <input id="deletePlayerName" class="form-control" placeholder="Nome ou ID do participante">
-            <button id="deleteOne" class="btn btn-outline-danger">Remover Registro</button>
+          <!-- Seleção de participante -->
+          <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 mb-3">
+            <select id="playerSelect" class="form-select" style="max-width: 320px;">
+              <option value="">Selecione um participante...</option>
+            </select>
+            <button id="deleteOne" class="btn btn-outline-danger">
+              <i class="bi bi-trash"></i> Remover Selecionado
+            </button>
           </div>
 
-          <button id="clearRanking" class="btn btn-danger">🧹 Apagar Todo o Ranking</button>
+          <button id="clearRanking" class="btn btn-danger">
+            <i class="bi bi-broom"></i> Limpar Todo o Ranking
+          </button>
         </div>
       </div>
 
@@ -225,12 +300,12 @@
     </div>
   </div>
 
-  <!-- Botão de salvar -->
-  <button id="saveBtn">Salvar alterações</button>
+  <!-- Botão Salvar -->
+  <button id="saveBtn"><i class="bi bi-save"></i> Salvar alterações</button>
 
   <!-- Toast -->
   <div id="toast">Alterações salvas com sucesso ✅</div>
-  <script type="module">
+    <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { 
       getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc 
@@ -270,7 +345,7 @@
 
     $("#logoutBtn").addEventListener("click", () => window.location.href = "index.html");
 
-    /* === Carregar dados === */
+    /* === Carregar Configurações === */
     async function loadData() {
       const qSnap = await getDoc(doc(db, "config", "questions"));
       const gSnap = await getDoc(doc(db, "config", "general"));
@@ -295,7 +370,7 @@
       $("#homeRanking").value = homepage.rankingText || "Mostrando os 10 melhores (desempate por tempo)";
     }
 
-    /* === Renderizar perguntas === */
+    /* === Renderizar Perguntas === */
     function renderQuestions(questions) {
       const container = $("#questionsList");
       container.innerHTML = "";
@@ -305,54 +380,74 @@
         div.innerHTML = `
           <div class="d-flex justify-content-between align-items-center mb-2">
             <strong>Pergunta ${i + 1}</strong>
-            <button class="btn btn-sm btn-outline-danger remove-btn">🗑️</button>
+            <div class="action-buttons d-flex gap-1">
+              <button class="btn btn-sm btn-outline-secondary duplicate-btn" title="Duplicar"><i class="bi bi-files"></i></button>
+              <button class="btn btn-sm btn-outline-danger remove-btn" title="Remover"><i class="bi bi-trash"></i></button>
+            </div>
           </div>
-          <input type="text" class="form-control mb-2" placeholder="Título da pergunta" value="${q.title}" />
-          ${q.options.map((opt, j) => `<input type="text" class="form-control mb-1" placeholder="Opção ${j + 1}" value="${opt}" />`).join("")}
-          <input type="number" class="form-control mt-1" min="0" max="3" value="${q.answerIndex}" placeholder="Índice da resposta correta"/>
+          <input type="text" class="form-control mb-2" placeholder="Título da pergunta" value="${q.title || ""}" />
+          ${q.options.map((opt, j) => `
+            <div class="form-check mb-1">
+              <input class="form-check-input" type="radio" name="answer-${i}" ${q.answerIndex === j ? "checked" : ""}>
+              <input type="text" class="form-control d-inline-block w-75" value="${opt || ""}" placeholder="Opção ${j + 1}">
+            </div>
+          `).join("")}
         `;
         container.appendChild(div);
       });
     }
 
-    /* === Adicionar pergunta === */
+    /* === Adicionar Pergunta === */
     $("#addQuestion").addEventListener("click", () => {
       const container = $("#questionsList");
+      const newIndex = container.children.length;
       container.insertAdjacentHTML("beforeend", `
         <div class="card question-card mb-3 p-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <strong>Nova pergunta</strong>
-            <button class="btn btn-sm btn-outline-danger remove-btn">🗑️</button>
+            <div class="action-buttons d-flex gap-1">
+              <button class="btn btn-sm btn-outline-secondary duplicate-btn" title="Duplicar"><i class="bi bi-files"></i></button>
+              <button class="btn btn-sm btn-outline-danger remove-btn" title="Remover"><i class="bi bi-trash"></i></button>
+            </div>
           </div>
           <input type="text" class="form-control mb-2" placeholder="Título da pergunta"/>
-          <input type="text" class="form-control mb-1" placeholder="Opção 1"/>
-          <input type="text" class="form-control mb-1" placeholder="Opção 2"/>
-          <input type="text" class="form-control mb-1" placeholder="Opção 3"/>
-          <input type="text" class="form-control mb-1" placeholder="Opção 4"/>
-          <input type="number" class="form-control mt-1" placeholder="Índice da resposta correta" min="0" max="3"/>
+          ${[1,2,3,4].map((n)=>`
+            <div class="form-check mb-1">
+              <input class="form-check-input" type="radio" name="answer-${newIndex}">
+              <input type="text" class="form-control d-inline-block w-75" placeholder="Opção ${n}"/>
+            </div>
+          `).join("")}
         </div>
       `);
     });
 
-    /* === Remover pergunta === */
+    /* === Delegação de eventos === */
     document.addEventListener("click", (e) => {
-      if (e.target.classList.contains("remove-btn")) {
-        e.target.closest(".card").remove();
+      const card = e.target.closest(".card");
+
+      if (e.target.classList.contains("remove-btn") || e.target.closest(".remove-btn")) {
+        card.remove();
+      }
+
+      if (e.target.classList.contains("duplicate-btn") || e.target.closest(".duplicate-btn")) {
+        const clone = card.cloneNode(true);
+        clone.querySelectorAll("input[type=radio]").forEach(r => r.name = `answer-${Date.now()}`);
+        $("#questionsList").appendChild(clone);
       }
     });
 
-    /* === Salvar tudo === */
+    /* === Salvar Tudo === */
     async function saveAll() {
       const btn = $("#saveBtn");
-      btn.textContent = "Salvando...";
+      btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
       btn.disabled = true;
 
       const cards = document.querySelectorAll("#questionsList .card");
-      const list = Array.from(cards).map((card) => {
-        const inputs = card.querySelectorAll("input");
-        const title = inputs[0].value;
-        const options = [inputs[1].value, inputs[2].value, inputs[3].value, inputs[4].value];
-        const answerIndex = parseInt(inputs[5].value || 0);
+      const list = Array.from(cards).map((card, i) => {
+        const title = card.querySelector("input[type=text]").value.trim();
+        const options = Array.from(card.querySelectorAll(".form-check input.form-control")).map(i => i.value.trim());
+        const radios = card.querySelectorAll(`input.form-check-input[name^='answer-']`);
+        const answerIndex = Array.from(radios).findIndex(r => r.checked);
         return { title, options, answerIndex };
       });
 
@@ -379,7 +474,7 @@
       await setDoc(doc(db, "config", "appearance"), appearance);
       await setDoc(doc(db, "config", "homepage"), homepage);
 
-      btn.textContent = "Salvar alterações";
+      btn.innerHTML = '<i class="bi bi-save"></i> Salvar alterações';
       btn.disabled = false;
       showToast();
     }
@@ -387,28 +482,38 @@
     $("#saveBtn").addEventListener("click", saveAll);
 
     /* === Gerenciar Ranking === */
+    async function loadPlayers() {
+      const querySnapshot = await getDocs(collection(db, "scores"));
+      const select = $("#playerSelect");
+      select.innerHTML = '<option value="">Selecione um participante...</option>';
+      querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const name = data.name || docSnap.id;
+        select.insertAdjacentHTML("beforeend", `<option value="${docSnap.id}">${name}</option>`);
+      });
+    }
+
+    $("#deleteOne").addEventListener("click", async () => {
+      const id = $("#playerSelect").value;
+      if (!id) return alert("Selecione um participante.");
+      await deleteDoc(doc(db, "scores", id));
+      showToast("Registro removido ✅");
+      loadPlayers();
+    });
+
     $("#clearRanking").addEventListener("click", async () => {
       if (!confirm("Tem certeza que deseja apagar todo o ranking?")) return;
       const querySnapshot = await getDocs(collection(db, "scores"));
       for (const d of querySnapshot.docs) await deleteDoc(d.ref);
       showToast("Ranking apagado com sucesso 🧹");
-    });
-
-    $("#deleteOne").addEventListener("click", async () => {
-      const name = $("#deletePlayerName").value.trim();
-      if (!name) return alert("Digite o nome ou ID do participante.");
-      const id = name.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/\\s+/g, "-");
-      try {
-        await deleteDoc(doc(db, "scores", id));
-        showToast(`Registro de '${name}' removido ✅`);
-        $("#deletePlayerName").value = "";
-      } catch (e) {
-        alert("Erro ao remover registro: " + e.message);
-      }
+      loadPlayers();
     });
 
     /* === Inicialização === */
     loadData();
+    loadPlayers();
   </script>
 </body>
 </html>
+
+
