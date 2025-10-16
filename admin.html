@@ -62,7 +62,7 @@
       vertical-align:middle;
     }
 
-    /* --- Correção visual definitiva das opções --- */
+    /* --- Correção final dos campos de alternativas --- */
     .options-list { margin-top: 8px; }
     .option-item {
       display: flex;
@@ -85,6 +85,7 @@
       background: #fff;
       color: #333;
       font-size: 14px;
+      display: inline-block;
     }
     .option-item .remove-opt {
       flex-shrink: 0;
@@ -313,6 +314,8 @@
       div.style.borderRadius = "8px";
       div.style.background = "#fdfdfd";
 
+      const questionId = "q-" + Math.random().toString(36).substring(2, 8);
+
       div.innerHTML = `
         <input type="text" class="q-title" placeholder="Título da pergunta" value="${q.title}" style="width:100%;margin-bottom:8px;">
         <div class="options-list"></div>
@@ -328,7 +331,7 @@
         const optDiv = document.createElement("div");
         optDiv.className = "option-item";
         optDiv.innerHTML = `
-          <input type="radio" name="correct-${Date.now()}" ${isCorrect ? "checked" : ""}>
+          <input type="radio" name="${questionId}" ${isCorrect ? "checked" : ""}>
           <input type="text" class="opt-text" value="${text}" placeholder="Texto da opção">
           <button class="remove-opt">🗑</button>
         `;
