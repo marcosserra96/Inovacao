@@ -62,31 +62,39 @@
       vertical-align:middle;
     }
 
-    /* --- Correção final dos campos de alternativas --- */
-    .options-list { margin-top: 8px; }
+    /* Correção definitiva dos campos de alternativas */
+    .options-list {
+      margin-top: 8px;
+    }
+
     .option-item {
-      display: flex;
+      display: flex !important;
       align-items: center;
       gap: 10px;
       margin-bottom: 6px;
     }
+
     .option-item input[type="radio"] {
       flex-shrink: 0;
       transform: scale(1.1);
       margin-left: 2px;
     }
+
     .option-item input.opt-text {
       flex: 1;
-      height: 34px;
-      line-height: 34px;
+      height: 32px !important;
+      line-height: 32px;
       padding: 0 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
       background: #fff;
       color: #333;
       font-size: 14px;
-      display: inline-block;
+      display: inline-block !important;
+      width: auto !important;
+      min-width: 200px;
     }
+
     .option-item .remove-opt {
       flex-shrink: 0;
       background: #bbb;
@@ -98,7 +106,10 @@
       font-size: 14px;
       transition: background 0.2s;
     }
-    .option-item .remove-opt:hover { background: #999; }
+
+    .option-item .remove-opt:hover {
+      background: #999;
+    }
 
     /* Toasts */
     .toast-container {
