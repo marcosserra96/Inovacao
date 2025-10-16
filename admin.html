@@ -1,133 +1,89 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin - Quiz EMR</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel do Quiz EMR</title>
   <style>
     body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #009bc1, #59c085);
+      color: #222;
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #f5f8fa;
-    }
-
-    .container {
-      display: flex;
-      height: 100vh;
-    }
-
-    /* Menu lateral */
-    .sidebar {
-      width: 220px;
-      background: linear-gradient(135deg, #009BC1, #59C085);
-      color: #fff;
+      padding: 0;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      padding: 20px;
     }
 
-    .sidebar h2 {
-      font-size: 20px;
-      margin-bottom: 20px;
+    header {
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 16px 24px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
     }
 
-    .sidebar button {
-      background: rgba(255, 255, 255, 0.15);
-      border: none;
-      color: #fff;
-      text-align: left;
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.3s;
-      font-size: 14px;
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      color: #007f91;
+      font-weight: 700;
     }
 
-    .sidebar button:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    /* Conteúdo principal */
     .main {
       flex: 1;
-      padding: 25px;
-      overflow-y: auto;
-    }
-
-    h3 {
-      font-size: 22px;
-      color: #004d61;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 0;
-    }
-
-    .btn {
-      border: none;
-      padding: 8px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #009BC1, #59C085);
-      color: #fff;
-    }
-
-    .btn-danger {
-      background: #d9534f;
-      color: #fff;
-    }
-
-    .btn-success {
-      background: #59C085;
-      color: #fff;
-    }
-
-    .question-card {
       background: #fff;
+      margin: 24px auto;
       border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+      width: 90%;
+      max-width: 900px;
+      padding: 24px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
-    .question-card input[type="text"] {
+    .form-section {
+      margin-bottom: 32px;
+    }
+
+    .form-section h2 {
+      font-size: 18px;
+      color: #007f91;
+      margin-bottom: 12px;
+    }
+
+    input[type="text"] {
       width: 100%;
+      padding: 10px 14px;
       border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 8px;
-      margin-bottom: 10px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 14px;
     }
 
     .options-list {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      margin-bottom: 15px;
+      margin-top: 10px;
     }
 
     .option-item {
       display: flex;
       align-items: center;
       gap: 10px;
-      background: #fafafa;
+      background: #f9f9f9;
       border: 1px solid #ddd;
       border-radius: 8px;
       padding: 8px 12px;
-      transition: 0.2s;
+      position: relative;
     }
 
     .option-item input[type="radio"] {
       transform: scale(1.2);
-      accent-color: #009BC1;
-      flex-shrink: 0;
+      accent-color: #009bc1;
     }
 
     .option-item .opt-text {
@@ -136,7 +92,6 @@
       border-radius: 6px;
       padding: 6px 10px;
       font-size: 14px;
-      height: 36px;
       background: white;
       color: #333;
     }
@@ -157,102 +112,79 @@
       background: #b63c39;
     }
 
-    /* Indicador de correta */
-    .option-item.correct::after {
-      content: "✔";
-      color: #00a86b;
-      font-size: 16px;
-      margin-left: 4px;
+    .option-item.correct {
+      border: 2px solid #28a745;
+      box-shadow: 0 0 5px #28a74566;
+    }
+
+    button.add-option, button.save {
+      background: #009bc1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
       font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
     }
 
-    .bottom-actions {
-      display: flex;
-      gap: 8px;
+    button.add-option:hover, button.save:hover {
+      background: #007f91;
     }
 
-    .save-all {
-      float: right;
-      margin-bottom: 20px;
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 13px;
+      color: #fff;
     }
+
   </style>
 </head>
-
 <body>
-  <div class="container">
-    <div class="sidebar">
-      <h2>📘 Quiz EMR</h2>
-      <button>⚙️ Configurações</button>
-      <button class="active">❓ Perguntas</button>
-      <button>👀 Visualizar Quiz</button>
-      <button>🚪 Sair</button>
-    </div>
+  <header>
+    <h1>🧠 Painel do Quiz EMR</h1>
+    <button class="save">💾 Salvar Perguntas</button>
+  </header>
 
-    <div class="main">
-      <h3>📄 Perguntas</h3>
-      <button class="btn btn-primary" id="addQuestion">+ Nova Pergunta</button>
-      <button class="btn btn-success save-all" id="saveAll">💾 Salvar Tudo</button>
+  <div class="main">
+    <section class="form-section">
+      <h2>Adicionar Pergunta</h2>
+      <input type="text" id="question" placeholder="Digite a pergunta aqui" />
+      <div id="opt-list" class="options-list"></div>
+      <button class="add-option" id="add-opt">+ Adicionar Alternativa</button>
+    </section>
 
-      <div id="questionsContainer"></div>
-    </div>
+    <button class="save" id="save-question">✅ Salvar Pergunta</button>
+
+    <section class="form-section" id="questions-list">
+      <h2>Perguntas Cadastradas</h2>
+      <div id="list"></div>
+    </section>
   </div>
 
-  <script type="module">
-    const container = document.getElementById("questionsContainer");
+  <footer>
+    Quiz EMR — Painel Administrativo © 2025
+  </footer>
 
-    document.getElementById("addQuestion").addEventListener("click", () => addQuestion());
-    document.getElementById("saveAll").addEventListener("click", () => alert("Perguntas salvas com sucesso!"));
+  <script>
+    const optList = document.getElementById("opt-list");
+    const questionInput = document.getElementById("question");
+    const listDiv = document.getElementById("list");
 
-    function addQuestion() {
-      const qid = "q_" + Math.random().toString(36).substr(2, 9);
+    let qid = 0;
+    const QUESTIONS = [];
 
-      const card = document.createElement("div");
-      card.className = "question-card";
+    document.getElementById("add-opt").onclick = () => createOption();
 
-      const qInput = document.createElement("input");
-      qInput.type = "text";
-      qInput.placeholder = "Digite o enunciado da pergunta";
-
-      const optList = document.createElement("div");
-      optList.className = "options-list";
-
-      const addOptBtn = document.createElement("button");
-      addOptBtn.className = "btn btn-primary";
-      addOptBtn.textContent = "+ Adicionar opção";
-      addOptBtn.onclick = () => createOption(optList, qid);
-
-      const delQBtn = document.createElement("button");
-      delQBtn.className = "btn btn-danger";
-      delQBtn.textContent = "Excluir";
-      delQBtn.onclick = () => card.remove();
-
-      const bottom = document.createElement("div");
-      bottom.className = "bottom-actions";
-      bottom.appendChild(addOptBtn);
-      bottom.appendChild(delQBtn);
-
-      card.appendChild(qInput);
-      card.appendChild(optList);
-      card.appendChild(bottom);
-
-      container.appendChild(card);
-
-      // adiciona 3 opções padrão
-      for (let i = 0; i < 3; i++) createOption(optList, qid);
-    }
-
-    function createOption(optList, qid, text = "", isCorrect = false) {
+    function createOption(text = "", isCorrect = false) {
       const optDiv = document.createElement("div");
       optDiv.className = "option-item";
 
       const radio = document.createElement("input");
       radio.type = "radio";
-      radio.name = qid;
+      radio.name = "correctOpt";
       radio.checked = isCorrect;
-      radio.addEventListener("change", () => {
-        optList.querySelectorAll(".option-item").forEach(el => el.classList.remove("correct"));
-        optDiv.classList.add("correct");
-      });
 
       const textInput = document.createElement("input");
       textInput.type = "text";
@@ -265,10 +197,56 @@
       delBtn.innerHTML = "🗑️";
       delBtn.onclick = () => optDiv.remove();
 
+      radio.onchange = () => {
+        document.querySelectorAll(".option-item").forEach(el => el.classList.remove("correct"));
+        optDiv.classList.add("correct");
+      };
+
+      if (isCorrect) optDiv.classList.add("correct");
+
       optDiv.appendChild(radio);
       optDiv.appendChild(textInput);
       optDiv.appendChild(delBtn);
       optList.appendChild(optDiv);
+    }
+
+    document.getElementById("save-question").onclick = () => {
+      const title = questionInput.value.trim();
+      if (!title) return alert("Digite o texto da pergunta.");
+
+      const opts = [...optList.querySelectorAll(".option-item")].map((el, i) => ({
+        text: el.querySelector(".opt-text").value,
+        isCorrect: el.querySelector("input[type='radio']").checked
+      }));
+
+      if (opts.length < 2) return alert("Adicione pelo menos duas alternativas.");
+
+      const answerIndex = opts.findIndex(o => o.isCorrect);
+      if (answerIndex === -1) return alert("Selecione a resposta correta.");
+
+      QUESTIONS.push({
+        title,
+        options: opts.map(o => o.text),
+        answerIndex
+      });
+
+      renderList();
+      questionInput.value = "";
+      optList.innerHTML = "";
+    };
+
+    function renderList() {
+      listDiv.innerHTML = QUESTIONS.map((q, i) => `
+        <div style="border:1px solid #ccc;border-radius:8px;padding:12px;margin-bottom:10px;">
+          <strong>${i + 1}. ${q.title}</strong>
+          <ul style="margin-top:6px;">
+            ${q.options.map((o, j) => `
+              <li style="color:${j === q.answerIndex ? '#28a745' : '#333'};">
+                ${o} ${j === q.answerIndex ? "✔️" : ""}
+              </li>`).join("")}
+          </ul>
+        </div>
+      `).join("");
     }
   </script>
 </body>
