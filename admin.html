@@ -78,9 +78,8 @@
     <button id="resetRank">🧹 Resetar Ranking</button>
   </div>
 
-  <!-- Script -->
   <script type="module">
-    // ======= Proteção =======
+    // ======= Proteção por senha =======
     const senhaCorreta = "emr2025";
     const senha = prompt("Digite a senha de administrador:");
     if (senha !== senhaCorreta) {
@@ -125,66 +124,10 @@
     const saveBtn = document.getElementById('saveAll');
     const resetBtn = document.getElementById('resetRank');
 
+    // Atualiza preview da cor
     corPrincipal.addEventListener("input", () => corPreview.style.backgroundColor = corPrincipal.value);
 
-    // ======= Configurações =======
-    async function loadConfig() {
-      const refCfg = doc(db, "config", "quizSettings");
-      const snap = await getDoc(refCfg);
-      if (snap.exists()) {
-        const cfg = snap.data();
-        nomeQuiz.value = cfg.nomeQuiz || "";
-        corPrincipal.value = cfg.corPrincipal || "#009BC1";
-        corPreview.style.backgroundColor = corPrincipal.value;
-        tituloInicial.value = cfg.tituloInicial || "";
-        subtituloInicial.value = cfg.subtituloInicial || "";
-        tempoInput.value = cfg.tempoPorPergunta ?? 20;
-        pontosInput.value = cfg.pontosPorAcerto ?? 1000;
-        if (cfg.logoURL) { logoPreview.src = cfg.logoURL; logoPreview.dataset.url = cfg.logoURL; }
-      }
-    }
-
-    saveConfigBtn.onclick = async () => {
-      const refCfg = doc(db, "config", "quizSettings");
-      await setDoc(refCfg, {
-        nomeQuiz: nomeQuiz.value,
-        corPrincipal: corPrincipal.value,
-        tituloInicial: tituloInicial.value,
-        subtituloInicial: subtituloInicial.value,
-        tempoPorPergunta: Number(tempoInput.value),
-        pontosPorAcerto: Number(pontosInput.value)
-      }, { merge: true });
-      alert("Configurações salvas!");
-    };
-
-    logoFile.addEventListener("change", async () => {
-      const file = logoFile.files[0];
-      if (!file) return;
-      const fileRef = ref(storage, `logos/${file.name}`);
-      await uploadBytes(fileRef, file);
-      const url = await getDownloadURL(fileRef);
-      logoPreview.src = url;
-      logoPreview.dataset.url = url;
-      const refCfg = doc(db, "config", "quizSettings");
-      await setDoc(refCfg, { logoURL: url }, { merge: true });
-      alert("Logo atualizada!");
-    });
-
-    removeLogoBtn.onclick = async () => {
-      if (!logoPreview.dataset.url) return alert("Nenhuma logo para remover.");
-      const refCfg = doc(db, "config", "quizSettings");
-      await setDoc(refCfg, { logoURL: "" }, { merge: true });
-      logoPreview.src = "";
-      delete logoPreview.dataset.url;
-      alert("Logo removida!");
-    };
-
-    // ======= Perguntas =======
-    async function loadQuestions() {
-      const snap = await getDocs(collection(db, "questions"));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
-
+    // ======= Função para criar bloco de pergunta =======
     function createQuestionBlock(q = { title: "", options: [], answerIndex: -1 }) {
       const div = document.createElement("div");
       div.className = "question";
@@ -213,8 +156,71 @@
       (q.options || []).forEach((opt, i) => createOption(opt, i === q.answerIndex));
       addOptBtn.onclick = () => createOption();
       deleteBtn.onclick = () => div.remove();
-
       container.appendChild(div);
+    }
+
+    // ======= Carregar Configurações =======
+    async function loadConfig() {
+      try {
+        const refCfg = doc(db, "config", "quizSettings");
+        const snap = await getDoc(refCfg);
+        if (snap.exists()) {
+          const cfg = snap.data();
+          nomeQuiz.value = cfg.nomeQuiz || "";
+          corPrincipal.value = cfg.corPrincipal || "#009BC1";
+          corPreview.style.backgroundColor = corPrincipal.value;
+          tituloInicial.value = cfg.tituloInicial || "";
+          subtituloInicial.value = cfg.subtituloInicial || "";
+          tempoInput.value = cfg.tempoPorPergunta ?? 20;
+          pontosInput.value = cfg.pontosPorAcerto ?? 1000;
+          if (cfg.logoURL) {
+            logoPreview.src = cfg.logoURL;
+            logoPreview.dataset.url = cfg.logoURL;
+          }
+        } else {
+          console.log("Nenhuma configuração encontrada ainda.");
+        }
+      } catch (e) {
+        console.error("Erro ao carregar configurações:", e);
+      }
+    }
+
+    // ======= Salvar Configurações =======
+    saveConfigBtn.onclick = async () => {
+      await setDoc(doc(db, "config", "quizSettings"), {
+        nomeQuiz: nomeQuiz.value,
+        corPrincipal: corPrincipal.value,
+        tituloInicial: tituloInicial.value,
+        subtituloInicial: subtituloInicial.value,
+        tempoPorPergunta: Number(tempoInput.value),
+        pontosPorAcerto: Number(pontosInput.value)
+      }, { merge: true });
+      alert("Configurações salvas!");
+    };
+
+    // ======= Logo =======
+    logoFile.addEventListener("change", async () => {
+      const file = logoFile.files[0];
+      if (!file) return;
+      const fileRef = ref(storage, `logos/${file.name}`);
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
+      logoPreview.src = url;
+      logoPreview.dataset.url = url;
+      await setDoc(doc(db, "config", "quizSettings"), { logoURL: url }, { merge: true });
+      alert("Logo atualizada!");
+    });
+
+    removeLogoBtn.onclick = async () => {
+      await setDoc(doc(db, "config", "quizSettings"), { logoURL: "" }, { merge: true });
+      logoPreview.src = "";
+      alert("Logo removida!");
+    };
+
+    // ======= Perguntas =======
+    async function loadQuestions() {
+      const snap = await getDocs(collection(db, "questions"));
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
     addBtn.onclick = () => createQuestionBlock();
@@ -244,6 +250,7 @@
       alert("Ranking resetado!");
     };
 
+    // ======= Inicialização =======
     (async () => {
       await loadConfig();
       const questions = await loadQuestions();
