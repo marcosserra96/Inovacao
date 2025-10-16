@@ -1,185 +1,232 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quiz EMR — Perguntas</title>
-  <link rel="stylesheet" href="assets/styles.css?v=dev"/>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Inovação - EMR</title>
+  <link rel="stylesheet" href="assets/styles.css?v=dev">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      margin: 0; padding: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100vh;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      width: 90%;
+      max-width: 500px;
+      padding: 24px;
+      text-align: center;
+    }
+    h1 { color: var(--main-color); }
+    .option {
+      background: #e9e9e9;
+      border-radius: 6px;
+      padding: 10px;
+      margin: 8px 0;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .option:hover { background: #d0f0f8; }
+    .btn {
+      background: var(--main-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #logo {
+      max-width: 120px;
+      margin-bottom: 12px;
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  <header class="header">
-    <div class="brand">
-      <span class="logo-dot"></span><span class="title">Quiz EMR</span>
-    </div>
-  </header>
 
-  <section class="card quiz-wrap">
-    <div class="topbar">
-      <span id="q-count" class="pill">Pergunta 1</span>
-      <div class="progress"><div id="progress" class="bar"></div></div>
-      <span id="q-time" class="timer">⏱ 0.0s</span>
-    </div>
+  <div class="card" id="homeCard">
+    <img id="logo" alt="Logo do Quiz">
+    <h1 id="quizName">Quiz de Inovação - EMR</h1>
+    <p id="quizSubtitle">Testando seus conhecimentos sobre inovação! ⚡</p>
+    <input type="text" id="playerName" placeholder="Digite seu nome">
+    <button class="btn" id="startBtn">Iniciar</button>
+  </div>
 
-    <h2 id="q-title" class="q-title">Carregando…</h2>
-    <div id="q-options"></div>
-  </section>
+  <div class="card" id="quizCard" style="display:none;">
+    <p id="questionTitle"></p>
+    <div id="options"></div>
+    <p id="timer" style="margin-top:16px; font-weight:bold;"></p>
+  </div>
+
+  <div class="card" id="endCard" style="display:none;">
+    <h2>🏁 Resultado Final</h2>
+    <p id="finalScore"></p>
+    <button class="btn" id="restartBtn">Jogar Novamente</button>
+  </div>
 
   <script type="module">
+    // ======= Firebase =======
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { 
-      getFirestore, collection, getDocs, doc, setDoc, serverTimestamp, getDoc 
-    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, getDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    // ======= CONFIGURAÇÃO FIREBASE =======
     const firebaseConfig = {
       apiKey: "AIzaSyC2l8LU3vYfQjTly8JSa658mfIlVk2Dw8E",
       authDomain: "inovacao-emr.firebaseapp.com",
       projectId: "inovacao-emr",
-      storageBucket: "inovacao-emr.firebasestorage.app",
+      storageBucket: "inovacao-emr.appspot.com",
       messagingSenderId: "1075399271811",
-      appId: "1:1075399271811:web:f532f25547125d6a8f42b6",
-      measurementId: "G-8CTLMNCZJN"
+      appId: "1:1075399271811:web:f532f25547125d6a8f42b6"
     };
 
     const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+    const db = getFirestore(app);
 
-    // ======= ELEMENTOS =======
-    const $ = s => document.querySelector(s);
-    const params = new URLSearchParams(location.search);
-    const player = {
-      name: params.get('name') || 'Participante',
-      id: params.get('id') || (params.get('name') || 'anon').toLowerCase().replace(/\s+/g,'-')
+    // ======= Elementos =======
+    const homeCard = document.getElementById("homeCard");
+    const quizCard = document.getElementById("quizCard");
+    const endCard = document.getElementById("endCard");
+    const questionTitle = document.getElementById("questionTitle");
+    const optionsDiv = document.getElementById("options");
+    const timerEl = document.getElementById("timer");
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const playerNameInput = document.getElementById("playerName");
+    const logo = document.getElementById("logo");
+    const quizNameEl = document.getElementById("quizName");
+    const quizSubtitleEl = document.getElementById("quizSubtitle");
+    const finalScoreEl = document.getElementById("finalScore");
+
+    // ======= Variáveis =======
+    let questions = [];
+    let currentQuestion = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 20;
+    let config = {
+      nomeQuiz: "Quiz de Inovação - EMR",
+      tituloInicial: "Testando seus conhecimentos sobre inovação!",
+      corPrincipal: "#009BC1",
+      logoURL: "",
+      tempoPorPergunta: 20,
+      pontosPorAcerto: 1000
     };
 
-    const elCount=$('#q-count'),
-          elBar=$('#progress'),
-          elTimer=$('#q-time'),
-          elTitle=$('#q-title'),
-          elOpts=$('#q-options');
-
-    // ======= VARIÁVEIS GLOBAIS =======
-    let QTIME = 20;        // valor padrão (será sobrescrito)
-    let BASE_SCORE = 1000; // valor padrão (será sobrescrito)
-    let QS = [];
-    let idx = 0, totalScore = 0, totalTime = 0, startTs = 0, tickId = null;
-
-    // ======= FUNÇÕES FIREBASE =======
-
-    // 🔹 Busca configurações do quiz
+    // ======= Funções =======
     async function loadConfig() {
-      try {
-        const ref = doc(db, "config", "quizSettings");
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          const cfg = snap.data();
-          QTIME = cfg.tempoPorPergunta ?? 20;
-          BASE_SCORE = cfg.pontosPorAcerto ?? 1000;
+      const ref = doc(db, "config", "quizSettings");
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        config = { ...config, ...snap.data() };
+        document.documentElement.style.setProperty("--main-color", config.corPrincipal || "#009BC1");
+        quizNameEl.textContent = config.nomeQuiz || "Quiz de Inovação - EMR";
+        quizSubtitleEl.textContent = config.tituloInicial || "Mostre seu conhecimento sobre inovação!";
+        if (config.logoURL) {
+          logo.src = config.logoURL;
+          logo.style.display = "block";
         }
-      } catch (err) {
-        console.warn("Erro ao carregar configurações:", err);
+      } else {
+        document.documentElement.style.setProperty("--main-color", "#009BC1");
       }
     }
 
-    // 🔹 Busca perguntas no Firestore
-    async function loadQuestions(){
+    async function loadQuestions() {
       const snap = await getDocs(collection(db, "questions"));
-      return snap.docs.map(d => d.data());
+      questions = snap.docs.map(d => d.data());
+      if (questions.length === 0) {
+        alert("Nenhuma pergunta cadastrada no banco de dados!");
+      }
     }
 
-    // ======= LÓGICA DO QUIZ =======
-    const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
-    const computeScore = (correct, time)=> correct ? Math.round(BASE_SCORE*(1 - (time/QTIME)*0.5)) : 0;
-
-    async function startQuiz(){
-      elTitle.textContent = "Carregando perguntas…";
-      await loadConfig();                     // lê tempo e pontuação do painel
-      const questions = await loadQuestions();// lê perguntas do Firebase
-      if (!questions.length) {
-        elTitle.textContent = "Nenhuma pergunta cadastrada.";
+    function startQuiz() {
+      const name = playerNameInput.value.trim();
+      if (!name) {
+        alert("Digite seu nome para começar!");
         return;
       }
-      QS = shuffle(questions);
-      render();
+      homeCard.style.display = "none";
+      quizCard.style.display = "block";
+      score = 0;
+      currentQuestion = 0;
+      showQuestion();
     }
 
-    function setProgress(){
-      elBar.style.width = `${Math.round((idx/QS.length)*100)}%`;
-      elCount.textContent = `Pergunta ${idx+1} de ${QS.length}`;
-    }
+    function showQuestion() {
+      if (currentQuestion >= questions.length) {
+        endQuiz();
+        return;
+      }
+      const q = questions[currentQuestion];
+      questionTitle.textContent = `${currentQuestion + 1}. ${q.title}`;
+      optionsDiv.innerHTML = "";
 
-    function render(){
-      setProgress();
-      const q = QS[idx];
-      elTitle.textContent = q.title;
-      elOpts.innerHTML = "";
-      q.options.forEach((text,i)=>{
-        const b=document.createElement('button');
-        b.className='option';
-        b.innerHTML = `<div class="bullet">${i+1}</div><div>${text}</div>`;
-        b.onclick = ()=> answer(i);
-        elOpts.appendChild(b);
+      q.options.forEach((opt, index) => {
+        const btn = document.createElement("div");
+        btn.className = "option";
+        btn.textContent = opt;
+        btn.onclick = () => selectOption(index);
+        optionsDiv.appendChild(btn);
       });
-      startTs = performance.now();
-      tick();
+
+      timeLeft = config.tempoPorPergunta || 20;
+      timerEl.textContent = `⏱️ ${timeLeft}s`;
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = `⏱️ ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          nextQuestion();
+        }
+      }, 1000);
     }
 
-    function tick(){
-      const passed=(performance.now()-startTs)/1000;
-      const left=Math.max(0,QTIME-passed);
-      elTimer.textContent=`⏱ ${left.toFixed(1)}s`;
-      if(left<=0){ timeExpired(); return; }
-      tickId=requestAnimationFrame(tick);
+    function selectOption(index) {
+      clearInterval(timer);
+      const q = questions[currentQuestion];
+      if (index === q.answerIndex) score += config.pontosPorAcerto || 1000;
+      nextQuestion();
     }
 
-    function lockOptions(){ [...elOpts.querySelectorAll('.option')].forEach(b=>b.disabled=true); }
-
-    function answer(i){
-      lockOptions();
-      const used=(performance.now()-startTs)/1000;
-      const q=QS[idx];
-      const correct=(i===q.answerIndex);
-      const pts=computeScore(correct,used);
-      totalScore+=pts; totalTime+=used;
-      showFeedback(correct?"correct":"wrong");
+    function nextQuestion() {
+      currentQuestion++;
+      showQuestion();
     }
 
-    function timeExpired(){
-      lockOptions();
-      totalTime += QTIME;
-      showFeedback("timeout");
+    async function endQuiz() {
+      quizCard.style.display = "none";
+      endCard.style.display = "block";
+      finalScoreEl.textContent = `Sua pontuação: ${score} pontos`;
+      const player = playerNameInput.value.trim();
+      if (player) {
+        await setDoc(doc(db, "scores", player.toLowerCase().replace(/\s+/g, "-")), {
+          nome: player,
+          score,
+          data: new Date().toISOString()
+        });
+      }
     }
 
-    function showFeedback(type){
-      const bf=document.createElement('div');
-      bf.className=`bullet-feedback ${type}`;
-      bf.textContent = type==="correct"?"✔️ Correto!":type==="wrong"?"❌ Errado!":"⏳ Tempo esgotado!";
-      document.body.appendChild(bf);
-      setTimeout(()=>{ bf.remove(); next(); },2000);
-    }
+    restartBtn.onclick = () => {
+      endCard.style.display = "none";
+      homeCard.style.display = "block";
+      playerNameInput.value = "";
+    };
 
-    async function next(){
-      if (tickId) cancelAnimationFrame(tickId);
-      idx++;
-      if(idx<QS.length){ render(); return; }
-      await finalize();
-    }
+    startBtn.onclick = startQuiz;
 
-    async function finalize(){
-      const ref=doc(db,"scores",player.id);
-      await setDoc(ref,{
-        name:player.name,
-        score:Math.round(totalScore),
-        totalTime:Math.round(totalTime*10)/10,
-        updatedAt:serverTimestamp()
-      });
-      confetti({ particleCount:180, spread:70, origin:{ y:0.65 } });
-      setTimeout(()=> location.href=`index.html?me=${encodeURIComponent(player.name)}`,1500);
-    }
-
-    // ======= INICIAR QUIZ =======
-    startQuiz();
+    // ======= Inicialização =======
+    (async () => {
+      await loadConfig();
+      await loadQuestions();
+    })();
   </script>
 </body>
 </html>
