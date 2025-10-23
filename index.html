@@ -18,10 +18,10 @@
       <!-- HERO -->
       <div class="hero">
         <h1>Pronto para jogar? 🎯</h1>
-        <p>Digite seu nome para começar.</p>
+        <p>Digite seu nome completo para começar.</p>
 
         <form id="start-form" class="form" novalidate>
-          <input id="name" class="input" type="text" placeholder="Digite seu nome" required autocomplete="off" />
+          <input id="name" class="input" type="text" placeholder="Digite seu nome completo" required autocomplete="off" />
           <button id="start-btn" class="btn btn-pill btn-primary" type="submit">Começar agora</button>
           <p id="loadMsg" class="muted" role="status"></p>
         </form>
@@ -77,7 +77,7 @@
 
     // ✅ Habilita o botão e ajusta mensagem
     startBtn.disabled = false;
-    loadMsg.textContent = "Digite seu nome para começar.";
+    loadMsg.textContent = "Digite seu nome completo para começar.";
 
     // ====== FORM SUBMIT ======
     document.getElementById('start-form').addEventListener('submit', async (e)=>{
