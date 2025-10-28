@@ -122,7 +122,7 @@
       }
       startQuiz();
     }
-
+localStorage.clear(); // limpa os dados salvos do quiz (força atualização)
     loadConfig();
 
     const SESSION_KEY = `quiz-emr:${player.id}`;
