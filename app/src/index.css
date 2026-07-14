@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens da plataforma. Os valores abaixo são o tema padrão
+ * ("Inovação"). O ThemeContext sobrescreve --color-primary/secondary/accent
+ * e --brand-name em runtime com os valores configurados no admin.
+ */
+:root {
+  /* Paleta Energisa (extraída do site oficial): azul de marca #0099CD,
+     azul-marinho #003756, azul claro de destaque #26A3DD e laranja de
+     ação #FB8200. */
+  --color-primary: #0099cd;
+  --color-primary-dark: #003756;
+  --color-secondary: #26a3dd;
+  --color-accent: #fb8200;
+  --color-success: #16c784;
+  --color-danger: #f0405b;
+
+  --color-bg: #f4f7fb;
+  --color-surface: #ffffff;
+  --color-ink: #10192b;
+  --color-ink-muted: #5b6a80;
+  --color-border: #dde5f0;
+
+  --stage-bg: #061428;
+  --stage-ink: #ffffff;
+
+  color-scheme: light;
+}
+
+@theme {
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-success: var(--color-success);
+  --color-danger: var(--color-danger);
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-border: var(--color-border);
+  --color-stage-bg: var(--stage-bg);
+  --color-stage-ink: var(--stage-ink);
+
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Evita zoom acidental em campos de resposta durante o jogo em iOS */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Impede seleção de texto e double-tap-zoom acidental nas telas de jogo */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
