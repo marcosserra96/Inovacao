@@ -9,12 +9,12 @@ export function PublicShell({ children }: { children: ReactNode }) {
   const { theme } = useTheme()
 
   return (
-    <div className="min-h-svh flex flex-col bg-bg">
-      <header className="flex items-center justify-center gap-2 py-4">
+    <div className="decorative-bg min-h-svh flex flex-col">
+      <header className="flex items-center justify-center gap-2 py-5">
         {theme.logoUrl ? (
           <img src={theme.logoUrl} alt={theme.eventName} className="h-8" />
         ) : (
-          <span className="font-display text-lg font-bold text-primary">{theme.eventName}</span>
+          <span className="font-display text-lg font-extrabold tracking-tight text-primary-dark">{theme.eventName}</span>
         )}
       </header>
       <main className="flex-1 flex flex-col items-stretch justify-center mx-auto w-full max-w-md px-5 py-6">

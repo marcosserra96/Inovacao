@@ -10,6 +10,7 @@ import { TimerRing } from '@/components/ui/TimerRing'
 import { useCountdown } from '@/hooks/useCountdown'
 import { supabase } from '@/lib/supabase'
 import { loadAttempt } from '@/lib/individualAttemptStorage'
+import { OPTION_COLORS } from '@/lib/optionColors'
 import type { Database } from '@/types/database.types'
 import type { QuestionPayload } from '@/types/domain'
 
@@ -200,13 +201,14 @@ export function IndividualPlayPage() {
         {question.mediaUrl && (
           <img src={question.mediaUrl} alt="" className="w-full rounded-2xl mb-4 object-cover max-h-56" />
         )}
-        <h1 className="font-display text-xl font-bold mb-5 leading-snug">{question.statement}</h1>
+        <h1 className="font-display text-xl font-extrabold mb-5 leading-snug text-primary-dark">{question.statement}</h1>
 
         <div className="flex flex-col gap-3">
-          {question.options.map((option) => {
+          {question.options.map((option, index) => {
             const isSelected = selectedOptionId === option.optionId
             const isCorrectOption = feedback && showCorrectAnswer && option.optionId === feedback.correctOptionId
             const isWrongSelected = feedback && isSelected && !feedback.isCorrect
+            const markerColor = OPTION_COLORS[index % OPTION_COLORS.length]
 
             return (
               <button
@@ -215,15 +217,22 @@ export function IndividualPlayPage() {
                 disabled={phase !== 'playing'}
                 onClick={() => submitAnswer(option.optionId)}
                 className={clsx(
-                  'no-select rounded-2xl border-2 px-5 py-4 text-left text-base font-medium transition-all',
+                  'no-select flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left text-base font-semibold transition-all',
                   'disabled:cursor-default',
+                  !feedback && 'hover:-translate-y-0.5 hover:shadow-md',
                   !feedback && isSelected && 'border-primary bg-primary/5',
-                  !feedback && !isSelected && 'border-border bg-surface hover:border-primary/40',
+                  !feedback && !isSelected && 'border-border bg-surface',
                   isCorrectOption && 'border-success bg-success/10 text-success',
                   isWrongSelected && 'border-danger bg-danger/10 text-danger',
-                  feedback && !isSelected && !isCorrectOption && 'border-border opacity-60',
+                  feedback && !isSelected && !isCorrectOption && 'border-border opacity-50',
                 )}
               >
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
+                  style={{ backgroundColor: markerColor }}
+                >
+                  {String.fromCharCode(65 + index)}
+                </span>
                 {option.text}
               </button>
             )
@@ -231,8 +240,8 @@ export function IndividualPlayPage() {
         </div>
 
         {feedback && (
-          <div className="mt-5 rounded-2xl bg-bg px-4 py-3">
-            <p className={clsx('font-semibold', feedback.isCorrect ? 'text-success' : 'text-danger')}>
+          <div className="mt-5 animate-pop rounded-2xl bg-bg px-4 py-3">
+            <p className={clsx('font-display font-bold', feedback.isCorrect ? 'text-success' : 'text-danger')}>
               {feedback.isLate ? 'Tempo esgotado' : feedback.isCorrect ? `Certinho! +${feedback.pointsAwarded} pontos` : 'Não foi dessa vez'}
             </p>
             {feedback.explanation && <p className="text-sm text-ink-muted mt-1">{feedback.explanation}</p>}

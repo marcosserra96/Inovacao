@@ -4,6 +4,7 @@ import { PublicShell } from '@/components/layout/PublicShell'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
+import { SparkBadge } from '@/components/ui/SparkBadge'
 import { supabase } from '@/lib/supabase'
 import { saveDuelPlayer } from '@/lib/duelPlayerStorage'
 
@@ -42,8 +43,9 @@ export function DuelJoinPage() {
   return (
     <PublicShell>
       <Card>
-        <h1 className="font-display text-2xl font-bold mb-1">Duelo ao vivo</h1>
-        <p className="text-ink-muted text-sm mb-6">Digite seu nome e aguarde o apresentador iniciar a partida.</p>
+        <SparkBadge icon="bolt" className="mb-4 h-16 w-16" />
+        <h1 className="font-display text-2xl font-extrabold mb-1 text-center text-primary-dark">Duelo ao vivo</h1>
+        <p className="text-ink-muted text-sm mb-6 text-center">Digite seu nome e aguarde o apresentador iniciar a partida.</p>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <Field label="Seu nome" htmlFor="name">
             <Input

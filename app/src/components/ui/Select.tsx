@@ -6,8 +6,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
     <select
       ref={ref}
       className={clsx(
-        'w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-ink',
-        'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary',
+        'w-full rounded-xl border-2 border-border bg-surface px-4 py-2.5 text-ink transition-colors',
+        'focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary',
         'disabled:opacity-50',
         className,
       )}

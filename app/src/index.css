@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 /*
@@ -16,11 +17,11 @@
   --color-success: #16c784;
   --color-danger: #f0405b;
 
-  --color-bg: #f4f7fb;
+  --color-bg: #f5f8fc;
   --color-surface: #ffffff;
-  --color-ink: #10192b;
+  --color-ink: #0e1b2c;
   --color-ink-muted: #5b6a80;
-  --color-border: #dde5f0;
+  --color-border: #e2e9f2;
 
   --stage-bg: #061428;
   --stage-ink: #ffffff;
@@ -45,6 +46,54 @@
 
   --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pop: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-confetti: confetti-fall 2.6s ease-in forwards;
+  --animate-float: float 6s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(600deg);
+    opacity: 0.9;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 * {
@@ -72,6 +121,7 @@ h3,
 h4 {
   font-family: var(--font-display);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 button {
@@ -100,4 +150,22 @@ textarea {
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 999px;
+}
+
+/* Fundo decorativo com manchas de cor suaves — usado nas telas públicas
+   (participante, login) para trazer a mesma energia visual do telão sem
+   comprometer a legibilidade. */
+.decorative-bg {
+  position: relative;
+  isolation: isolate;
+}
+.decorative-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(38rem 24rem at 8% -5%, color-mix(in srgb, var(--color-primary) 16%, transparent) 0%, transparent 60%),
+    radial-gradient(30rem 22rem at 105% 12%, color-mix(in srgb, var(--color-accent) 14%, transparent) 0%, transparent 60%),
+    radial-gradient(34rem 26rem at 50% 115%, color-mix(in srgb, var(--color-secondary) 14%, transparent) 0%, transparent 60%);
 }

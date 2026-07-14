@@ -10,6 +10,11 @@ type IndividualSession = Database['public']['Tables']['individual_sessions']['Ro
 type Ranking = Database['public']['Views']['v_individual_ranking']['Row']
 
 const medalByRank: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
+const topRowStyle: Record<number, string> = {
+  1: 'bg-gradient-to-r from-accent/15 to-accent/5 border-2 border-accent/30',
+  2: 'bg-gradient-to-r from-primary/12 to-primary/5 border-2 border-primary/25',
+  3: 'bg-gradient-to-r from-secondary/12 to-secondary/5 border-2 border-secondary/25',
+}
 
 export function RankingPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
@@ -53,7 +58,7 @@ export function RankingPage() {
   return (
     <PublicShell>
       <Card>
-        <h1 className="font-display text-2xl font-bold mb-1">{session?.name ?? 'Ranking'}</h1>
+        <h1 className="font-display text-2xl font-extrabold mb-1 text-primary-dark">{session?.name ?? 'Ranking'}</h1>
         <p className="text-ink-muted text-sm mb-6">Atualizado automaticamente.</p>
 
         {session && !session.show_ranking ? (
@@ -69,16 +74,19 @@ export function RankingPage() {
             {ranking.map((r) => (
               <li
                 key={r.participant_id}
-                className="flex items-center gap-3 rounded-2xl bg-bg px-4 py-3 transition-all duration-300"
+                className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-300 ${topRowStyle[r.rank] ?? 'bg-bg'}`}
               >
-                <span className="w-8 text-center font-display font-bold text-ink-muted">
+                <span className="flex w-9 shrink-0 items-center justify-center font-display text-lg font-extrabold text-ink-muted">
                   {medalByRank[r.rank] ?? r.rank}
                 </span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-sm font-bold text-white">
+                  {r.display_name.slice(0, 1).toUpperCase()}
+                </span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-ink truncate">{r.display_name}</p>
+                  <p className="font-semibold text-ink truncate">{r.display_name}</p>
                   {r.team && <p className="text-xs text-ink-muted">{r.team}</p>}
                 </div>
-                <span className="font-display font-bold text-primary">{r.total_score}</span>
+                <span className="font-display text-lg font-extrabold text-primary">{r.total_score}</span>
               </li>
             ))}
           </ol>

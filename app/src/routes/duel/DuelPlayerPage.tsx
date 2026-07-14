@@ -12,6 +12,7 @@ import { useRealtimeList } from '@/hooks/useRealtimeList'
 import { useDuelTimer } from '@/hooks/useDuelTimer'
 import { supabase } from '@/lib/supabase'
 import { loadDuelPlayer } from '@/lib/duelPlayerStorage'
+import { OPTION_COLORS } from '@/lib/optionColors'
 import type { Database } from '@/types/database.types'
 import type { QuestionPayload } from '@/types/domain'
 
@@ -182,15 +183,16 @@ export function DuelPlayerPage() {
             {question.mediaUrl && (
               <img src={question.mediaUrl} alt="" className="w-full rounded-2xl mb-4 object-cover max-h-56" />
             )}
-            <h1 className="font-display text-xl font-bold mb-5 leading-snug">{question.statement}</h1>
+            <h1 className="font-display text-xl font-extrabold mb-5 leading-snug text-primary-dark">{question.statement}</h1>
 
             <div className="flex flex-col gap-3">
-              {question.options.map((option) => {
+              {question.options.map((option, index) => {
                 const isSelected = selectedOptionId === option.optionId
                 const revealed = Boolean(currentRound?.revealed_at)
                 const myAnswer = result?.answers.find((a) => a.playerId === playerId)
                 const isCorrectOption = revealed && option.optionId === myAnswer?.optionId && myAnswer?.isCorrect
                 const isWrongSelected = revealed && isSelected && myAnswer && !myAnswer.isCorrect
+                const markerColor = OPTION_COLORS[index % OPTION_COLORS.length]
 
                 return (
                   <button
@@ -199,15 +201,21 @@ export function DuelPlayerPage() {
                     disabled={match.phase !== 'awaiting_answers' || iAnswered}
                     onClick={() => handleAnswer(option.optionId)}
                     className={clsx(
-                      'no-select rounded-2xl border-2 px-5 py-4 text-left text-base font-medium transition-all',
+                      'no-select flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left text-base font-semibold transition-all',
                       'disabled:cursor-default',
                       !revealed && isSelected && 'border-primary bg-primary/5',
                       !revealed && !isSelected && 'border-border bg-surface',
-                      match.phase === 'awaiting_answers' && !iAnswered && 'hover:border-primary/40',
+                      match.phase === 'awaiting_answers' && !iAnswered && 'hover:-translate-y-0.5 hover:shadow-md',
                       isCorrectOption && 'border-success bg-success/10 text-success',
                       isWrongSelected && 'border-danger bg-danger/10 text-danger',
                     )}
                   >
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
+                      style={{ backgroundColor: markerColor }}
+                    >
+                      {String.fromCharCode(65 + index)}
+                    </span>
                     {option.text}
                   </button>
                 )

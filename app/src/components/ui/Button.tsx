@@ -10,11 +10,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<Variant, string> = {
-  primary: 'bg-primary text-white hover:brightness-110 active:brightness-95 shadow-lg shadow-primary/25',
-  secondary: 'bg-secondary text-white hover:brightness-110 active:brightness-95 shadow-lg shadow-secondary/25',
-  accent: 'bg-accent text-white hover:brightness-110 active:brightness-95 shadow-lg shadow-accent/25',
-  ghost: 'bg-transparent text-ink border-2 border-border hover:border-primary hover:text-primary',
-  danger: 'bg-danger text-white hover:brightness-110 active:brightness-95',
+  primary:
+    'bg-gradient-to-b from-primary to-primary-dark text-white shadow-lg shadow-primary/30 hover:brightness-110 active:brightness-95',
+  secondary:
+    'bg-gradient-to-b from-secondary to-primary text-white shadow-lg shadow-secondary/30 hover:brightness-110 active:brightness-95',
+  accent: 'bg-gradient-to-b from-accent to-[#d96700] text-white shadow-lg shadow-accent/30 hover:brightness-110 active:brightness-95',
+  ghost: 'bg-surface text-ink border-2 border-border hover:border-primary hover:text-primary',
+  danger: 'bg-gradient-to-b from-danger to-[#c22a44] text-white shadow-lg shadow-danger/30 hover:brightness-110 active:brightness-95',
 }
 
 const sizeClasses: Record<Size, string> = {
@@ -30,8 +32,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled}
         className={clsx(
-          'no-select font-semibold tracking-tight transition-all duration-150',
-          'disabled:opacity-40 disabled:pointer-events-none',
+          'no-select font-display font-bold tracking-tight transition-all duration-150',
+          'hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]',
+          'disabled:opacity-40 disabled:pointer-events-none disabled:hover:translate-y-0',
           'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30',
           variantClasses[variant],
           sizeClasses[size],

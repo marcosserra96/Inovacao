@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
 import { RetryableError } from '@/components/ui/RetryableError'
+import { SparkBadge } from '@/components/ui/SparkBadge'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/contexts/ThemeContext'
 import { saveAttempt, getDeviceFingerprint } from '@/lib/individualAttemptStorage'
@@ -160,8 +161,9 @@ export function JoinIndividualPage() {
   return (
     <PublicShell>
       <Card>
-        <h1 className="font-display text-2xl font-bold mb-1">{session?.name}</h1>
-        <p className="text-ink-muted text-sm mb-6">{theme.welcomeMessage}</p>
+        <SparkBadge className="mb-4 h-16 w-16" />
+        <h1 className="font-display text-2xl font-extrabold mb-1 text-center text-primary-dark">{session?.name}</h1>
+        <p className="text-ink-muted text-sm mb-6 text-center">{theme.welcomeMessage}</p>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <Field label={session?.require_identification ? 'Seu nome' : 'Seu nome ou apelido (opcional)'} htmlFor="name">
             <Input
