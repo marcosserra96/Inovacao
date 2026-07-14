@@ -3,12 +3,18 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { AdminRole } from '@/types/database.types'
 
+// Acesso administrativo simplificado: um único e-mail fixo (configurado no
+// deploy) e a UI só pede a senha — mas por baixo continua sendo uma sessão
+// real do Supabase Auth, então RLS e o log de auditoria (que registra o
+// user_id de quem agiu) continuam funcionando normalmente.
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? 'admin@evento.local'
+
 interface AuthContextValue {
   session: Session | null
   role: AdminRole | null
   name: string | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signIn: (password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -66,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role,
       name,
       loading,
-      async signIn(email, password) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+      async signIn(password) {
+        const { error } = await supabase.auth.signInWithPassword({ email: ADMIN_EMAIL, password })
         return { error: error ? traduzErroLogin(error.message) : null }
       },
       async signOut() {
@@ -81,8 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 function traduzErroLogin(message: string): string {
-  if (message.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.'
-  if (message.includes('Email not confirmed')) return 'E-mail ainda não confirmado.'
+  if (message.includes('Invalid login credentials')) return 'Senha incorreta.'
+  if (message.includes('Email not confirmed')) return 'Conta administrativa ainda não confirmada — verifique no painel do Supabase.'
   return 'Não foi possível entrar. Tente novamente.'
 }
 

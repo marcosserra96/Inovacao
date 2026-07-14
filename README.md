@@ -57,16 +57,19 @@ Inovação/
    ```
    Ou, pelo SQL Editor do painel do Supabase, cole o conteúdo de `supabase/seed.sql` e execute.
 
-### Criando o primeiro administrador
+### Criando o administrador
 
-O cadastro de usuários administrativos é feito pelo painel do Supabase (Authentication → Users → Add user) — todo novo usuário recebe automaticamente um perfil com papel `presenter`. Para promover o primeiro usuário a `admin`, rode no SQL Editor do Supabase:
+O acesso ao painel é simplificado de propósito: só existe **uma senha**, sem tela de e-mail. Por baixo, é uma conta real do Supabase Auth (por isso RLS e o log de auditoria continuam funcionando) — a UI só esconde o campo de e-mail.
 
-```sql
-update admin_profiles set role = 'admin' where user_id =
-  (select id from auth.users where email = 'seu-email@exemplo.com');
-```
+1. No painel do Supabase, vá em *Authentication → Users → Add user*, crie um usuário com um e-mail (ex.: `admin@seu-evento.com`) e uma senha forte.
+2. Promova esse usuário a `admin` pelo SQL Editor:
+   ```sql
+   update admin_profiles set role = 'admin' where user_id =
+     (select id from auth.users where email = 'admin@seu-evento.com');
+   ```
+3. Configure `VITE_ADMIN_EMAIL` no `.env` (passo 3) com esse mesmo e-mail — é ele que a tela de login usa internamente quando você digita só a senha.
 
-Depois disso, esse usuário pode promover outros pelo próprio painel administrativo (`/admin/usuarios`).
+O acesso ao painel fica atrás de um ícone discreto de engrenagem no canto da tela inicial (`/`), ou diretamente por `/admin/login`.
 
 ## 3. Configurar e rodar o frontend
 
@@ -76,11 +79,12 @@ npm install
 cp .env.example .env
 ```
 
-Edite `.env` com a Project URL e a anon key do passo 2:
+Edite `.env` com a Project URL e a anon key do passo 2, e com o e-mail do administrador criado no passo anterior:
 
 ```
 VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
 VITE_SUPABASE_ANON_KEY=SUA_CHAVE_ANON_PUBLICA
+VITE_ADMIN_EMAIL=admin@seu-evento.com
 ```
 
 ```bash
@@ -102,7 +106,7 @@ Acesse `http://localhost:5173`. Sem o `.env` preenchido, o app roda normalmente 
 Use este roteiro para validar a instalação antes do evento (ver critérios de aceite do projeto).
 
 ### Modo individual
-1. Entre no painel admin (`/admin/login`) com o usuário promovido a `admin`.
+1. Entre no painel admin pelo ícone de engrenagem na tela inicial (ou `/admin/login`) com a senha configurada.
 2. Em **Sessões e partidas**, edite a "Sessão de exemplo" (criada pelo seed): mude o status para **Aberta** e defina abertura/encerramento cobrindo o horário atual.
 3. Abra `/j/DEMO01` em uma aba anônima (ou celular) — digite um nome e inicie o desafio.
 4. Responda as 5 perguntas de exemplo, observando o cronômetro e o feedback de acerto/erro.
