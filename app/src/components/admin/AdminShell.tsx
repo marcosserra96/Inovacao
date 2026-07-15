@@ -22,8 +22,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
 
   async function handleSignOut() {
-    await signOut()
+    // Navega antes de encerrar a sessão: assim que a sessão fica nula, o
+    // ProtectedRoute da rota /admin atual redirecionaria sozinho para
+    // /admin/login — sair da rota protegida primeiro evita essa corrida.
     navigate('/')
+    await signOut()
   }
 
   return (
