@@ -20,32 +20,24 @@ export function useRealtimeRow<T extends { id: string }>(table: TableName, id: s
 
   useEffect(() => {
     if (!id) return
+    const rowId = id
     let active = true
+
+    async function fetchCurrent() {
+      const { data, error: fetchError } = await supabase.from(table).select('*').eq('id' as never, rowId).maybeSingle()
+      if (!active) return
+      if (fetchError) {
+        setError('Não foi possível carregar. Verifique sua conexão.')
+      } else {
+        setRow(data as unknown as T | null)
+        setError(null)
+      }
+      setLoading(false)
+    }
+
     setLoading(true)
     setError(null)
-
-    supabase
-      .from(table)
-      .select('*')
-      .eq('id' as never, id)
-      .maybeSingle()
-      .then(
-        ({ data, error: fetchError }) => {
-          if (!active) return
-          if (fetchError) {
-            setError('Não foi possível carregar. Verifique sua conexão.')
-          } else {
-            setRow(data as unknown as T | null)
-          }
-          setLoading(false)
-        },
-        () => {
-          if (active) {
-            setError('Não foi possível carregar. Verifique sua conexão.')
-            setLoading(false)
-          }
-        },
-      )
+    fetchCurrent()
 
     const channel = supabase
       .channel(`${table}:${id}:${retryTick}`)
@@ -60,7 +52,12 @@ export function useRealtimeRow<T extends { id: string }>(table: TableName, id: s
           }
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        // Reconexões (wi-fi instável etc.) não garantem entrega dos eventos
+        // perdidos durante a queda — refazer o select ao reconectar evita
+        // ficar com um estado desatualizado silenciosamente.
+        if (status === 'SUBSCRIBED') fetchCurrent()
+      })
 
     return () => {
       active = false

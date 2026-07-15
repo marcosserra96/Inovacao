@@ -315,6 +315,22 @@ export interface Database {
         Update: never
         Relationships: []
       }
+      game_control: {
+        Row: {
+          id: boolean
+          active_mode: 'none' | 'individual' | 'duel'
+          active_individual_session_id: string | null
+          active_duel_match_id: string | null
+          updated_at: string
+        }
+        Insert: never
+        Update: Partial<{
+          active_mode: 'none' | 'individual' | 'duel'
+          active_individual_session_id: string | null
+          active_duel_match_id: string | null
+        }>
+        Relationships: []
+      }
     }
     Views: {
       v_individual_ranking: {

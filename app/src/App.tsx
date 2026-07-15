@@ -11,6 +11,7 @@ import { PresenterNewMatchPage } from '@/routes/presenter/PresenterNewMatchPage'
 import { PresenterPage } from '@/routes/presenter/PresenterPage'
 import { AdminLoginPage } from '@/routes/admin/AdminLoginPage'
 import { AdminDashboardPage } from '@/routes/admin/AdminDashboardPage'
+import { AdminGameControlPage } from '@/routes/admin/AdminGameControlPage'
 import { AdminQuestionsPage } from '@/routes/admin/AdminQuestionsPage'
 import { AdminCategoriesPage } from '@/routes/admin/AdminCategoriesPage'
 import { AdminSetsPage } from '@/routes/admin/AdminSetsPage'
@@ -63,6 +64,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/jogo"
+          element={
+            <ProtectedRoute>
+              <AdminGameControlPage />
             </ProtectedRoute>
           }
         />

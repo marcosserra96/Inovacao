@@ -26,28 +26,24 @@ export function useRealtimeList<T extends Record<string, unknown>>(
   useEffect(() => {
     if (!filterValue) return
     let active = true
+
+    async function fetchCurrent() {
+      let query = supabase.from(table).select('*').eq(filterColumn as never, filterValue as string)
+      if (orderBy) query = query.order(orderBy as never)
+      const { data, error: fetchError } = await query
+      if (!active) return
+      if (fetchError) {
+        setError('Não foi possível carregar. Verifique sua conexão.')
+      } else {
+        setRows((data as unknown as T[]) ?? [])
+        setError(null)
+      }
+      setLoading(false)
+    }
+
     setLoading(true)
     setError(null)
-
-    let query = supabase.from(table).select('*').eq(filterColumn as never, filterValue)
-    if (orderBy) query = query.order(orderBy as never)
-    query.then(
-      ({ data, error: fetchError }) => {
-        if (!active) return
-        if (fetchError) {
-          setError('Não foi possível carregar. Verifique sua conexão.')
-        } else {
-          setRows((data as unknown as T[]) ?? [])
-        }
-        setLoading(false)
-      },
-      () => {
-        if (active) {
-          setError('Não foi possível carregar. Verifique sua conexão.')
-          setLoading(false)
-        }
-      },
-    )
+    fetchCurrent()
 
     const channel = supabase
       .channel(`${table}:${filterColumn}:${filterValue}:${retryTick}`)
@@ -69,7 +65,12 @@ export function useRealtimeList<T extends Record<string, unknown>>(
           })
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        // Reconexões (wi-fi instável etc.) não garantem entrega dos eventos
+        // perdidos durante a queda — refazer o select ao reconectar evita
+        // ficar com uma lista desatualizada silenciosamente.
+        if (status === 'SUBSCRIBED') fetchCurrent()
+      })
 
     return () => {
       active = false

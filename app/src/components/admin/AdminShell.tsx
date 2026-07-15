@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 
 const navItems = [
   { to: '/admin', label: 'Visão geral', end: true },
+  { to: '/admin/jogo', label: 'Controle da dinâmica' },
   { to: '/admin/perguntas', label: 'Perguntas' },
   { to: '/admin/categorias', label: 'Categorias' },
   { to: '/admin/conjuntos', label: 'Conjuntos' },

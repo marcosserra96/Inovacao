@@ -57,6 +57,17 @@ export function PresenterNewMatchPage() {
       return
     }
     const result = data as unknown as { matchId: string; code: string }
+
+    // A partida recém-criada vira automaticamente "o jogo de agora" — quem
+    // acessar o link do evento já cai direto nela.
+    const { error: controlError } = await supabase
+      .from('game_control')
+      .update({ active_mode: 'duel', active_duel_match_id: result.matchId })
+      .eq('id', true)
+    if (controlError) {
+      notify('Partida criada, mas não foi possível defini-la como jogo ativo. Faça isso em Controle da dinâmica.', 'error')
+    }
+
     navigate(`/apresentador/${result.matchId}`)
   }
 
