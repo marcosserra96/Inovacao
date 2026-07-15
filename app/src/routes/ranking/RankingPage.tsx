@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { PublicShell } from '@/components/layout/PublicShell'
 import { Card } from '@/components/ui/Card'
 import { Spinner } from '@/components/ui/Spinner'
+import { QrCode } from '@/components/ui/QrCode'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 import type { Database } from '@/types/database.types'
 
 type IndividualSession = Database['public']['Tables']['individual_sessions']['Row']
@@ -18,6 +20,7 @@ const topRowStyle: Record<number, string> = {
 
 export function RankingPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
+  const { session: adminSession } = useAuth()
   const [session, setSession] = useState<IndividualSession | null>(null)
   const [ranking, setRanking] = useState<Ranking[]>([])
   const [loading, setLoading] = useState(true)
@@ -55,8 +58,18 @@ export function RankingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, session?.ranking_size])
 
+  const siteUrl = typeof window !== 'undefined' ? window.location.origin : ''
+
   return (
     <PublicShell>
+      {/* Só aparece para quem está logado no admin/apresentador — participantes
+          nunca veem isso. Evita ficar "preso" nesta tela ao abrir pelo painel. */}
+      {adminSession && (
+        <Link to="/admin/jogo" className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+          ← Voltar ao painel
+        </Link>
+      )}
+
       <Card>
         <h1 className="font-display text-2xl font-extrabold mb-1 text-primary-dark">{session?.name ?? 'Ranking'}</h1>
         <p className="text-ink-muted text-sm mb-6">Atualizado automaticamente.</p>
@@ -91,6 +104,14 @@ export function RankingPage() {
             ))}
           </ol>
         )}
+      </Card>
+
+      {/* Fica projetada junto com o ranking — quem ainda não entrou pode
+          escanear a qualquer momento. */}
+      <Card className="mt-4 text-center">
+        <p className="text-sm font-semibold text-ink-muted mb-3">Ainda não participou?</p>
+        <QrCode value={siteUrl} size={140} />
+        <p className="text-xs text-ink-muted mt-3">Escaneie para entrar</p>
       </Card>
     </PublicShell>
   )
