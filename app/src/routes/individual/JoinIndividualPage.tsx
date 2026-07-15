@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PublicShell } from '@/components/layout/PublicShell'
 import { Card } from '@/components/ui/Card'
@@ -7,6 +7,7 @@ import { Field, Input } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
 import { RetryableError } from '@/components/ui/RetryableError'
 import { SparkBadge } from '@/components/ui/SparkBadge'
+import { AdminAccessButton } from '@/components/admin/AdminAccessButton'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/contexts/ThemeContext'
 import { saveAttempt, getDeviceFingerprint } from '@/lib/individualAttemptStorage'
@@ -102,64 +103,46 @@ export function JoinIndividualPage() {
     navigate(`/individual/${session.id}/play`)
   }
 
+  let content: ReactNode
+
   if (state === 'loading') {
-    return (
-      <PublicShell>
-        <div className="flex justify-center text-primary">
-          <Spinner />
-        </div>
-      </PublicShell>
+    content = (
+      <div className="flex justify-center text-primary">
+        <Spinner />
+      </div>
     )
-  }
-
-  if (state === 'network_error') {
-    return (
-      <PublicShell>
-        <Card>
-          <RetryableError
-            message="Não foi possível carregar esta sessão. Verifique sua conexão."
-            onRetry={() => setRetryTick((n) => n + 1)}
-          />
-        </Card>
-      </PublicShell>
+  } else if (state === 'network_error') {
+    content = (
+      <Card>
+        <RetryableError
+          message="Não foi possível carregar esta sessão. Verifique sua conexão."
+          onRetry={() => setRetryTick((n) => n + 1)}
+        />
+      </Card>
     )
-  }
-
-  if (state === 'not_found') {
-    return (
-      <PublicShell>
-        <Card className="text-center">
-          <h1 className="font-display text-xl font-bold mb-2">Código não encontrado</h1>
-          <p className="text-ink-muted">Verifique o link ou código informado e tente novamente.</p>
-        </Card>
-      </PublicShell>
+  } else if (state === 'not_found') {
+    content = (
+      <Card className="text-center">
+        <h1 className="font-display text-xl font-bold mb-2">Código não encontrado</h1>
+        <p className="text-ink-muted">Verifique o link ou código informado e tente novamente.</p>
+      </Card>
     )
-  }
-
-  if (state === 'closed') {
-    return (
-      <PublicShell>
-        <Card className="text-center">
-          <h1 className="font-display text-xl font-bold mb-2">Desafio encerrado</h1>
-          <p className="text-ink-muted">Esta sessão já foi encerrada. Confira o ranking com o organizador do evento.</p>
-        </Card>
-      </PublicShell>
+  } else if (state === 'closed') {
+    content = (
+      <Card className="text-center">
+        <h1 className="font-display text-xl font-bold mb-2">Desafio encerrado</h1>
+        <p className="text-ink-muted">Esta sessão já foi encerrada. Confira o ranking com o organizador do evento.</p>
+      </Card>
     )
-  }
-
-  if (state === 'not_open_yet') {
-    return (
-      <PublicShell>
-        <Card className="text-center">
-          <h1 className="font-display text-xl font-bold mb-2">Ainda não começou</h1>
-          <p className="text-ink-muted">Este desafio ainda não está aberto para participação. Aguarde o início.</p>
-        </Card>
-      </PublicShell>
+  } else if (state === 'not_open_yet') {
+    content = (
+      <Card className="text-center">
+        <h1 className="font-display text-xl font-bold mb-2">Ainda não começou</h1>
+        <p className="text-ink-muted">Este desafio ainda não está aberto para participação. Aguarde o início.</p>
+      </Card>
     )
-  }
-
-  return (
-    <PublicShell>
+  } else {
+    content = (
       <Card>
         <SparkBadge className="mb-4 h-16 w-16" />
         <h1 className="font-display text-2xl font-extrabold mb-1 text-center text-primary-dark">{session?.name}</h1>
@@ -184,6 +167,13 @@ export function JoinIndividualPage() {
           </Button>
         </form>
       </Card>
+    )
+  }
+
+  return (
+    <PublicShell>
+      {content}
+      <AdminAccessButton />
     </PublicShell>
   )
 }

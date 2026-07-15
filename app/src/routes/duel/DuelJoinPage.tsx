@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { SparkBadge } from '@/components/ui/SparkBadge'
+import { AdminAccessButton } from '@/components/admin/AdminAccessButton'
 import { supabase } from '@/lib/supabase'
 import { saveDuelPlayer } from '@/lib/duelPlayerStorage'
 
@@ -63,6 +64,7 @@ export function DuelJoinPage() {
           </Button>
         </form>
       </Card>
+      <AdminAccessButton />
     </PublicShell>
   )
 }
