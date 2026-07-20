@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import { TimerRing } from '@/components/ui/TimerRing'
 import { RetryableError } from '@/components/ui/RetryableError'
+import { SparkBadge } from '@/components/ui/SparkBadge'
+import { WaitingDots } from '@/components/ui/WaitingDots'
 import { useRealtimeRow } from '@/hooks/useRealtimeRow'
 import { useRealtimeList } from '@/hooks/useRealtimeList'
 import { useDuelTimer } from '@/hooks/useDuelTimer'
@@ -30,7 +32,7 @@ interface RoundResult {
 
 export function DuelPlayerPage() {
   const { matchId, playerId } = useParams<{ matchId: string; playerId: string }>()
-  const stored = matchId ? loadDuelPlayer(matchId) : null
+  const stored = matchId && playerId ? loadDuelPlayer(matchId, playerId) : null
   const joinToken = stored && stored.playerId === playerId ? stored.joinToken : null
   const { row: match, error: matchError, retry: retryMatch } = useRealtimeRow<DuelMatch>('duel_matches', matchId)
   const { row: me, error: meError, retry: retryMe } = useRealtimeRow<DuelPlayer>('duel_players', playerId)
@@ -131,8 +133,10 @@ export function DuelPlayerPage() {
     return (
       <PublicShell>
         <Card className="text-center">
+          <SparkBadge icon="bolt" className="mb-4" />
           <h1 className="font-display text-xl font-bold mb-2">Você está na sala de espera</h1>
-          <p className="text-ink-muted">Aguarde o apresentador selecionar os disputantes desta rodada.</p>
+          <p className="text-ink-muted mb-5">Aguarde o apresentador selecionar os disputantes desta rodada.</p>
+          <WaitingDots className="justify-center" />
         </Card>
       </PublicShell>
     )
@@ -159,8 +163,10 @@ export function DuelPlayerPage() {
     return (
       <PublicShell>
         <Card className="text-center">
+          <SparkBadge icon="bolt" className="mb-4" />
           <h1 className="font-display text-xl font-bold mb-2">Prepare-se, {me.display_name}!</h1>
-          <p className="text-ink-muted">Aguardando o apresentador iniciar a partida.</p>
+          <p className="text-ink-muted mb-5">Aguardando o apresentador iniciar a partida.</p>
+          <WaitingDots className="justify-center" />
         </Card>
       </PublicShell>
     )
@@ -191,7 +197,11 @@ export function DuelPlayerPage() {
                 const revealed = Boolean(currentRound?.revealed_at)
                 const myAnswer = result?.answers.find((a) => a.playerId === playerId)
                 const isCorrectOption = revealed && option.optionId === myAnswer?.optionId && myAnswer?.isCorrect
-                const isWrongSelected = revealed && isSelected && myAnswer && !myAnswer.isCorrect
+                // Resposta tardia zera o option_id no servidor (nunca sabemos mais o
+                // que a pessoa tocou) — não dá pra marcar de vermelho como "errada"
+                // sem confundir quem só demorou um instante a mais.
+                const isLateSelected = revealed && isSelected && myAnswer?.isLate
+                const isWrongSelected = revealed && isSelected && myAnswer && !myAnswer.isCorrect && !myAnswer.isLate
                 const markerColor = OPTION_COLORS[index % OPTION_COLORS.length]
 
                 return (
@@ -208,6 +218,7 @@ export function DuelPlayerPage() {
                       match.phase === 'awaiting_answers' && !iAnswered && 'hover:-translate-y-0.5 hover:shadow-md',
                       isCorrectOption && 'border-success bg-success/10 text-success',
                       isWrongSelected && 'border-danger bg-danger/10 text-danger',
+                      isLateSelected && 'border-accent bg-accent/10 text-accent',
                     )}
                   >
                     <span
@@ -226,7 +237,10 @@ export function DuelPlayerPage() {
               {match.phase === 'question_shown' && 'Aguarde a liberação do cronômetro…'}
               {match.phase === 'awaiting_answers' && !iAnswered && 'Toque na alternativa correta.'}
               {iAnswered && !currentRound?.revealed_at && 'Resposta registrada! Aguardando o resultado…'}
-              {currentRound?.revealed_at && 'Resultado revelado pelo apresentador.'}
+              {currentRound?.revealed_at &&
+                (result?.answers.find((a) => a.playerId === playerId)?.isLate
+                  ? 'Sua resposta chegou depois do tempo — sem pontos nesta rodada.'
+                  : 'Resultado revelado pelo apresentador.')}
             </p>
           </>
         )}

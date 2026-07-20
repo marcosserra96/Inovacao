@@ -7,16 +7,20 @@ interface StoredDuelPlayer {
   joinToken: string
 }
 
-function key(matchId: string) {
-  return `inovacao:duel:${matchId}`
+// A chave inclui o playerId (não só o matchId): se dois participantes
+// entrarem na mesma partida a partir do mesmo navegador/dispositivo
+// (ex.: testes, ou um celular compartilhado), o segundo não pode apagar
+// o token do primeiro.
+function key(matchId: string, playerId: string) {
+  return `inovacao:duel:${matchId}:${playerId}`
 }
 
 export function saveDuelPlayer(matchId: string, value: StoredDuelPlayer) {
-  localStorage.setItem(key(matchId), JSON.stringify(value))
+  localStorage.setItem(key(matchId, value.playerId), JSON.stringify(value))
 }
 
-export function loadDuelPlayer(matchId: string): StoredDuelPlayer | null {
-  const raw = localStorage.getItem(key(matchId))
+export function loadDuelPlayer(matchId: string, playerId: string): StoredDuelPlayer | null {
+  const raw = localStorage.getItem(key(matchId, playerId))
   if (!raw) return null
   try {
     return JSON.parse(raw) as StoredDuelPlayer

@@ -6,6 +6,7 @@ import { SparkBadge } from '@/components/ui/SparkBadge'
 import { Spinner } from '@/components/ui/Spinner'
 import { RetryableError } from '@/components/ui/RetryableError'
 import { AdminAccessButton } from '@/components/admin/AdminAccessButton'
+import { WaitingDots } from '@/components/ui/WaitingDots'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useGameControl } from '@/hooks/useGameControl'
 import { supabase } from '@/lib/supabase'
@@ -84,7 +85,8 @@ export function HomePage() {
           {theme.eventName}
         </h1>
         <p className="text-ink-muted">{theme.welcomeMessage}</p>
-        <p className="text-ink-muted text-sm mt-4">Aguarde o início da dinâmica.</p>
+        <p className="text-ink-muted text-sm mt-4 mb-4">Aguarde o início da dinâmica.</p>
+        <WaitingDots className="justify-center" />
       </Card>
       <AdminAccessButton />
     </PublicShell>
