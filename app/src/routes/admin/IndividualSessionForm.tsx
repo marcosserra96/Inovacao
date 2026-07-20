@@ -28,7 +28,7 @@ export function IndividualSessionForm({
   session: IndividualSession | null
   questionSets: QuestionSet[]
   scoringConfigs: ScoringConfig[]
-  onSaved: () => void
+  onSaved: (saved: IndividualSession) => void
   onCancel: () => void
 }) {
   const notify = useToast()
@@ -50,7 +50,10 @@ export function IndividualSessionForm({
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(session?.show_correct_answer ?? true)
   const [showRanking, setShowRanking] = useState(session?.show_ranking ?? true)
   const [rankingSize, setRankingSize] = useState(session?.ranking_size ?? 10)
-  const [status, setStatus] = useState<IndividualSessionStatus>(session?.status ?? 'draft')
+  // Sessão nova já nasce aberta — é o caminho comum (criar e já deixar as
+  // pessoas entrarem). Quem quiser agendar com antecedência muda para
+  // "Agendada"/"Rascunho" manualmente.
+  const [status, setStatus] = useState<IndividualSessionStatus>(session?.status ?? 'open')
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit() {
@@ -77,17 +80,17 @@ export function IndividualSessionForm({
       status,
     }
 
-    const { error } = session
-      ? await supabase.from('individual_sessions').update(payload).eq('id', session.id)
-      : await supabase.from('individual_sessions').insert(payload)
+    const { data, error } = session
+      ? await supabase.from('individual_sessions').update(payload).eq('id', session.id).select().single()
+      : await supabase.from('individual_sessions').insert(payload).select().single()
 
     setSaving(false)
-    if (error) {
-      notify(error.message, 'error')
+    if (error || !data) {
+      notify(error?.message ?? 'Erro ao salvar sessão', 'error')
       return
     }
     notify(session ? 'Sessão atualizada.' : 'Sessão criada.')
-    onSaved()
+    onSaved(data)
   }
 
   return (
