@@ -89,7 +89,7 @@ export function LiveQuizSemifinalsPresenterPage() {
   }
 
   const phase = match1.phase
-  const bothFinished = match1.status === 'finished' && match2.status === 'finished'
+  const bothDecided = match1.status === 'finished' && Boolean(match1.winner_player_id) && match2.status === 'finished' && Boolean(match2.winner_player_id)
 
   return (
     <div className="min-h-svh bg-bg px-4 py-6 pb-10">
@@ -105,11 +105,11 @@ export function LiveQuizSemifinalsPresenterPage() {
                 Abrir telão
               </Button>
             </Link>
-            {!bothFinished && <Badge tone="primary">{phaseLabel[phase] ?? phase}</Badge>}
+            {!bothDecided && <Badge tone="primary">{phaseLabel[phase] ?? phase}</Badge>}
           </div>
         </div>
 
-        {bothFinished ? (
+        {bothDecided ? (
           <Card className="text-center">
             <p className="font-semibold text-success mb-1">Semifinais encerradas!</p>
             <p className="text-sm text-ink-muted mb-3">
@@ -207,8 +207,8 @@ export function LiveQuizSemifinalsPresenterPage() {
             </Card>
 
             <div className="grid grid-cols-2 gap-4">
-              <EndMatchCard matchId={match1.id} label="Semifinal 1" players={players1.filter((p) => p.is_active_disputant)} busy={busy} call={call} />
-              <EndMatchCard matchId={match2.id} label="Semifinal 2" players={players2.filter((p) => p.is_active_disputant)} busy={busy} call={call} />
+              <MatchResolution match={match1} label="Semifinal 1" players={players1.filter((p) => p.is_active_disputant)} busy={busy} call={call} />
+              <MatchResolution match={match2} label="Semifinal 2" players={players2.filter((p) => p.is_active_disputant)} busy={busy} call={call} />
             </div>
           </>
         )}
@@ -234,43 +234,87 @@ function DuoScore({ label, players }: { label: string; players: DuelPlayer[] }) 
   )
 }
 
-function EndMatchCard({
-  matchId,
+function MatchResolution({
+  match,
   label,
   players,
   busy,
   call,
 }: {
-  matchId: string
+  match: DuelMatch
   label: string
   players: DuelPlayer[]
   busy: boolean
   call: (fn: string, args: Record<string, unknown>, successMessage?: string) => Promise<void>
 }) {
+  const decided = match.status === 'finished' && Boolean(match.winner_player_id)
+  const tied = match.status === 'finished' && !match.winner_player_id
+  const winner = players.find((p) => p.id === match.winner_player_id)
+
   return (
     <Card>
-      <p className="text-sm font-semibold mb-2">Encerrar {label}</p>
-      <div className="flex flex-col gap-1.5">
-        <Button
-          size="md"
-          variant="danger"
-          disabled={busy}
-          onClick={() => call('presenter_end_match', { p_match_id: matchId, p_winner_player_id: null }, `${label} encerrada.`)}
-        >
-          Encerrar automaticamente
-        </Button>
-        {players.map((p) => (
-          <Button
-            key={p.id}
-            size="md"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => call('presenter_end_match', { p_match_id: matchId, p_winner_player_id: p.id }, `${p.display_name} definido como vencedor.`)}
-          >
-            Declarar {p.display_name} vencedor
-          </Button>
-        ))}
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-sm font-semibold">{label}</p>
+        <Link to={`/apresentador/${match.id}`} target="_blank" className="text-xs text-ink-muted hover:text-ink underline">
+          Painel individual
+        </Link>
       </div>
+
+      {decided && <p className="text-sm text-success font-medium">🏆 {winner?.display_name} venceu</p>}
+
+      {tied && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-sm text-danger font-medium mb-1">Empate!</p>
+          <Button
+            size="md"
+            disabled={busy}
+            onClick={() =>
+              call(
+                'presenter_extend_duel_tiebreak',
+                { p_match_id: match.id },
+                'Rodada extra liberada — continue no painel individual dessa semifinal.',
+              )
+            }
+          >
+            Rodar pergunta de desempate
+          </Button>
+          {players.map((p) => (
+            <Button
+              key={p.id}
+              size="md"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => call('presenter_end_match', { p_match_id: match.id, p_winner_player_id: p.id }, `${p.display_name} definido como vencedor.`)}
+            >
+              Declarar {p.display_name} vencedor
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {match.status === 'in_progress' && (
+        <div className="flex flex-col gap-1.5">
+          <Button
+            size="md"
+            variant="danger"
+            disabled={busy}
+            onClick={() => call('presenter_end_match', { p_match_id: match.id, p_winner_player_id: null }, `${label} encerrada.`)}
+          >
+            Encerrar automaticamente
+          </Button>
+          {players.map((p) => (
+            <Button
+              key={p.id}
+              size="md"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => call('presenter_end_match', { p_match_id: match.id, p_winner_player_id: p.id }, `${p.display_name} definido como vencedor.`)}
+            >
+              Declarar {p.display_name} vencedor
+            </Button>
+          ))}
+        </div>
+      )}
     </Card>
   )
 }

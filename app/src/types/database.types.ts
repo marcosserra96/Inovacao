@@ -578,6 +578,9 @@ export interface Database {
       presenter_void_paired_duel_question: { Args: { p_match_id: string }; Returns: void }
       presenter_restart_paired_duel_round: { Args: { p_match_id: string }; Returns: void }
       presenter_next_paired_duel_round: { Args: { p_match_id: string }; Returns: Json }
+      // Reabre uma partida encerrada em empate pra rodar mais uma rodada,
+      // puxando perguntas do pool da etapa 1 (evita esgotar o pool do duelo).
+      presenter_extend_duel_tiebreak: { Args: { p_match_id: string }; Returns: Json }
       presenter_set_manual_score: { Args: { p_round_id: string; p_player_id: string; p_points: number }; Returns: void }
       presenter_disconnect_player: { Args: { p_player_id: string }; Returns: void }
       presenter_set_player_connected: {
