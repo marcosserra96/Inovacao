@@ -24,7 +24,16 @@ export function useRealtimeList<T extends Record<string, unknown>>(
   const retry = useCallback(() => setRetryTick((n) => n + 1), [])
 
   useEffect(() => {
-    if (!filterValue) return
+    if (!filterValue) {
+      // Sem valor de filtro (ex.: ainda não existe rodada atual) não é "sem
+      // mudança" — é uma lista vazia. Sem isso, telas que trocam de rodada
+      // (ex.: currentRound?.id passando a undefined entre perguntas) ficam
+      // com dados da rodada anterior até a próxima existir.
+      setRows([])
+      setLoading(false)
+      setError(null)
+      return
+    }
     let active = true
 
     async function fetchCurrent() {

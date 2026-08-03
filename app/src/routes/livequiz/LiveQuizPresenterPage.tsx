@@ -292,7 +292,8 @@ export function LiveQuizPresenterPage() {
                     </div>
                   </>
                 )}
-                {(session.phase === 'time_up' || answerPct === 100) &&
+                {currentRound &&
+                  (session.phase === 'time_up' || answerPct === 100) &&
                   session.phase !== 'result_revealed' &&
                   session.phase !== 'tiebreaker_reveal' && (
                     <Button
