@@ -11,7 +11,7 @@ type Category = Database['public']['Tables']['categories']['Row']
  * Lista de perguntas com checkbox, usada para montar o conteúdo de uma
  * etapa (quiz coletivo, duelo) direto na tela de criação — sem precisar
  * passar por "Conjuntos" antes. O conjunto de perguntas em si é criado por
- * baixo dos panos a partir da seleção (ver LiveQuizSessionForm).
+ * baixo dos panos a partir da seleção (ver AdminLiveQuizConfigPage).
  */
 export function QuestionPicker({
   questions,

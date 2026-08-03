@@ -12,6 +12,7 @@ const navItems = [
   { to: '/admin/categorias', label: 'Categorias' },
   { to: '/admin/conjuntos', label: 'Conjuntos' },
   { to: '/admin/sessoes', label: 'Sessões e partidas' },
+  { to: '/admin/manutencao', label: 'Manutenção' },
   { to: '/admin/configuracoes', label: 'Configurações' },
   { to: '/admin/usuarios', label: 'Usuários' },
 ]

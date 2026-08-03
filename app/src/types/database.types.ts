@@ -362,6 +362,25 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['live_quiz_sessions']['Row']>
         Relationships: []
       }
+      live_quiz_defaults: {
+        Row: {
+          id: boolean
+          question_set_id: string | null
+          scoring_config_id: string | null
+          questions_total: number
+          show_ranking_after_question: boolean
+          hide_statement_on_phone: boolean
+          finalists_count: number
+          duel_question_set_id: string | null
+          duel_scoring_config_id: string | null
+          duel_rounds_total: number
+          duel_win_condition: DuelWinCondition
+          updated_at: string
+        }
+        Insert: never
+        Update: Partial<Omit<Database['public']['Tables']['live_quiz_defaults']['Row'], 'id' | 'updated_at'>>
+        Relationships: []
+      }
       live_quiz_participants: {
         Row: {
           id: string
@@ -613,6 +632,9 @@ export interface Database {
       presenter_set_live_quiz_paused: { Args: { p_session_id: string; p_paused: boolean }; Returns: void }
       presenter_cancel_live_quiz: { Args: { p_session_id: string }; Returns: void }
       presenter_finish_live_quiz: { Args: { p_session_id: string }; Returns: void }
+      // Cria e já abre o lobby de uma sessão a partir de live_quiz_defaults
+      // — usada pelo botão único "Iniciar dinâmica". Retorna { sessionId, code }.
+      presenter_start_live_quiz_from_defaults: { Args: { p_name?: string | null }; Returns: Json }
     }
     Enums: {
       admin_role: AdminRole

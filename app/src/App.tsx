@@ -16,6 +16,8 @@ import { LiveQuizPresenterPage } from '@/routes/livequiz/LiveQuizPresenterPage'
 import { AdminLoginPage } from '@/routes/admin/AdminLoginPage'
 import { AdminDashboardPage } from '@/routes/admin/AdminDashboardPage'
 import { AdminGameControlPage } from '@/routes/admin/AdminGameControlPage'
+import { AdminLiveQuizConfigPage } from '@/routes/admin/AdminLiveQuizConfigPage'
+import { AdminMaintenancePage } from '@/routes/admin/AdminMaintenancePage'
 import { AdminQuestionsPage } from '@/routes/admin/AdminQuestionsPage'
 import { AdminCategoriesPage } from '@/routes/admin/AdminCategoriesPage'
 import { AdminSetsPage } from '@/routes/admin/AdminSetsPage'
@@ -89,6 +91,22 @@ function App() {
           element={
             <ProtectedRoute>
               <AdminGameControlPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/jogo/perguntas"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminLiveQuizConfigPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/manutencao"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminMaintenancePage />
             </ProtectedRoute>
           }
         />
