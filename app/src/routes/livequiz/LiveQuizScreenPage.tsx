@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import { StageShell } from '@/components/layout/StageShell'
 import { QrCode } from '@/components/ui/QrCode'
@@ -166,15 +166,7 @@ export function LiveQuizScreenPage() {
   }
 
   if (session.phase === 'duel_semifinals') {
-    return (
-      <StageShell>
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-          <p className="font-display text-2xl uppercase tracking-[0.3em] opacity-70">Etapa final</p>
-          <h1 className="font-display text-5xl font-bold">As semifinais já estão rolando!</h1>
-          <p className="text-xl opacity-70">Abra a tela do telão de cada semifinal no painel do apresentador.</p>
-        </div>
-      </StageShell>
-    )
+    return <Navigate to={`/telao-semifinais/${sessionId}`} replace />
   }
 
   if (session.phase === 'quiz_finished') {

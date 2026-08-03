@@ -413,35 +413,31 @@ export function LiveQuizPresenterPage() {
 
         {session.phase === 'duel_semifinals' && (
           <Card>
-            <h2 className="font-display text-lg font-bold mb-3">Semifinais</h2>
-            <div className="flex flex-col gap-3 mb-4">
-              {[
-                { match: semifinal1, id: session.semifinal1_match_id, label: 'Semifinal 1' },
-                { match: semifinal2, id: session.semifinal2_match_id, label: 'Semifinal 2' },
-              ].map(({ match, id, label }) => (
-                <div key={label} className="rounded-xl bg-bg p-3.5">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-semibold text-sm">{label}</p>
-                    <Badge tone={match?.status === 'finished' ? 'success' : 'neutral'}>
-                      {match?.status === 'finished' ? 'Encerrada' : match?.status === 'in_progress' ? 'Em andamento' : 'Carregando…'}
-                    </Badge>
-                  </div>
-                  {id && (
-                    <div className="flex gap-2">
-                      <Link to={`/apresentador/${id}`} target="_blank" className="flex-1">
-                        <Button size="md" variant="ghost" className="w-full">
-                          Painel
-                        </Button>
-                      </Link>
-                      <Link to={`/telao/${id}`} target="_blank" className="flex-1">
-                        <Button size="md" variant="ghost" className="w-full">
-                          Telão
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              ))}
+            <h2 className="font-display text-lg font-bold mb-1">Semifinais</h2>
+            <p className="text-sm text-ink-muted mb-3">
+              As duas duplas respondem a mesma pergunta ao mesmo tempo — um único painel controla as duas.
+            </p>
+            <div className="flex items-center justify-between mb-4 rounded-xl bg-bg p-3.5">
+              <div className="flex gap-4 text-sm">
+                <span>
+                  Semifinal 1: <Badge tone={semifinal1?.status === 'finished' ? 'success' : 'neutral'}>{semifinal1?.status === 'finished' ? 'Encerrada' : 'Em andamento'}</Badge>
+                </span>
+                <span>
+                  Semifinal 2: <Badge tone={semifinal2?.status === 'finished' ? 'success' : 'neutral'}>{semifinal2?.status === 'finished' ? 'Encerrada' : 'Em andamento'}</Badge>
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-2 mb-4">
+              <Link to={`/telao-semifinais/${sessionId}`} target="_blank" className="flex-1">
+                <Button variant="ghost" className="w-full">
+                  Abrir telão
+                </Button>
+              </Link>
+              <Link to={`/apresentador-semifinais/${sessionId}`} target="_blank" className="flex-1">
+                <Button variant="accent" className="w-full">
+                  Painel das semifinais
+                </Button>
+              </Link>
             </div>
             <Button
               className="w-full"

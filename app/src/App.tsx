@@ -13,6 +13,8 @@ import { LiveQuizJoinPage } from '@/routes/livequiz/LiveQuizJoinPage'
 import { LiveQuizPlayerPage } from '@/routes/livequiz/LiveQuizPlayerPage'
 import { LiveQuizScreenPage } from '@/routes/livequiz/LiveQuizScreenPage'
 import { LiveQuizPresenterPage } from '@/routes/livequiz/LiveQuizPresenterPage'
+import { LiveQuizSemifinalsPresenterPage } from '@/routes/livequiz/LiveQuizSemifinalsPresenterPage'
+import { LiveQuizSemifinalsScreenPage } from '@/routes/livequiz/LiveQuizSemifinalsScreenPage'
 import { AdminLoginPage } from '@/routes/admin/AdminLoginPage'
 import { AdminDashboardPage } from '@/routes/admin/AdminDashboardPage'
 import { AdminGameControlPage } from '@/routes/admin/AdminGameControlPage'
@@ -45,6 +47,15 @@ function App() {
           element={
             <ProtectedRoute>
               <LiveQuizPresenterPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/telao-semifinais/:sessionId" element={<LiveQuizSemifinalsScreenPage />} />
+        <Route
+          path="/apresentador-semifinais/:sessionId"
+          element={
+            <ProtectedRoute>
+              <LiveQuizSemifinalsPresenterPage />
             </ProtectedRoute>
           }
         />

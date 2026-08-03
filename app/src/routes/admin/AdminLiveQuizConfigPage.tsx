@@ -44,6 +44,8 @@ export function AdminLiveQuizConfigPage() {
   const [duelRoundsTotal, setDuelRoundsTotal] = useState(5)
   const [duelWinCondition, setDuelWinCondition] = useState<DuelWinCondition>('score')
   const [rulesText, setRulesText] = useState('')
+  const [sameQuestionsForFinal, setSameQuestionsForFinal] = useState(true)
+  const [finalQuestionIds, setFinalQuestionIds] = useState<string[]>([])
 
   useEffect(() => {
     async function load() {
@@ -68,17 +70,22 @@ export function AdminLiveQuizConfigPage() {
         setDuelRoundsTotal(def.duel_rounds_total)
         setDuelWinCondition(def.duel_win_condition)
         setRulesText(def.rules_text)
+        setSameQuestionsForFinal(def.final_question_set_id === null || def.final_question_set_id === def.duel_question_set_id)
 
-        const [{ data: quizItems }, { data: duelItems }] = await Promise.all([
+        const [{ data: quizItems }, { data: duelItems }, { data: finalItems }] = await Promise.all([
           def.question_set_id
             ? supabase.from('question_set_items').select('question_id').eq('question_set_id', def.question_set_id)
             : Promise.resolve({ data: [] as { question_id: string }[] }),
           def.duel_question_set_id && def.duel_question_set_id !== def.question_set_id
             ? supabase.from('question_set_items').select('question_id').eq('question_set_id', def.duel_question_set_id)
             : Promise.resolve({ data: [] as { question_id: string }[] }),
+          def.final_question_set_id && def.final_question_set_id !== def.duel_question_set_id
+            ? supabase.from('question_set_items').select('question_id').eq('question_set_id', def.final_question_set_id)
+            : Promise.resolve({ data: [] as { question_id: string }[] }),
         ])
         setQuizQuestionIds((quizItems ?? []).map((i) => i.question_id))
         setDuelQuestionIds((duelItems ?? []).map((i) => i.question_id))
+        setFinalQuestionIds((finalItems ?? []).map((i) => i.question_id))
       }
       setLoading(false)
     }
@@ -129,6 +136,10 @@ export function AdminLiveQuizConfigPage() {
       notify('Selecione ao menos uma pergunta para o duelo, ou marque "usar as mesmas do quiz".', 'error')
       return
     }
+    if (finalistsCount === 4 && !sameQuestionsForFinal && finalQuestionIds.length === 0) {
+      notify('Selecione ao menos uma pergunta para a final, ou marque "usar as mesmas do duelo".', 'error')
+      return
+    }
 
     setSaving(true)
 
@@ -148,6 +159,16 @@ export function AdminLiveQuizConfigPage() {
       }
     }
 
+    let finalSetId: string | null = null
+    if (finalistsCount === 4 && !sameQuestionsForFinal) {
+      const existingFinalSetId = defaults?.final_question_set_id && defaults.final_question_set_id !== defaults.duel_question_set_id ? defaults.final_question_set_id : null
+      finalSetId = await saveSelection(existingFinalSetId, 'Dinâmica — Final', finalQuestionIds)
+      if (!finalSetId) {
+        setSaving(false)
+        return
+      }
+    }
+
     const { data, error } = await supabase
       .from('live_quiz_defaults')
       .update({
@@ -161,6 +182,7 @@ export function AdminLiveQuizConfigPage() {
         duel_rounds_total: duelRoundsTotal,
         duel_win_condition: duelWinCondition,
         rules_text: rulesText,
+        final_question_set_id: finalSetId,
       })
       .eq('id', true)
       .select()
@@ -270,6 +292,34 @@ export function AdminLiveQuizConfigPage() {
             )}
           </div>
         </div>
+
+        {finalistsCount === 4 && (
+          <div className="pt-2 border-t border-border">
+            <p className="text-sm font-semibold text-ink mb-1">Etapa 3 — Final</p>
+            <p className="text-xs text-ink-muted mb-3">
+              As duas semifinais já respondem às mesmas perguntas ao mesmo tempo. Aqui você define as perguntas da
+              final — separadas das semifinais, para não repetir.
+            </p>
+            <Switch
+              checked={sameQuestionsForFinal}
+              onChange={(checked) => {
+                setSameQuestionsForFinal(checked)
+                if (!checked && finalQuestionIds.length === 0) setFinalQuestionIds(sameQuestionsForDuel ? quizQuestionIds : duelQuestionIds)
+              }}
+              label="Usar as mesmas perguntas do duelo (etapa 2) na final"
+            />
+            <div className="mt-3">
+              <p className="text-sm font-medium text-ink mb-1.5">Perguntas da final (etapa 3)</p>
+              {sameQuestionsForFinal ? (
+                <p className="text-sm text-ink-muted rounded-xl border border-dashed border-border p-4 text-center">
+                  Usando as mesmas perguntas da etapa 2 — desmarque a opção acima para escolher outras.
+                </p>
+              ) : (
+                <QuestionPicker questions={questions} categories={categories} selectedIds={finalQuestionIds} onChange={setFinalQuestionIds} />
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-end pt-2">
           <Button onClick={handleSave} disabled={saving}>

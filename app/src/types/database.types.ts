@@ -248,6 +248,7 @@ export interface Database {
           screen_message: string | null
           locked: boolean
           winner_player_id: string | null
+          paired_match_id: string | null
           started_at: string | null
           ended_at: string | null
           status: DuelMatchStatus
@@ -345,6 +346,7 @@ export interface Database {
           duel_rounds_total: number
           duel_win_condition: DuelWinCondition
           rules_text: string | null
+          final_question_set_id: string | null
           presenter_id: string | null
           screen_message: string | null
           promoted_duel_match_id: string | null
@@ -377,6 +379,7 @@ export interface Database {
           duel_rounds_total: number
           duel_win_condition: DuelWinCondition
           rules_text: string
+          final_question_set_id: string | null
           updated_at: string
         }
         Insert: never
@@ -564,6 +567,17 @@ export interface Database {
       presenter_restart_round: { Args: { p_match_id: string }; Returns: void }
       presenter_next_round: { Args: { p_match_id: string }; Returns: Json }
       presenter_end_match: { Args: { p_match_id: string; p_winner_player_id?: string | null }; Returns: void }
+      // Versões "pareadas": aplicam a ação nas duas semifinais de uma vez
+      // (mesma pergunta, mesmo instante) — passe o id de qualquer uma delas.
+      presenter_show_paired_duel_question: { Args: { p_match_id: string }; Returns: Json }
+      presenter_start_paired_duel_timer: { Args: { p_match_id: string }; Returns: void }
+      presenter_pause_paired_duel_timer: { Args: { p_match_id: string }; Returns: void }
+      presenter_resume_paired_duel_timer: { Args: { p_match_id: string }; Returns: void }
+      presenter_end_paired_duel_question_early: { Args: { p_match_id: string }; Returns: void }
+      presenter_reveal_paired_duel_answer: { Args: { p_match_id: string }; Returns: void }
+      presenter_void_paired_duel_question: { Args: { p_match_id: string }; Returns: void }
+      presenter_restart_paired_duel_round: { Args: { p_match_id: string }; Returns: void }
+      presenter_next_paired_duel_round: { Args: { p_match_id: string }; Returns: Json }
       presenter_set_manual_score: { Args: { p_round_id: string; p_player_id: string; p_points: number }; Returns: void }
       presenter_disconnect_player: { Args: { p_player_id: string }; Returns: void }
       presenter_set_player_connected: {
