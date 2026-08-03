@@ -141,8 +141,8 @@ export function LiveQuizScreenPage() {
         <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
           <p className="font-display text-2xl uppercase tracking-[0.3em] opacity-70">Os finalistas são</p>
           <div className="flex gap-16">
-            {finalists.map((p) => (
-              <div key={p.id}>
+            {finalists.map((p, i) => (
+              <div key={p.id} className="animate-pop" style={{ animationDelay: `${i * 0.4}s` }}>
                 <p className="font-display text-6xl font-bold">{p.display_name}</p>
                 <p className="text-xl opacity-70 mt-2">{p.total_score} pontos</p>
               </div>
@@ -153,13 +153,16 @@ export function LiveQuizScreenPage() {
     )
   }
 
-  if (session.phase === 'duel_ready' || session.phase === 'duel_final' || session.status === 'finished') {
+  if ((session.phase === 'duel_ready' || session.phase === 'duel_final') && session.promoted_duel_match_id) {
+    return <Navigate to={`/telao/${session.promoted_duel_match_id}`} replace />
+  }
+
+  if (session.status === 'finished') {
     return (
       <StageShell>
         <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
           <p className="font-display text-2xl uppercase tracking-[0.3em] opacity-70">Etapa final</p>
-          <h1 className="font-display text-5xl font-bold">{session.phase === 'duel_final' ? 'A final já está rolando!' : 'O duelo já está rolando!'}</h1>
-          <p className="text-xl opacity-70">Abra a tela do telão do duelo no painel do apresentador.</p>
+          <h1 className="font-display text-5xl font-bold">Dinâmica encerrada!</h1>
         </div>
       </StageShell>
     )

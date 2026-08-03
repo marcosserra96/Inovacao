@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import { StageShell } from '@/components/layout/StageShell'
 import { QrCode } from '@/components/ui/QrCode'
 import { RetryableError } from '@/components/ui/RetryableError'
+import { Confetti } from '@/components/ui/Confetti'
 import { useRealtimeRow } from '@/hooks/useRealtimeRow'
 import { useRealtimeList } from '@/hooks/useRealtimeList'
 import { useDuelTimer } from '@/hooks/useDuelTimer'
@@ -30,9 +31,19 @@ export function ScreenPage() {
   const { rows: flags } = useRealtimeList<AnswerFlag>('duel_answer_flags', 'round_id', currentRound?.id)
   const [question, setQuestion] = useState<QuestionPayload | null>(null)
   const remainingMs = useDuelTimer(currentRound)
+  const [winnerRevealed, setWinnerRevealed] = useState(false)
 
   const disputants = players.filter((p) => p.is_active_disputant)
   const [p1, p2] = disputants
+
+  useEffect(() => {
+    if (match?.status !== 'finished') {
+      setWinnerRevealed(false)
+      return
+    }
+    const timer = setTimeout(() => setWinnerRevealed(true), 2200)
+    return () => clearTimeout(timer)
+  }, [match?.status, match?.id])
 
   useEffect(() => {
     if (!currentRound) {
@@ -92,12 +103,17 @@ export function ScreenPage() {
     const winner = players.find((p) => p.id === match.winner_player_id)
     return (
       <StageShell>
+        {winnerRevealed && <Confetti count={90} />}
         <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
           <p className="font-display text-2xl uppercase tracking-[0.3em] opacity-70">Fim de jogo</p>
-          <h1 className="font-display text-6xl font-bold">{winner ? `${winner.display_name} venceu! 🏆` : 'Empate!'}</h1>
+          {winnerRevealed ? (
+            <h1 className="font-display text-6xl font-bold animate-pop">{winner ? `${winner.display_name} venceu! 🏆` : 'Empate!'}</h1>
+          ) : (
+            <h1 className="font-display text-4xl font-bold opacity-80 animate-pulse">🥁 Apurando o resultado…</h1>
+          )}
           <div className="flex gap-16 mt-6">
             {disputants.map((p) => (
-              <div key={p.id} className="text-center">
+              <div key={p.id} className={clsx('text-center', winnerRevealed && p.id === match.winner_player_id && 'animate-pop')}>
                 <p className="text-xl opacity-70">{p.display_name}</p>
                 <p className="font-display text-5xl font-bold">{p.total_score}</p>
               </div>

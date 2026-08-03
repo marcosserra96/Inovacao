@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -109,22 +109,14 @@ export function LiveQuizSemifinalsPresenterPage() {
           </div>
         </div>
 
-        {bothDecided ? (
+        {bothDecided && session.promoted_duel_match_id ? (
+          <Navigate to={`/apresentador/${session.promoted_duel_match_id}`} replace />
+        ) : bothDecided ? (
           <Card className="text-center">
-            <p className="font-semibold text-success mb-1">Semifinais encerradas!</p>
-            <p className="text-sm text-ink-muted mb-3">
-              {session.promoted_duel_match_id ? 'A final já foi criada.' : 'A final começa automaticamente assim que os dois vencedores estiverem definidos.'}
-            </p>
-            {session.promoted_duel_match_id && (
-              <div className="flex gap-2 justify-center">
-                <Link to={`/telao/${session.promoted_duel_match_id}`} target="_blank">
-                  <Button variant="ghost">Telão da final</Button>
-                </Link>
-                <Link to={`/apresentador/${session.promoted_duel_match_id}`} target="_blank">
-                  <Button variant="accent">Painel da final</Button>
-                </Link>
-              </div>
-            )}
+            <p className="font-semibold text-success mb-3">Semifinais encerradas! Preparando a final…</p>
+            <Button disabled={busy} onClick={() => call('presenter_start_live_quiz_final', { p_session_id: sessionId }, 'Final iniciada!')}>
+              Iniciar final
+            </Button>
           </Card>
         ) : (
           <>

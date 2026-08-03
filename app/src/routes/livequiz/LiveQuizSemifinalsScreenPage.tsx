@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import { StageShell } from '@/components/layout/StageShell'
 import { RetryableError } from '@/components/ui/RetryableError'
+import { Confetti } from '@/components/ui/Confetti'
 import { useRealtimeRow } from '@/hooks/useRealtimeRow'
 import { useRealtimeList } from '@/hooks/useRealtimeList'
 import { useDuelTimer } from '@/hooks/useDuelTimer'
@@ -28,7 +29,7 @@ export function LiveQuizSemifinalsScreenPage() {
   const { row: match2 } = useRealtimeRow<DuelMatch>('duel_matches', session?.semifinal2_match_id ?? undefined)
   const { rows: players1 } = useRealtimeList<DuelPlayer>('duel_players', 'match_id', session?.semifinal1_match_id ?? undefined)
   const { rows: players2 } = useRealtimeList<DuelPlayer>('duel_players', 'match_id', session?.semifinal2_match_id ?? undefined)
-  const { rows: rounds1 } = useRealtimeList<DuelRound>('duel_rounds', 'match_id', session?.semifinal1_match_id ?? undefined)
+  const { rows: rounds1, loading: rounds1Loading } = useRealtimeList<DuelRound>('duel_rounds', 'match_id', session?.semifinal1_match_id ?? undefined)
   const { rows: rounds2 } = useRealtimeList<DuelRound>('duel_rounds', 'match_id', session?.semifinal2_match_id ?? undefined)
 
   const round1 = useMemo(
@@ -44,6 +45,8 @@ export function LiveQuizSemifinalsScreenPage() {
 
   const [question, setQuestion] = useState<QuestionPayload | null>(null)
   const remainingMs = useDuelTimer(round1)
+  const [showDrawSuspense, setShowDrawSuspense] = useState(false)
+  const [winnersRevealed, setWinnersRevealed] = useState(false)
 
   useEffect(() => {
     if (!round1) {
@@ -54,6 +57,28 @@ export function LiveQuizSemifinalsScreenPage() {
       .rpc('get_public_duel_round_question', { p_round_id: round1.id })
       .then(({ data }) => setQuestion((data as unknown as QuestionPayload) ?? null))
   }, [round1?.id, round1?.revealed_at])
+
+  useEffect(() => {
+    if (!match1 || rounds1Loading) return
+    const isFreshStart = match1.current_round_number === 1 && rounds1.length === 0
+    if (!isFreshStart) {
+      setShowDrawSuspense(false)
+      return
+    }
+    setShowDrawSuspense(true)
+    const timer = setTimeout(() => setShowDrawSuspense(false), 3000)
+    return () => clearTimeout(timer)
+  }, [match1?.id, rounds1Loading])
+
+  useEffect(() => {
+    const bothDone = match1?.status === 'finished' && match2?.status === 'finished'
+    if (!bothDone) {
+      setWinnersRevealed(false)
+      return
+    }
+    const timer = setTimeout(() => setWinnersRevealed(true), 2200)
+    return () => clearTimeout(timer)
+  }, [match1?.status, match2?.status, match1?.id, match2?.id])
 
   if (sessionError) {
     return (
@@ -75,23 +100,54 @@ export function LiveQuizSemifinalsScreenPage() {
     )
   }
 
+  if (session.promoted_duel_match_id) {
+    return <Navigate to={`/telao/${session.promoted_duel_match_id}`} replace />
+  }
+
+  if (showDrawSuspense) {
+    const allNames = [...players1, ...players2].filter((p) => p.is_active_disputant)
+    return (
+      <StageShell>
+        <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
+          <p className="font-display text-3xl uppercase tracking-[0.3em] animate-pulse">🎲 Sorteando as duplas…</p>
+          <div className="flex flex-wrap gap-4 justify-center max-w-2xl">
+            {allNames.map((p, i) => (
+              <span
+                key={p.id}
+                className="rounded-full bg-white/10 border border-white/20 px-6 py-3 text-xl font-medium animate-float"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              >
+                {p.display_name}
+              </span>
+            ))}
+          </div>
+        </div>
+      </StageShell>
+    )
+  }
+
   if (match1.status === 'finished' && match2.status === 'finished') {
     const winner1 = players1.find((p) => p.id === match1.winner_player_id)
     const winner2 = players2.find((p) => p.id === match2.winner_player_id)
     return (
       <StageShell>
+        {winnersRevealed && <Confetti count={90} />}
         <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
           <p className="font-display text-2xl uppercase tracking-[0.3em] opacity-70">Semifinais encerradas</p>
-          <div className="flex gap-20">
-            <div>
-              <p className="text-lg opacity-70 mb-1">Semifinal 1</p>
-              <p className="font-display text-4xl font-bold">{winner1 ? `${winner1.display_name} 🏆` : 'Empate'}</p>
+          {winnersRevealed ? (
+            <div className="flex gap-20 animate-pop">
+              <div>
+                <p className="text-lg opacity-70 mb-1">Semifinal 1</p>
+                <p className="font-display text-4xl font-bold">{winner1 ? `${winner1.display_name} 🏆` : 'Empate'}</p>
+              </div>
+              <div>
+                <p className="text-lg opacity-70 mb-1">Semifinal 2</p>
+                <p className="font-display text-4xl font-bold">{winner2 ? `${winner2.display_name} 🏆` : 'Empate'}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-lg opacity-70 mb-1">Semifinal 2</p>
-              <p className="font-display text-4xl font-bold">{winner2 ? `${winner2.display_name} 🏆` : 'Empate'}</p>
-            </div>
-          </div>
+          ) : (
+            <p className="font-display text-3xl font-bold opacity-80 animate-pulse">🥁 Apurando os resultados…</p>
+          )}
           <p className="text-xl opacity-70 mt-4">A final já vai começar…</p>
         </div>
       </StageShell>
