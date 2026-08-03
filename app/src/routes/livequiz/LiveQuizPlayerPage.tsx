@@ -119,7 +119,7 @@ export function LiveQuizPlayerPage() {
   useEffect(() => {
     if (!myResult) return
     setFlashTone(myResult.isCorrect ? 'correct' : myResult.isLate ? 'late' : 'wrong')
-    const timer = setTimeout(() => setFlashTone(null), 500)
+    const timer = setTimeout(() => setFlashTone(null), 1300)
     return () => clearTimeout(timer)
   }, [myResult?.isCorrect, myResult?.isLate, currentRound?.id])
 
