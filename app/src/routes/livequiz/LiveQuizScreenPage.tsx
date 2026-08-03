@@ -249,13 +249,14 @@ export function LiveQuizScreenPage() {
 function RankingList({ ranking }: { ranking: RankingRow[] }) {
   return (
     <div className="flex flex-col gap-3 w-full max-w-2xl">
-      {ranking.map((r) => (
+      {ranking.map((r, i) => (
         <div
           key={r.participant_id}
           className={clsx(
-            'flex items-center justify-between rounded-2xl px-6 py-4 text-2xl',
+            'flex items-center justify-between rounded-2xl px-6 py-4 text-2xl animate-pop',
             r.rank <= 3 ? 'bg-accent/20 font-bold' : 'bg-white/5',
           )}
+          style={{ animationDelay: `${(ranking.length - 1 - i) * 0.15}s` }}
         >
           <span>
             {r.rank}º · {r.display_name}

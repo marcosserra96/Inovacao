@@ -66,14 +66,19 @@ export function DuelPlayerPage() {
   useEffect(() => {
     setSelectedOptionId(null)
     setResult(null)
-    if (!currentRound) {
-      setQuestion(null)
-      return
-    }
+    setQuestion(null)
+  }, [currentRound?.id])
+
+  // Refaz esta busca também quando revealed_at muda (mesma rodada) — sem
+  // isso, a resposta certa nunca acendia em verde no próprio celular até
+  // dar F5, porque build_question_payload só entrega isCorrect de verdade
+  // depois da revelação.
+  useEffect(() => {
+    if (!currentRound) return
     supabase
       .rpc('get_public_duel_round_question', { p_round_id: currentRound.id })
       .then(({ data }) => setQuestion((data as unknown as QuestionPayload) ?? null))
-  }, [currentRound?.id])
+  }, [currentRound?.id, currentRound?.revealed_at])
 
   useEffect(() => {
     if (!currentRound?.revealed_at) return

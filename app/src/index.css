@@ -51,6 +51,7 @@
   --animate-pop: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   --animate-confetti: confetti-fall 2.6s ease-in forwards;
   --animate-float: float 6s ease-in-out infinite;
+  --animate-flash: flash-fade 0.45s ease-out both;
 }
 
 @keyframes fade-up {
@@ -93,6 +94,15 @@
   }
   50% {
     transform: translateY(-10px);
+  }
+}
+
+@keyframes flash-fade {
+  0% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
   }
 }
 

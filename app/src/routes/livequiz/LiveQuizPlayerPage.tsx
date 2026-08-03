@@ -8,9 +8,11 @@ import { Spinner } from '@/components/ui/Spinner'
 import { TimerRing } from '@/components/ui/TimerRing'
 import { RetryableError } from '@/components/ui/RetryableError'
 import { SparkBadge } from '@/components/ui/SparkBadge'
+import { AnswerFlash } from '@/components/ui/AnswerFlash'
 import { useRealtimeRow } from '@/hooks/useRealtimeRow'
 import { useRealtimeList } from '@/hooks/useRealtimeList'
 import { useDuelTimer } from '@/hooks/useDuelTimer'
+import { useCountUp } from '@/hooks/useCountUp'
 import { supabase } from '@/lib/supabase'
 import { loadLiveQuizParticipant } from '@/lib/liveQuizStorage'
 import { saveDuelPlayer } from '@/lib/duelPlayerStorage'
@@ -53,20 +55,26 @@ export function LiveQuizPlayerPage() {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [promoting, setPromoting] = useState(false)
+  const [flashTone, setFlashTone] = useState<'correct' | 'wrong' | 'late' | null>(null)
 
   const remainingMs = useDuelTimer(currentRound)
 
   useEffect(() => {
     setSelectedOptionId(null)
     setResult(null)
-    if (!currentRound) {
-      setQuestion(null)
-      return
-    }
+    setQuestion(null)
+  }, [currentRound?.id])
+
+  // Refaz esta busca também quando revealed_at muda (mesma rodada) — sem
+  // isso, a resposta certa nunca acendia em verde no próprio celular até
+  // dar F5, porque build_question_payload só entrega isCorrect de verdade
+  // depois da revelação.
+  useEffect(() => {
+    if (!currentRound) return
     supabase
       .rpc('get_public_live_quiz_round_question', { p_round_id: currentRound.id })
       .then(({ data }) => setQuestion((data as unknown as QuestionPayload) ?? null))
-  }, [currentRound?.id])
+  }, [currentRound?.id, currentRound?.revealed_at])
 
   useEffect(() => {
     if (!currentRound?.revealed_at) return
@@ -106,6 +114,14 @@ export function LiveQuizPlayerPage() {
   const iAnswered = flags.some((f) => f.participant_id === participantId && f.answered)
   const myResult = result?.answers.find((a) => a.participantId === participantId)
   const myRanking = ranking.find((r) => r.participant_id === participantId)
+  const pointsCounted = useCountUp(myResult?.pointsAwarded ?? 0, Boolean(myResult?.isCorrect))
+
+  useEffect(() => {
+    if (!myResult) return
+    setFlashTone(myResult.isCorrect ? 'correct' : myResult.isLate ? 'late' : 'wrong')
+    const timer = setTimeout(() => setFlashTone(null), 500)
+    return () => clearTimeout(timer)
+  }, [myResult?.isCorrect, myResult?.isLate, currentRound?.id])
 
   async function handleAnswer(optionId: string) {
     if (!currentRound || submitting || iAnswered || !joinToken) return
@@ -279,13 +295,14 @@ export function LiveQuizPlayerPage() {
             </p>
           )}
           <ol className="flex flex-col gap-2">
-            {ranking.map((r) => (
+            {ranking.map((r, i) => (
               <li
                 key={r.participant_id}
                 className={clsx(
-                  'flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm',
+                  'flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm animate-pop',
                   r.participant_id === participantId ? 'bg-primary/10 font-semibold text-primary' : 'bg-bg',
                 )}
+                style={{ animationDelay: `${i * 0.08}s` }}
               >
                 <span>
                   {r.rank}º · {r.display_name}
@@ -312,6 +329,7 @@ export function LiveQuizPlayerPage() {
 
   return (
     <PublicShell>
+      {flashTone && <AnswerFlash tone={flashTone} />}
       <div className="flex items-center justify-between mb-4">
         <Badge tone="primary">
           {currentRound?.is_tiebreaker ? 'Desempate' : `Pergunta ${session.current_question_number}`}
@@ -391,13 +409,19 @@ export function LiveQuizPlayerPage() {
                 'Toque na alternativa correta.'}
               {iAnswered && !currentRound?.revealed_at && 'Resposta registrada! Aguardando o resultado…'}
               {currentRound?.revealed_at &&
-                (myResult
-                  ? myResult.isCorrect
-                    ? `Certa resposta! +${myResult.pointsAwarded} pontos.`
-                    : myResult.isLate
-                      ? 'Resposta fora do prazo.'
-                      : 'Resposta incorreta.'
-                  : 'Resultado revelado pelo apresentador.')}
+                (myResult ? (
+                  myResult.isCorrect ? (
+                    <>
+                      Certa resposta! <span className="font-bold text-success">+{pointsCounted} pontos.</span>
+                    </>
+                  ) : myResult.isLate ? (
+                    'Resposta fora do prazo.'
+                  ) : (
+                    'Resposta incorreta.'
+                  )
+                ) : (
+                  'Resultado revelado pelo apresentador.'
+                ))}
             </p>
           </>
         )}
