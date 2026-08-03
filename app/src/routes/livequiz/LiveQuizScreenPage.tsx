@@ -138,7 +138,7 @@ export function LiveQuizScreenPage() {
             <li>⚡ Uma pergunta por vez, para todo mundo ao mesmo tempo.</li>
             <li>⏱️ Responda rápido — quanto mais rápido, mais pontos.</li>
             <li>🔒 Só dá pra responder uma vez.</li>
-            <li>🏆 Os 2 melhores avançam para o duelo ao vivo.</li>
+            <li>🏆 Os {session.finalists_count} melhores avançam para o duelo ao vivo.</li>
           </ul>
         </div>
       </StageShell>
@@ -165,13 +165,25 @@ export function LiveQuizScreenPage() {
     )
   }
 
-  if (session.phase === 'duel_ready' || session.status === 'finished') {
+  if (session.phase === 'duel_ready' || session.phase === 'duel_final' || session.status === 'finished') {
     return (
       <StageShell>
         <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
           <p className="font-display text-2xl uppercase tracking-[0.3em] opacity-70">Etapa final</p>
-          <h1 className="font-display text-5xl font-bold">O duelo já está rolando!</h1>
+          <h1 className="font-display text-5xl font-bold">{session.phase === 'duel_final' ? 'A final já está rolando!' : 'O duelo já está rolando!'}</h1>
           <p className="text-xl opacity-70">Abra a tela do telão do duelo no painel do apresentador.</p>
+        </div>
+      </StageShell>
+    )
+  }
+
+  if (session.phase === 'duel_semifinals') {
+    return (
+      <StageShell>
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
+          <p className="font-display text-2xl uppercase tracking-[0.3em] opacity-70">Etapa final</p>
+          <h1 className="font-display text-5xl font-bold">As semifinais já estão rolando!</h1>
+          <p className="text-xl opacity-70">Abra a tela do telão de cada semifinal no painel do apresentador.</p>
         </div>
       </StageShell>
     )

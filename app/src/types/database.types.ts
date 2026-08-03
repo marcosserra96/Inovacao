@@ -40,6 +40,8 @@ export type LiveQuizPhase =
   | 'finalists_reveal'
   | 'duel_ready'
   | 'quiz_finished'
+  | 'duel_semifinals'
+  | 'duel_final'
 
 export interface Database {
   public: {
@@ -268,6 +270,7 @@ export interface Database {
           correct_count: number
           joined_at: string
           left_at: string | null
+          promoted_from_live_quiz_participant_id: string | null
         }
         Insert: never
         Update: never
@@ -344,6 +347,8 @@ export interface Database {
           presenter_id: string | null
           screen_message: string | null
           promoted_duel_match_id: string | null
+          semifinal1_match_id: string | null
+          semifinal2_match_id: string | null
           started_at: string | null
           finished_at: string | null
           created_at: string
@@ -584,7 +589,17 @@ export interface Database {
         Args: { p_session_id: string; p_out_participant_id: string; p_in_participant_id: string }
         Returns: void
       }
+      // Com finalists_count=2, cria o duelo final direto ({matchId}). Com
+      // finalists_count=4, cria as duas semifinais
+      // ({semifinal1MatchId, semifinal2MatchId}).
       presenter_start_duel_from_live_quiz: { Args: { p_session_id: string }; Returns: Json }
+      // Só existe no formato de 4 finalistas: cria a final entre os
+      // vencedores das semifinais, depois que ambas terminarem.
+      presenter_start_live_quiz_final: { Args: { p_session_id: string }; Returns: Json }
+      // Chamada pela tela do duelo quando a partida atual termina, pra
+      // descobrir se esse jogador venceu uma semifinal e foi promovido
+      // pra final.
+      get_my_live_quiz_reentry: { Args: { p_duel_player_id: string; p_duel_join_token: string }; Returns: Json }
       presenter_set_live_quiz_manual_score: {
         Args: { p_round_id: string; p_participant_id: string; p_points: number }
         Returns: void

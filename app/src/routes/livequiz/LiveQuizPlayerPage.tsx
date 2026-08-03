@@ -186,7 +186,24 @@ export function LiveQuizPlayerPage() {
 
   // Modo espectador: participante não-finalista, quiz já foi além da
   // seleção de finalistas. Placar público do duelo, sem token/segredo.
-  if (me.is_spectator && (session.phase === 'duel_ready' || session.promoted_duel_match_id)) {
+  // Durante as semifinais (formato de 4 finalistas), ainda não há um único
+  // duelo pra embutir o placar (são 2 rodando em sequência) — mostra uma
+  // tela simples direcionando pro telão em vez de tentar escolher qual.
+  if (me.is_spectator && session.phase === 'duel_semifinals') {
+    return (
+      <PublicShell>
+        <Card className="text-center">
+          <Badge tone="accent" className="mb-3">
+            Modo espectador
+          </Badge>
+          <h1 className="font-display text-xl font-bold mb-1">Semifinais em andamento!</h1>
+          <p className="text-ink-muted text-sm">{me.display_name}, acompanhe os duelos no telão.</p>
+        </Card>
+      </PublicShell>
+    )
+  }
+
+  if (me.is_spectator && (session.phase === 'duel_ready' || session.phase === 'duel_final' || session.promoted_duel_match_id)) {
     return <LiveQuizSpectatorView matchId={session.promoted_duel_match_id!} myName={me.display_name} />
   }
 
@@ -211,7 +228,7 @@ export function LiveQuizPlayerPage() {
             <li>⚡ Uma pergunta por vez, para todo mundo ao mesmo tempo.</li>
             <li>⏱️ Responda rápido — quanto mais rápido, mais pontos.</li>
             <li>🔒 Só dá pra responder uma vez, e não dá pra mudar depois.</li>
-            <li>🏆 Os 2 melhores no final avançam para o duelo ao vivo.</li>
+            <li>🏆 Os {session.finalists_count} melhores no final avançam para o duelo ao vivo.</li>
           </ul>
         </Card>
       </PublicShell>

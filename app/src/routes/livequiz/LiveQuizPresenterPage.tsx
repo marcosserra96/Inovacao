@@ -35,8 +35,12 @@ const phaseLabel: Record<string, string> = {
   tiebreaker_reveal: 'Desempate revelado',
   finalists_reveal: 'Finalistas revelados',
   duel_ready: 'Duelo final em andamento',
+  duel_semifinals: 'Semifinais em andamento',
+  duel_final: 'Duelo final em andamento',
   quiz_finished: 'Quiz encerrado — selecione os finalistas',
 }
+
+type DuelMatch = Database['public']['Tables']['duel_matches']['Row']
 
 /**
  * Painel do apresentador do quiz coletivo: mobile-first, um botão de ação
@@ -54,6 +58,9 @@ export function LiveQuizPresenterPage() {
     [rounds, session?.current_question_number],
   )
   const { rows: flags } = useRealtimeList<AnswerFlag>('live_quiz_answer_flags', 'round_id', currentRound?.id)
+  // Só usadas no formato de 4 finalistas (2 semifinais + final).
+  const { row: semifinal1 } = useRealtimeRow<DuelMatch>('duel_matches', session?.semifinal1_match_id ?? undefined)
+  const { row: semifinal2 } = useRealtimeRow<DuelMatch>('duel_matches', session?.semifinal2_match_id ?? undefined)
 
   const [question, setQuestion] = useState<QuestionPayload | null>(null)
   const [screenMessage, setScreenMessage] = useState('')
@@ -388,18 +395,79 @@ export function LiveQuizPresenterPage() {
                   </li>
                 ))}
             </ul>
-            <Button className="w-full" disabled={busy} onClick={() => call('presenter_start_duel_from_live_quiz', { p_session_id: sessionId }, 'Duelo final iniciado!')}>
-              Iniciar duelo final
+            <Button
+              className="w-full"
+              disabled={busy}
+              onClick={() =>
+                call(
+                  'presenter_start_duel_from_live_quiz',
+                  { p_session_id: sessionId },
+                  session.finalists_count === 4 ? 'Semifinais iniciadas!' : 'Duelo final iniciado!',
+                )
+              }
+            >
+              {session.finalists_count === 4 ? 'Iniciar semifinais' : 'Iniciar duelo final'}
             </Button>
           </Card>
         )}
 
-        {session.phase === 'duel_ready' && session.promoted_duel_match_id && (
+        {session.phase === 'duel_semifinals' && (
+          <Card>
+            <h2 className="font-display text-lg font-bold mb-3">Semifinais</h2>
+            <div className="flex flex-col gap-3 mb-4">
+              {[
+                { match: semifinal1, id: session.semifinal1_match_id, label: 'Semifinal 1' },
+                { match: semifinal2, id: session.semifinal2_match_id, label: 'Semifinal 2' },
+              ].map(({ match, id, label }) => (
+                <div key={label} className="rounded-xl bg-bg p-3.5">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-sm">{label}</p>
+                    <Badge tone={match?.status === 'finished' ? 'success' : 'neutral'}>
+                      {match?.status === 'finished' ? 'Encerrada' : match?.status === 'in_progress' ? 'Em andamento' : 'Carregando…'}
+                    </Badge>
+                  </div>
+                  {id && (
+                    <div className="flex gap-2">
+                      <Link to={`/apresentador/${id}`} target="_blank" className="flex-1">
+                        <Button size="md" variant="ghost" className="w-full">
+                          Painel
+                        </Button>
+                      </Link>
+                      <Link to={`/telao/${id}`} target="_blank" className="flex-1">
+                        <Button size="md" variant="ghost" className="w-full">
+                          Telão
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <Button
+              className="w-full"
+              disabled={busy || semifinal1?.status !== 'finished' || semifinal2?.status !== 'finished'}
+              onClick={() => call('presenter_start_live_quiz_final', { p_session_id: sessionId }, 'Final iniciada!')}
+            >
+              {semifinal1?.status !== 'finished' || semifinal2?.status !== 'finished'
+                ? 'Aguardando as duas semifinais terminarem…'
+                : 'Iniciar final'}
+            </Button>
+          </Card>
+        )}
+
+        {(session.phase === 'duel_ready' || session.phase === 'duel_final') && session.promoted_duel_match_id && (
           <Card className="text-center">
-            <p className="text-ink-muted mb-3">O duelo final já está rolando.</p>
-            <Link to={`/apresentador/${session.promoted_duel_match_id}`}>
-              <Button className="w-full">Ir para o painel do duelo</Button>
-            </Link>
+            <p className="text-ink-muted mb-3">{session.phase === 'duel_final' ? 'A final já está rolando.' : 'O duelo final já está rolando.'}</p>
+            <div className="flex gap-2">
+              <Link to={`/telao/${session.promoted_duel_match_id}`} target="_blank" className="flex-1">
+                <Button variant="ghost" className="w-full">
+                  Abrir telão
+                </Button>
+              </Link>
+              <Link to={`/apresentador/${session.promoted_duel_match_id}`} className="flex-1">
+                <Button className="w-full">Painel do duelo</Button>
+              </Link>
+            </div>
           </Card>
         )}
 

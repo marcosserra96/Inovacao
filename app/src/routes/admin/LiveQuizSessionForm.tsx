@@ -30,6 +30,7 @@ export function LiveQuizSessionForm({
   const [showRankingAfterQuestion, setShowRankingAfterQuestion] = useState(true)
   const [hideStatementOnPhone, setHideStatementOnPhone] = useState(false)
   const [isRehearsal, setIsRehearsal] = useState(false)
+  const [finalistsCount, setFinalistsCount] = useState(4)
   const [duelRoundsTotal, setDuelRoundsTotal] = useState(5)
   const [duelWinCondition, setDuelWinCondition] = useState<DuelWinCondition>('score')
   const [saving, setSaving] = useState(false)
@@ -50,6 +51,7 @@ export function LiveQuizSessionForm({
         show_ranking_after_question: showRankingAfterQuestion,
         hide_statement_on_phone: hideStatementOnPhone,
         is_rehearsal: isRehearsal,
+        finalists_count: finalistsCount,
         duel_rounds_total: duelRoundsTotal,
         duel_win_condition: duelWinCondition,
       })
@@ -109,10 +111,13 @@ export function LiveQuizSessionForm({
       </div>
 
       <div className="pt-2 border-t border-border">
-        <p className="text-sm font-semibold text-ink mb-3">Etapa 2 — Duelo final (2 melhores colocados)</p>
+        <p className="text-sm font-semibold text-ink mb-3">Etapa 2 — Duelo final</p>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Número de rodadas" htmlFor="lqDuelRounds">
-            <Input id="lqDuelRounds" type="number" min={1} value={duelRoundsTotal} onChange={(e) => setDuelRoundsTotal(Number(e.target.value))} />
+          <Field label="Formato" htmlFor="lqFinalistsCount" hint="Com 4, roda 2 semifinais e depois a final entre os vencedores.">
+            <Select id="lqFinalistsCount" value={finalistsCount} onChange={(e) => setFinalistsCount(Number(e.target.value))}>
+              <option value={4}>4 finalistas (semifinais + final)</option>
+              <option value={2}>2 finalistas (duelo único)</option>
+            </Select>
           </Field>
           <Field label="Critério de vitória" htmlFor="lqDuelWin">
             <Select id="lqDuelWin" value={duelWinCondition} onChange={(e) => setDuelWinCondition(e.target.value as DuelWinCondition)}>
@@ -121,6 +126,9 @@ export function LiveQuizSessionForm({
             </Select>
           </Field>
         </div>
+        <Field label="Número de rodadas por duelo" htmlFor="lqDuelRounds" className="mt-4">
+          <Input id="lqDuelRounds" type="number" min={1} value={duelRoundsTotal} onChange={(e) => setDuelRoundsTotal(Number(e.target.value))} />
+        </Field>
         <p className="text-xs text-ink-muted mt-2">O duelo usa o mesmo conjunto de perguntas do quiz coletivo, por padrão.</p>
       </div>
 

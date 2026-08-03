@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import { PublicShell } from '@/components/layout/PublicShell'
 import { Card } from '@/components/ui/Card'
@@ -13,7 +13,7 @@ import { useRealtimeRow } from '@/hooks/useRealtimeRow'
 import { useRealtimeList } from '@/hooks/useRealtimeList'
 import { useDuelTimer } from '@/hooks/useDuelTimer'
 import { supabase } from '@/lib/supabase'
-import { loadDuelPlayer } from '@/lib/duelPlayerStorage'
+import { loadDuelPlayer, saveDuelPlayer } from '@/lib/duelPlayerStorage'
 import { OPTION_COLORS } from '@/lib/optionColors'
 import type { Database } from '@/types/database.types'
 import type { QuestionPayload } from '@/types/domain'
@@ -22,6 +22,7 @@ type DuelMatch = Database['public']['Tables']['duel_matches']['Row']
 type DuelPlayer = Database['public']['Tables']['duel_players']['Row']
 type DuelRound = Database['public']['Tables']['duel_rounds']['Row']
 type AnswerFlag = Database['public']['Tables']['duel_answer_flags']['Row']
+type LiveQuizParticipant = Database['public']['Tables']['live_quiz_participants']['Row']
 
 interface RoundResult {
   roundId: string
@@ -32,11 +33,22 @@ interface RoundResult {
 
 export function DuelPlayerPage() {
   const { matchId, playerId } = useParams<{ matchId: string; playerId: string }>()
+  const navigate = useNavigate()
   const stored = matchId && playerId ? loadDuelPlayer(matchId, playerId) : null
   const joinToken = stored && stored.playerId === playerId ? stored.joinToken : null
   const { row: match, error: matchError, retry: retryMatch } = useRealtimeRow<DuelMatch>('duel_matches', matchId)
   const { row: me, error: meError, retry: retryMe } = useRealtimeRow<DuelPlayer>('duel_players', playerId)
   const { rows: players } = useRealtimeList<DuelPlayer>('duel_players', 'match_id', matchId)
+  // Se este jogador veio de uma semifinal do quiz coletivo (formato de 4
+  // finalistas), acompanha o participante original: quando o apresentador
+  // cria a final entre os vencedores, promoted_duel_player_id muda pra uma
+  // nova identidade — o celular troca de tela sozinho, de novo, sem
+  // precisar reentrar em lugar nenhum.
+  const { row: sourceParticipant } = useRealtimeRow<LiveQuizParticipant>(
+    'live_quiz_participants',
+    me?.promoted_from_live_quiz_participant_id ?? undefined,
+  )
+  const [reentering, setReentering] = useState(false)
   const { rows: rounds } = useRealtimeList<DuelRound>('duel_rounds', 'match_id', matchId)
   const currentRound = useMemo(
     () => rounds.find((r) => r.round_number === match?.current_round_number && !r.voided) ?? null,
@@ -69,6 +81,29 @@ export function DuelPlayerPage() {
       .rpc('get_duel_round_result', { p_round_id: currentRound.id })
       .then(({ data }) => setResult(data as unknown as RoundResult))
   }, [currentRound?.id, currentRound?.revealed_at])
+
+  useEffect(() => {
+    if (!sourceParticipant || !playerId || !joinToken) return
+    if (!sourceParticipant.promoted_duel_player_id || sourceParticipant.promoted_duel_player_id === playerId) return
+    setReentering(true)
+    supabase
+      .rpc('get_my_live_quiz_reentry', { p_duel_player_id: playerId, p_duel_join_token: joinToken })
+      .then(({ data }) => {
+        const reentry = data as unknown as {
+          promoted: boolean
+          duelMatchId?: string
+          duelPlayerId?: string
+          duelJoinToken?: string
+        }
+        if (reentry.promoted && reentry.duelMatchId && reentry.duelPlayerId && reentry.duelJoinToken) {
+          saveDuelPlayer(reentry.duelMatchId, { playerId: reentry.duelPlayerId, joinToken: reentry.duelJoinToken })
+          navigate(`/duelo/${reentry.duelMatchId}/jogar/${reentry.duelPlayerId}`, { replace: true })
+        } else {
+          setReentering(false)
+        }
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceParticipant?.promoted_duel_player_id])
 
   const iAnswered = flags.some((f) => f.player_id === playerId && f.answered)
   const opponent = players.find((p) => p.is_active_disputant && p.id !== playerId)
@@ -138,6 +173,17 @@ export function DuelPlayerPage() {
           <p className="text-ink-muted mb-5">Aguarde o apresentador selecionar os disputantes desta rodada.</p>
           <WaitingDots className="justify-center" />
         </Card>
+      </PublicShell>
+    )
+  }
+
+  if (match.status === 'finished' && reentering) {
+    return (
+      <PublicShell>
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Spinner />
+          <p className="text-ink-muted">Você venceu a semifinal! Preparando a final…</p>
+        </div>
       </PublicShell>
     )
   }
