@@ -19,6 +19,18 @@ type LiveQuizRound = Database['public']['Tables']['live_quiz_rounds']['Row']
 type AnswerFlag = Database['public']['Tables']['live_quiz_answer_flags']['Row']
 type RankingRow = Database['public']['Views']['v_live_quiz_ranking']['Row']
 
+const DEFAULT_RULES_TEXT = `⚡ Uma pergunta por vez, para todo mundo ao mesmo tempo.
+⏱️ Responda rápido — quanto mais rápido, mais pontos.
+🔒 Só dá pra responder uma vez.
+🏆 Os {finalistas} melhores avançam para o duelo ao vivo.`
+
+function parseRules(rulesText: string | null | undefined, finalistsCount: number): string[] {
+  return (rulesText || DEFAULT_RULES_TEXT)
+    .split('\n')
+    .map((line) => line.trim().replaceAll('{finalistas}', String(finalistsCount)))
+    .filter(Boolean)
+}
+
 export function LiveQuizScreenPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const { theme } = useTheme()
@@ -32,7 +44,6 @@ export function LiveQuizScreenPage() {
   const { rows: flags } = useRealtimeList<AnswerFlag>('live_quiz_answer_flags', 'round_id', currentRound?.id)
   const [question, setQuestion] = useState<QuestionPayload | null>(null)
   const [ranking, setRanking] = useState<RankingRow[]>([])
-  const [audioReady, setAudioReady] = useState(false)
   const remainingMs = useDuelTimer(currentRound)
 
   const connected = participants.filter((p) => p.connected)
@@ -86,60 +97,37 @@ export function LiveQuizScreenPage() {
     )
   }
 
-  // Botões de mídia exigem um gesto do usuário nos navegadores modernos —
-  // este toque libera qualquer efeito sonoro futuro que o apresentador
-  // dispare (central de efeitos é um próximo passo, ver relatório final).
-  if (!audioReady) {
+  if (session.status === 'draft' || session.status === 'lobby' || session.phase === 'rules') {
+    const rules = parseRules(session.rules_text, session.finalists_count)
     return (
       <StageShell>
         <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
           <p className="font-display text-lg uppercase tracking-[0.3em] opacity-70">{theme.eventName}</p>
-          <button
-            type="button"
-            onClick={() => setAudioReady(true)}
-            className="rounded-full bg-white/10 border border-white/30 px-8 py-4 font-display text-xl font-bold hover:bg-white/20 transition-colors"
-          >
-            🔊 Ativar áudio e iniciar telão
-          </button>
+          <h1 className="font-display text-4xl font-bold">{session.name}</h1>
         </div>
-      </StageShell>
-    )
-  }
-
-  if (session.status === 'draft' || session.phase === 'lobby') {
-    return (
-      <StageShell>
-        <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-          <p className="font-display text-lg uppercase tracking-[0.3em] opacity-70">{theme.eventName}</p>
-          <h1 className="font-display text-5xl font-bold">{session.name}</h1>
-          <QrCode value={joinUrl} size={220} />
-          <p className="text-2xl">
-            Entre com o código <span className="font-display font-bold tracking-widest">{session.code}</span>
-          </p>
-          <p className="text-xl opacity-70">{connected.length} pessoa{connected.length === 1 ? '' : 's'} no lobby</p>
-          <div className="flex flex-wrap gap-3 justify-center max-w-4xl">
-            {connected.slice(0, 40).map((p) => (
-              <span key={p.id} className="rounded-full bg-white/10 px-4 py-1.5 text-base">
-                {p.display_name}
-              </span>
-            ))}
+        <div className="flex-1 grid grid-cols-2 gap-12 items-center px-8">
+          <div className="text-left">
+            <h2 className="font-display text-3xl font-bold mb-6">Como funciona</h2>
+            <ul className="flex flex-col gap-4 text-xl opacity-90 max-w-xl">
+              {rules.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
           </div>
-        </div>
-      </StageShell>
-    )
-  }
-
-  if (session.phase === 'rules') {
-    return (
-      <StageShell>
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-          <h1 className="font-display text-5xl font-bold mb-4">Como funciona</h1>
-          <ul className="flex flex-col gap-4 text-2xl opacity-90 max-w-2xl text-left">
-            <li>⚡ Uma pergunta por vez, para todo mundo ao mesmo tempo.</li>
-            <li>⏱️ Responda rápido — quanto mais rápido, mais pontos.</li>
-            <li>🔒 Só dá pra responder uma vez.</li>
-            <li>🏆 Os {session.finalists_count} melhores avançam para o duelo ao vivo.</li>
-          </ul>
+          <div className="flex flex-col items-center gap-4 text-center">
+            <QrCode value={joinUrl} size={200} />
+            <p className="text-xl">
+              Entre com o código <span className="font-display font-bold tracking-widest">{session.code}</span>
+            </p>
+            <p className="text-lg opacity-70">{connected.length} pessoa{connected.length === 1 ? '' : 's'} no lobby</p>
+            <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+              {connected.slice(0, 30).map((p) => (
+                <span key={p.id} className="rounded-full bg-white/10 px-3 py-1 text-sm">
+                  {p.display_name}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </StageShell>
     )

@@ -202,7 +202,7 @@ export function LiveQuizPresenterPage() {
           </Card>
         )}
 
-        {session.status === 'lobby' && (
+        {(session.status === 'lobby' || session.phase === 'rules') && (
           <Card>
             <div className="flex flex-col items-center gap-3 mb-4">
               <QrCode value={joinUrl} />
@@ -221,6 +221,7 @@ export function LiveQuizPresenterPage() {
                 ))}
               </ul>
             )}
+            <p className="text-xs text-ink-muted text-center mb-3">O telão já mostra as regras e o QR code juntos.</p>
             <div className="flex flex-col gap-2">
               <Button
                 variant="ghost"
@@ -229,18 +230,10 @@ export function LiveQuizPresenterPage() {
               >
                 {session.lobby_locked ? 'Reabrir entradas' : 'Bloquear novas entradas'}
               </Button>
-              <Button disabled={busy} onClick={() => call('presenter_show_live_quiz_rules', { p_session_id: sessionId })}>
-                Exibir regras
+              <Button disabled={busy} onClick={() => call('presenter_start_live_quiz', { p_session_id: sessionId }, 'Quiz iniciado!')}>
+                Iniciar quiz
               </Button>
             </div>
-          </Card>
-        )}
-
-        {session.phase === 'rules' && (
-          <Card>
-            <Button className="w-full" disabled={busy} onClick={() => call('presenter_start_live_quiz', { p_session_id: sessionId }, 'Quiz iniciado!')}>
-              Iniciar contagem e começar o quiz
-            </Button>
           </Card>
         )}
 
@@ -267,13 +260,11 @@ export function LiveQuizPresenterPage() {
 
             <Card>
               <div className="flex flex-wrap gap-2">
-                {(session.phase === 'ready' || session.phase === 'result_revealed' || session.phase === 'tiebreaker_reveal') &&
-                  session.current_question_number < session.questions_total &&
-                  !currentRound?.is_tiebreaker && (
-                    <Button className="w-full" disabled={busy} onClick={() => call('presenter_show_live_quiz_question', { p_session_id: sessionId })}>
-                      Liberar pergunta
-                    </Button>
-                  )}
+                {session.phase === 'ready' && !currentRound?.is_tiebreaker && (
+                  <Button className="w-full" disabled={busy} onClick={() => call('presenter_show_live_quiz_question', { p_session_id: sessionId })}>
+                    Liberar pergunta
+                  </Button>
+                )}
                 {session.phase === 'question_shown' && (
                   <Button className="w-full" disabled={busy} onClick={() => call('presenter_start_live_quiz_timer', { p_session_id: sessionId })}>
                     Iniciar cronômetro

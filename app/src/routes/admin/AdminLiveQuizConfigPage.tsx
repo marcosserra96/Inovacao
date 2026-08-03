@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Switch } from '@/components/ui/Switch'
+import { Textarea } from '@/components/ui/Textarea'
 import { Spinner } from '@/components/ui/Spinner'
 import { QuestionPicker } from '@/components/admin/QuestionPicker'
 import { supabase } from '@/lib/supabase'
@@ -42,6 +43,7 @@ export function AdminLiveQuizConfigPage() {
   const [duelQuestionIds, setDuelQuestionIds] = useState<string[]>([])
   const [duelRoundsTotal, setDuelRoundsTotal] = useState(5)
   const [duelWinCondition, setDuelWinCondition] = useState<DuelWinCondition>('score')
+  const [rulesText, setRulesText] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -65,6 +67,7 @@ export function AdminLiveQuizConfigPage() {
         setSameQuestionsForDuel(def.duel_question_set_id === null || def.duel_question_set_id === def.question_set_id)
         setDuelRoundsTotal(def.duel_rounds_total)
         setDuelWinCondition(def.duel_win_condition)
+        setRulesText(def.rules_text)
 
         const [{ data: quizItems }, { data: duelItems }] = await Promise.all([
           def.question_set_id
@@ -157,6 +160,7 @@ export function AdminLiveQuizConfigPage() {
         duel_question_set_id: duelSetId,
         duel_rounds_total: duelRoundsTotal,
         duel_win_condition: duelWinCondition,
+        rules_text: rulesText,
       })
       .eq('id', true)
       .select()
@@ -198,6 +202,10 @@ export function AdminLiveQuizConfigPage() {
               </option>
             ))}
           </Select>
+        </Field>
+
+        <Field label="Regras exibidas no telão" htmlFor="rules" hint='Uma regra por linha. Use "{finalistas}" para o número de finalistas configurado abaixo.'>
+          <Textarea id="rules" rows={4} value={rulesText} onChange={(e) => setRulesText(e.target.value)} />
         </Field>
 
         <div>
@@ -242,14 +250,25 @@ export function AdminLiveQuizConfigPage() {
           </Field>
 
           <div className="mt-3">
-            <Switch checked={sameQuestionsForDuel} onChange={setSameQuestionsForDuel} label="Usar as mesmas perguntas do quiz coletivo no duelo" />
+            <Switch
+              checked={sameQuestionsForDuel}
+              onChange={(checked) => {
+                setSameQuestionsForDuel(checked)
+                if (!checked && duelQuestionIds.length === 0) setDuelQuestionIds(quizQuestionIds)
+              }}
+              label="Usar as mesmas perguntas do quiz coletivo no duelo"
+            />
           </div>
-          {!sameQuestionsForDuel && (
-            <div className="mt-3">
-              <p className="text-sm font-medium text-ink mb-1.5">Perguntas específicas do duelo</p>
+          <div className="mt-3">
+            <p className="text-sm font-medium text-ink mb-1.5">Perguntas do duelo (etapa 2)</p>
+            {sameQuestionsForDuel ? (
+              <p className="text-sm text-ink-muted rounded-xl border border-dashed border-border p-4 text-center">
+                Usando as mesmas perguntas da etapa 1 — desmarque a opção acima para escolher outras.
+              </p>
+            ) : (
               <QuestionPicker questions={questions} categories={categories} selectedIds={duelQuestionIds} onChange={setDuelQuestionIds} />
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="flex justify-end pt-2">
