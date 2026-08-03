@@ -9,7 +9,7 @@ export type AdminRole = 'admin' | 'presenter'
 export type QuestionDifficulty = 'easy' | 'medium' | 'hard'
 export type QuestionType = 'single_choice' | 'true_false' | 'multiple_choice' | 'image' | 'poll' | 'tiebreaker'
 export type QuestionStatus = 'active' | 'inactive' | 'archived'
-export type GameMode = 'individual' | 'duel'
+export type GameMode = 'individual' | 'duel' | 'live_quiz'
 export type QuestionOrderMode = 'fixed' | 'random'
 export type IndividualSessionStatus = 'draft' | 'scheduled' | 'open' | 'closed'
 export type DuelMatchStatus = 'draft' | 'lobby' | 'in_progress' | 'finished' | 'cancelled'
@@ -25,6 +25,21 @@ export type DuelPhase =
   | 'time_up'
   | 'result_revealed'
   | 'match_ended'
+export type LiveQuizPhase =
+  | 'lobby'
+  | 'rules'
+  | 'ready'
+  | 'question_shown'
+  | 'awaiting_answers'
+  | 'time_up'
+  | 'result_revealed'
+  | 'ranking'
+  | 'tiebreaker_question'
+  | 'tiebreaker_answering'
+  | 'tiebreaker_reveal'
+  | 'finalists_reveal'
+  | 'duel_ready'
+  | 'quiz_finished'
 
 export interface Database {
   public: {
@@ -300,6 +315,114 @@ export interface Database {
         Update: never
         Relationships: []
       }
+      live_quiz_sessions: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          question_set_id: string
+          scoring_config_id: string
+          status: DuelMatchStatus
+          phase: LiveQuizPhase
+          current_question_number: number
+          questions_total: number
+          lobby_locked: boolean
+          hide_statement_on_phone: boolean
+          show_ranking_after_question: boolean
+          ranking_size: number
+          enable_speed_bonus: boolean
+          enable_penalty: boolean
+          penalty_wrong: number
+          end_when_all_answered: boolean
+          is_rehearsal: boolean
+          paused: boolean
+          finalists_count: number
+          duel_question_set_id: string | null
+          duel_scoring_config_id: string | null
+          duel_rounds_total: number
+          duel_win_condition: DuelWinCondition
+          presenter_id: string | null
+          screen_message: string | null
+          promoted_duel_match_id: string | null
+          started_at: string | null
+          finished_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Omit<Database['public']['Tables']['live_quiz_sessions']['Row'], 'id' | 'code' | 'created_at' | 'updated_at'>> & {
+          name: string
+          question_set_id: string
+          scoring_config_id: string
+        }
+        Update: Partial<Database['public']['Tables']['live_quiz_sessions']['Row']>
+        Relationships: []
+      }
+      live_quiz_participants: {
+        Row: {
+          id: string
+          session_id: string
+          display_name: string
+          team: string | null
+          device_fingerprint: string | null
+          avatar_color: string
+          connected: boolean
+          total_score: number
+          correct_count: number
+          current_streak: number
+          best_streak: number
+          is_finalist: boolean
+          is_spectator: boolean
+          promoted_duel_player_id: string | null
+          joined_at: string
+          left_at: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      live_quiz_rounds: {
+        Row: {
+          id: string
+          session_id: string
+          round_number: number
+          question_id: string | null
+          phase: LiveQuizPhase
+          timer_started_at: string | null
+          timer_duration_seconds: number
+          timer_paused_at: string | null
+          timer_accumulated_ms: number
+          revealed_at: string | null
+          voided: boolean
+          is_tiebreaker: boolean
+          tiebreak_participant_ids: string[] | null
+          created_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      live_quiz_answers: {
+        Row: {
+          id: string
+          round_id: string
+          participant_id: string
+          option_id: string | null
+          is_correct: boolean
+          is_late: boolean
+          response_time_ms: number | null
+          points_awarded: number
+          answered_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      live_quiz_answer_flags: {
+        Row: { round_id: string; participant_id: string; answered: boolean; answered_at: string | null }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       audit_log: {
         Row: {
           id: string
@@ -318,21 +441,39 @@ export interface Database {
       game_control: {
         Row: {
           id: boolean
-          active_mode: 'none' | 'individual' | 'duel'
+          active_mode: 'none' | 'individual' | 'duel' | 'live_quiz'
           active_individual_session_id: string | null
           active_duel_match_id: string | null
+          active_live_quiz_session_id: string | null
           updated_at: string
         }
         Insert: never
         Update: Partial<{
-          active_mode: 'none' | 'individual' | 'duel'
+          active_mode: 'none' | 'individual' | 'duel' | 'live_quiz'
           active_individual_session_id: string | null
           active_duel_match_id: string | null
+          active_live_quiz_session_id: string | null
         }>
         Relationships: []
       }
     }
     Views: {
+      v_live_quiz_ranking: {
+        Row: {
+          session_id: string
+          participant_id: string
+          display_name: string
+          team: string | null
+          total_score: number
+          correct_count: number
+          best_streak: number
+          is_finalist: boolean
+          is_spectator: boolean
+          avg_correct_response_ms: number | null
+          rank: number
+        }
+        Relationships: []
+      }
       v_individual_ranking: {
         Row: {
           session_id: string
@@ -407,6 +548,56 @@ export interface Database {
       presenter_send_screen_message: { Args: { p_match_id: string; p_message: string }; Returns: void }
       get_public_duel_round_question: { Args: { p_round_id: string }; Returns: Json }
       get_duel_round_result: { Args: { p_round_id: string }; Returns: Json }
+      // Quiz coletivo ao vivo — mesma máquina de estados do duelo,
+      // generalizada para N participantes. Ver 00000000000017_live_quiz_rpc.sql.
+      get_public_live_quiz_round_question: { Args: { p_round_id: string }; Returns: Json }
+      get_live_quiz_round_result: { Args: { p_round_id: string }; Returns: Json }
+      join_live_quiz: {
+        Args: { p_code: string; p_display_name: string; p_team?: string | null; p_device_fingerprint?: string | null }
+        Returns: Json
+      }
+      // Retorna { sessionId, participantId, joinToken, code, restored } —
+      // joinToken deve ser guardado pelo cliente (ver lib/liveQuizStorage.ts).
+      get_my_live_quiz_promotion: { Args: { p_participant_id: string; p_join_token: string }; Returns: Json }
+      presenter_open_live_quiz_lobby: { Args: { p_session_id: string }; Returns: void }
+      presenter_lock_live_quiz_lobby: { Args: { p_session_id: string; p_locked: boolean }; Returns: void }
+      presenter_show_live_quiz_rules: { Args: { p_session_id: string }; Returns: void }
+      presenter_start_live_quiz: { Args: { p_session_id: string }; Returns: void }
+      presenter_show_live_quiz_question: { Args: { p_session_id: string }; Returns: Json }
+      presenter_start_live_quiz_timer: { Args: { p_session_id: string }; Returns: void }
+      presenter_pause_live_quiz_timer: { Args: { p_session_id: string }; Returns: void }
+      presenter_resume_live_quiz_timer: { Args: { p_session_id: string }; Returns: void }
+      presenter_extend_live_quiz_timer: { Args: { p_session_id: string; p_extra_seconds: number }; Returns: void }
+      presenter_end_live_quiz_question_early: { Args: { p_session_id: string }; Returns: void }
+      submit_live_quiz_answer: {
+        Args: { p_round_id: string; p_participant_id: string; p_join_token: string; p_option_id: string | null }
+        Returns: Json
+      }
+      presenter_reveal_live_quiz_answer: { Args: { p_session_id: string }; Returns: void }
+      presenter_show_live_quiz_ranking: { Args: { p_session_id: string }; Returns: void }
+      presenter_void_live_quiz_question: { Args: { p_session_id: string }; Returns: void }
+      presenter_restart_live_quiz_round: { Args: { p_session_id: string }; Returns: void }
+      presenter_next_live_quiz_question: { Args: { p_session_id: string }; Returns: Json }
+      presenter_start_live_quiz_tiebreaker: { Args: { p_session_id: string; p_participant_ids: string[] }; Returns: Json }
+      presenter_select_live_quiz_finalists: { Args: { p_session_id: string }; Returns: Json }
+      presenter_replace_live_quiz_finalist: {
+        Args: { p_session_id: string; p_out_participant_id: string; p_in_participant_id: string }
+        Returns: void
+      }
+      presenter_start_duel_from_live_quiz: { Args: { p_session_id: string }; Returns: Json }
+      presenter_set_live_quiz_manual_score: {
+        Args: { p_round_id: string; p_participant_id: string; p_points: number }
+        Returns: void
+      }
+      presenter_disconnect_live_quiz_participant: { Args: { p_participant_id: string }; Returns: void }
+      presenter_set_live_quiz_participant_connected: {
+        Args: { p_participant_id: string; p_connected: boolean }
+        Returns: void
+      }
+      presenter_send_live_quiz_screen_message: { Args: { p_session_id: string; p_message: string }; Returns: void }
+      presenter_set_live_quiz_paused: { Args: { p_session_id: string; p_paused: boolean }; Returns: void }
+      presenter_cancel_live_quiz: { Args: { p_session_id: string }; Returns: void }
+      presenter_finish_live_quiz: { Args: { p_session_id: string }; Returns: void }
     }
     Enums: {
       admin_role: AdminRole
@@ -420,6 +611,7 @@ export interface Database {
       duel_rounds_mode: DuelRoundsMode
       duel_win_condition: DuelWinCondition
       duel_phase: DuelPhase
+      live_quiz_phase: LiveQuizPhase
     }
   }
 }

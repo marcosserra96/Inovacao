@@ -9,6 +9,7 @@ import { QrCode } from '@/components/ui/QrCode'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { IndividualSessionForm } from './IndividualSessionForm'
+import { LiveQuizSessionForm } from './LiveQuizSessionForm'
 import { useGameControl } from '@/hooks/useGameControl'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/contexts/ToastContext'
@@ -16,11 +17,17 @@ import type { Database } from '@/types/database.types'
 
 type IndividualSession = Database['public']['Tables']['individual_sessions']['Row']
 type DuelMatch = Database['public']['Tables']['duel_matches']['Row']
+type LiveQuizSession = Database['public']['Tables']['live_quiz_sessions']['Row']
 type QuestionSet = Database['public']['Tables']['question_sets']['Row']
 type ScoringConfig = Database['public']['Tables']['scoring_configs']['Row']
-type Mode = 'none' | 'individual' | 'duel'
+type Mode = 'none' | 'live_quiz' | 'individual' | 'duel'
 
-const modeLabel: Record<Mode, string> = { none: 'Nenhum', individual: 'Desafio individual', duel: 'Duelo ao vivo' }
+const modeLabel: Record<Mode, string> = {
+  none: 'Nenhum',
+  live_quiz: 'Quiz coletivo (etapa 1)',
+  individual: 'Desafio individual',
+  duel: 'Duelo ao vivo',
+}
 const matchStatusLabel: Record<string, string> = {
   draft: 'Rascunho',
   lobby: 'Aguardando participantes',
@@ -34,16 +41,24 @@ export function AdminGameControlPage() {
   const { control, loading: loadingControl } = useGameControl()
   const [sessions, setSessions] = useState<IndividualSession[]>([])
   const [matches, setMatches] = useState<DuelMatch[]>([])
+  const [liveQuizzes, setLiveQuizzes] = useState<LiveQuizSession[]>([])
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([])
   const [scoringConfigs, setScoringConfigs] = useState<ScoringConfig[]>([])
   const [saving, setSaving] = useState(false)
   const [creatingSession, setCreatingSession] = useState(false)
+  const [creatingLiveQuiz, setCreatingLiveQuiz] = useState(false)
 
   async function loadOptions() {
-    const [{ data: s }, { data: m }, { data: qs }, { data: sc }] = await Promise.all([
+    const [{ data: s }, { data: m }, { data: lq }, { data: qs }, { data: sc }] = await Promise.all([
       supabase.from('individual_sessions').select('*').order('created_at', { ascending: false }),
       supabase
         .from('duel_matches')
+        .select('*')
+        .neq('status', 'finished')
+        .neq('status', 'cancelled')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('live_quiz_sessions')
         .select('*')
         .neq('status', 'finished')
         .neq('status', 'cancelled')
@@ -53,6 +68,7 @@ export function AdminGameControlPage() {
     ])
     setSessions(s ?? [])
     setMatches(m ?? [])
+    setLiveQuizzes(lq ?? [])
     setQuestionSets(qs ?? [])
     setScoringConfigs(sc ?? [])
   }
@@ -69,6 +85,7 @@ export function AdminGameControlPage() {
         active_mode: mode,
         active_individual_session_id: mode === 'individual' ? control?.active_individual_session_id ?? null : null,
         active_duel_match_id: mode === 'duel' ? control?.active_duel_match_id ?? null : null,
+        active_live_quiz_session_id: mode === 'live_quiz' ? control?.active_live_quiz_session_id ?? null : null,
       })
       .eq('id', true)
     setSaving(false)
@@ -107,8 +124,31 @@ export function AdminGameControlPage() {
     if (error) notify(error.message, 'error')
   }
 
+  async function setActiveLiveQuiz(sessionId: string) {
+    setSaving(true)
+    const { error } = await supabase
+      .from('game_control')
+      .update({ active_mode: 'live_quiz', active_live_quiz_session_id: sessionId || null })
+      .eq('id', true)
+    setSaving(false)
+    if (error) notify(error.message, 'error')
+  }
+
+  async function openLobbyNow(sessionId: string) {
+    setSaving(true)
+    const { error } = await supabase.rpc('presenter_open_live_quiz_lobby', { p_session_id: sessionId })
+    setSaving(false)
+    if (error) {
+      notify(error.message, 'error')
+      return
+    }
+    notify('Lobby aberto — já dá pra entrar.')
+    loadOptions()
+  }
+
   const activeSession = sessions.find((s) => s.id === control?.active_individual_session_id)
   const activeMatch = matches.find((m) => m.id === control?.active_duel_match_id)
+  const activeLiveQuiz = liveQuizzes.find((q) => q.id === control?.active_live_quiz_session_id)
   const siteUrl = typeof window !== 'undefined' ? window.location.origin : ''
 
   return (
@@ -126,7 +166,7 @@ export function AdminGameControlPage() {
           ) : (
             <>
               <div className="flex gap-2 mb-5">
-                {(['none', 'individual', 'duel'] as Mode[]).map((mode) => (
+                {(['none', 'live_quiz', 'individual', 'duel'] as Mode[]).map((mode) => (
                   <Button
                     key={mode}
                     size="md"
@@ -138,6 +178,61 @@ export function AdminGameControlPage() {
                   </Button>
                 ))}
               </div>
+
+              {control?.active_mode === 'live_quiz' && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex gap-2">
+                    <Select
+                      value={control.active_live_quiz_session_id ?? ''}
+                      onChange={(e) => setActiveLiveQuiz(e.target.value)}
+                      className="flex-1"
+                    >
+                      <option value="">Selecione o quiz ativo…</option>
+                      {liveQuizzes.map((q) => (
+                        <option key={q.id} value={q.id}>
+                          {q.name} — {matchStatusLabel[q.status]}
+                        </option>
+                      ))}
+                    </Select>
+                    <Button
+                      size="md"
+                      variant="ghost"
+                      disabled={questionSets.length === 0 || scoringConfigs.length === 0}
+                      onClick={() => setCreatingLiveQuiz(true)}
+                    >
+                      + Novo quiz
+                    </Button>
+                  </div>
+                  {activeLiveQuiz && (
+                    <div className="rounded-2xl bg-bg p-4 flex items-center gap-3 flex-wrap">
+                      <Badge tone={activeLiveQuiz.status === 'in_progress' ? 'success' : 'neutral'}>
+                        {matchStatusLabel[activeLiveQuiz.status]}
+                      </Badge>
+                      <span className="text-sm text-ink-muted">
+                        Código: <span className="font-mono font-semibold text-ink">{activeLiveQuiz.code}</span>
+                      </span>
+                      <div className="flex gap-2 ml-auto">
+                        {activeLiveQuiz.status === 'draft' && (
+                          <Button size="md" disabled={saving} onClick={() => openLobbyNow(activeLiveQuiz.id)}>
+                            Abrir lobby
+                          </Button>
+                        )}
+                        <Link to={`/telao-quiz/${activeLiveQuiz.id}`} target="_blank">
+                          <Button size="md">Abrir telão</Button>
+                        </Link>
+                        <Link to={`/apresentador-quiz/${activeLiveQuiz.id}`} target="_blank">
+                          <Button size="md" variant="accent">
+                            Painel do apresentador
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                  {liveQuizzes.length === 0 && (
+                    <p className="text-sm text-ink-muted">Nenhum quiz coletivo criado ainda — crie um acima.</p>
+                  )}
+                </div>
+              )}
 
               {control?.active_mode === 'individual' && (
                 <div className="flex flex-col gap-3">
@@ -265,6 +360,21 @@ export function AdminGameControlPage() {
               setCreatingSession(false)
               loadOptions()
               setActiveSession(saved.id)
+            }}
+          />
+        )}
+      </Modal>
+
+      <Modal open={creatingLiveQuiz} onClose={() => setCreatingLiveQuiz(false)} title="Novo quiz coletivo" wide>
+        {creatingLiveQuiz && (
+          <LiveQuizSessionForm
+            questionSets={questionSets}
+            scoringConfigs={scoringConfigs}
+            onCancel={() => setCreatingLiveQuiz(false)}
+            onSaved={async (saved) => {
+              setCreatingLiveQuiz(false)
+              await setActiveLiveQuiz(saved.id)
+              await openLobbyNow(saved.id)
             }}
           />
         )}

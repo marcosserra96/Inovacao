@@ -9,6 +9,10 @@ import { DuelPlayerPage } from '@/routes/duel/DuelPlayerPage'
 import { ScreenPage } from '@/routes/screen/ScreenPage'
 import { PresenterNewMatchPage } from '@/routes/presenter/PresenterNewMatchPage'
 import { PresenterPage } from '@/routes/presenter/PresenterPage'
+import { LiveQuizJoinPage } from '@/routes/livequiz/LiveQuizJoinPage'
+import { LiveQuizPlayerPage } from '@/routes/livequiz/LiveQuizPlayerPage'
+import { LiveQuizScreenPage } from '@/routes/livequiz/LiveQuizScreenPage'
+import { LiveQuizPresenterPage } from '@/routes/livequiz/LiveQuizPresenterPage'
 import { AdminLoginPage } from '@/routes/admin/AdminLoginPage'
 import { AdminDashboardPage } from '@/routes/admin/AdminDashboardPage'
 import { AdminGameControlPage } from '@/routes/admin/AdminGameControlPage'
@@ -30,13 +34,26 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
 
-        {/* Modo 1 — Desafio individual aberto */}
+        {/* Etapa 1 — Quiz coletivo ao vivo (controlado pelo apresentador) */}
+        <Route path="/quiz/entrar/:codigo" element={<LiveQuizJoinPage />} />
+        <Route path="/quiz/:sessionId/jogar/:participantId" element={<LiveQuizPlayerPage />} />
+        <Route path="/telao-quiz/:sessionId" element={<LiveQuizScreenPage />} />
+        <Route
+          path="/apresentador-quiz/:sessionId"
+          element={
+            <ProtectedRoute>
+              <LiveQuizPresenterPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Desafio individual aberto (trivia assíncrona, fora do evento ao vivo) */}
         <Route path="/j/:codigo" element={<JoinIndividualPage />} />
         <Route path="/individual/:sessionId/play" element={<IndividualPlayPage />} />
         <Route path="/individual/:sessionId/resultado" element={<IndividualResultPage />} />
         <Route path="/ranking/:sessionId" element={<RankingPage />} />
 
-        {/* Modo 2 — Duelo ao vivo */}
+        {/* Etapa 2 — Duelo ao vivo (final entre os 2 melhores do quiz coletivo) */}
         <Route path="/duelo/entrar/:codigo" element={<DuelJoinPage />} />
         <Route path="/duelo/:matchId/jogar/:playerId" element={<DuelPlayerPage />} />
         <Route path="/telao/:matchId" element={<ScreenPage />} />

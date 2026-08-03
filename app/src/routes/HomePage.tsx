@@ -27,7 +27,19 @@ export function HomePage() {
     if (!control) return
 
     async function redirect() {
-      if (control!.active_mode === 'individual' && control!.active_individual_session_id) {
+      if (control!.active_mode === 'live_quiz' && control!.active_live_quiz_session_id) {
+        setRedirecting(true)
+        const { data } = await supabase
+          .from('live_quiz_sessions')
+          .select('code')
+          .eq('id', control!.active_live_quiz_session_id)
+          .maybeSingle()
+        if (data?.code) {
+          navigate(`/quiz/entrar/${data.code}`, { replace: true })
+          return
+        }
+        setRedirecting(false)
+      } else if (control!.active_mode === 'individual' && control!.active_individual_session_id) {
         setRedirecting(true)
         const { data } = await supabase
           .from('individual_sessions')

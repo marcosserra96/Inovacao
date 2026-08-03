@@ -196,7 +196,11 @@ export function DuelPlayerPage() {
                 const isSelected = selectedOptionId === option.optionId
                 const revealed = Boolean(currentRound?.revealed_at)
                 const myAnswer = result?.answers.find((a) => a.playerId === playerId)
-                const isCorrectOption = revealed && option.optionId === myAnswer?.optionId && myAnswer?.isCorrect
+                // A alternativa correta vem do próprio payload da pergunta
+                // (já revelado pelo servidor), não de bater com a resposta
+                // da pessoa — assim quem errou ou respondeu tarde também vê
+                // qual era a certa, igual ao telão.
+                const isCorrectOption = revealed && option.isCorrect === true
                 // Resposta tardia zera o option_id no servidor (nunca sabemos mais o
                 // que a pessoa tocou) — não dá pra marcar de vermelho como "errada"
                 // sem confundir quem só demorou um instante a mais.
