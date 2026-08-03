@@ -102,6 +102,10 @@ export function LiveQuizPresenterPage() {
     return data
   }
 
+  // Um único botão faz tudo: seleciona os finalistas e — se não houver
+  // empate pra resolver — já sorteia as duplas e inicia as semifinais (ou
+  // o duelo único, no formato de 2) em seguida. Só para no meio se
+  // precisar de uma decisão do apresentador (o desempate).
   async function handleSelectFinalists() {
     const data = (await call('presenter_select_live_quiz_finalists', { p_session_id: sessionId })) as unknown as
       | { needsTiebreak: boolean; tiedParticipantIds?: string[]; finalistIds?: string[] }
@@ -111,7 +115,11 @@ export function LiveQuizPresenterPage() {
       setSelectedTied(data.tiedParticipantIds ?? [])
       notify('Empate no corte de finalistas — rode uma pergunta de desempate abaixo.', 'error')
     } else {
-      notify('Finalistas selecionados!')
+      await call(
+        'presenter_start_duel_from_live_quiz',
+        { p_session_id: sessionId },
+        session?.finalists_count === 4 ? 'Finalistas definidos — duplas sorteadas e semifinais iniciadas!' : 'Finalistas definidos — duelo final iniciado!',
+      )
     }
   }
 
@@ -362,7 +370,7 @@ export function LiveQuizPresenterPage() {
             </ol>
             {session.phase === 'quiz_finished' && (
               <Button className="w-full" disabled={busy} onClick={handleSelectFinalists}>
-                Selecionar finalistas
+                {session.finalists_count === 4 ? 'Definir finalistas e sortear as duplas' : 'Definir finalistas e iniciar o duelo'}
               </Button>
             )}
             {selectedTied.length > 0 && (

@@ -197,7 +197,7 @@ export function AdminGameControlPage() {
                     <Button
                       size="md"
                       variant="ghost"
-                      disabled={questionSets.length === 0 || scoringConfigs.length === 0}
+                      disabled={scoringConfigs.length === 0}
                       onClick={() => setCreatingLiveQuiz(true)}
                     >
                       + Novo quiz
@@ -368,7 +368,6 @@ export function AdminGameControlPage() {
       <Modal open={creatingLiveQuiz} onClose={() => setCreatingLiveQuiz(false)} title="Novo quiz coletivo" wide>
         {creatingLiveQuiz && (
           <LiveQuizSessionForm
-            questionSets={questionSets}
             scoringConfigs={scoringConfigs}
             onCancel={() => setCreatingLiveQuiz(false)}
             onSaved={async (saved) => {
