@@ -41,7 +41,6 @@ export function AdminLiveQuizConfigPage() {
   const [finalistsCount, setFinalistsCount] = useState(4)
   const [sameQuestionsForDuel, setSameQuestionsForDuel] = useState(true)
   const [duelQuestionIds, setDuelQuestionIds] = useState<string[]>([])
-  const [duelRoundsTotal, setDuelRoundsTotal] = useState(5)
   const [duelWinCondition, setDuelWinCondition] = useState<DuelWinCondition>('score')
   const [rulesText, setRulesText] = useState('')
   const [sameQuestionsForFinal, setSameQuestionsForFinal] = useState(true)
@@ -67,7 +66,6 @@ export function AdminLiveQuizConfigPage() {
         setHideStatementOnPhone(def.hide_statement_on_phone)
         setFinalistsCount(def.finalists_count)
         setSameQuestionsForDuel(def.duel_question_set_id === null || def.duel_question_set_id === def.question_set_id)
-        setDuelRoundsTotal(def.duel_rounds_total)
         setDuelWinCondition(def.duel_win_condition)
         setRulesText(def.rules_text)
         setSameQuestionsForFinal(def.final_question_set_id === null || def.final_question_set_id === def.duel_question_set_id)
@@ -169,6 +167,12 @@ export function AdminLiveQuizConfigPage() {
       }
     }
 
+    // Sempre usa TODAS as perguntas marcadas em cada etapa — nunca um
+    // número de rodadas configurado à parte que pudesse deixar perguntas
+    // marcadas de fora sem querer.
+    const duelRoundsTotal = sameQuestionsForDuel ? quizQuestionIds.length : duelQuestionIds.length
+    const finalRoundsTotal = finalistsCount === 4 ? (sameQuestionsForFinal ? duelRoundsTotal : finalQuestionIds.length) : null
+
     const { data, error } = await supabase
       .from('live_quiz_defaults')
       .update({
@@ -183,6 +187,7 @@ export function AdminLiveQuizConfigPage() {
         duel_win_condition: duelWinCondition,
         rules_text: rulesText,
         final_question_set_id: finalSetId,
+        final_rounds_total: finalRoundsTotal,
       })
       .eq('id', true)
       .select()
@@ -252,7 +257,8 @@ export function AdminLiveQuizConfigPage() {
         </div>
 
         <div className="pt-2 border-t border-border">
-          <p className="text-sm font-semibold text-ink mb-3">Etapa 2 — Duelo final</p>
+          <p className="text-sm font-semibold text-ink mb-1">Etapa 2 — Duelo final</p>
+          <p className="text-xs text-ink-muted mb-3">Todas as perguntas marcadas abaixo entram — sem sorteio, sem número de rodadas para configurar à parte.</p>
           <div className="grid grid-cols-2 gap-4 mb-3">
             <Field label="Formato" htmlFor="finalistsCount" hint="Com 4, sorteia 2 duplas para as semifinais e a final é entre os vencedores.">
               <Select id="finalistsCount" value={finalistsCount} onChange={(e) => setFinalistsCount(Number(e.target.value))}>
@@ -267,10 +273,6 @@ export function AdminLiveQuizConfigPage() {
               </Select>
             </Field>
           </div>
-          <Field label="Número de rodadas por duelo" htmlFor="duelRounds">
-            <Input id="duelRounds" type="number" min={1} value={duelRoundsTotal} onChange={(e) => setDuelRoundsTotal(Number(e.target.value))} />
-          </Field>
-
           <div className="mt-3">
             <Switch
               checked={sameQuestionsForDuel}
@@ -285,10 +287,13 @@ export function AdminLiveQuizConfigPage() {
             <p className="text-sm font-medium text-ink mb-1.5">Perguntas do duelo (etapa 2)</p>
             {sameQuestionsForDuel ? (
               <p className="text-sm text-ink-muted rounded-xl border border-dashed border-border p-4 text-center">
-                Usando as mesmas perguntas da etapa 1 — desmarque a opção acima para escolher outras.
+                Usando as {quizQuestionIds.length} perguntas da etapa 1 (todas) — desmarque a opção acima para escolher outras.
               </p>
             ) : (
-              <QuestionPicker questions={questions} categories={categories} selectedIds={duelQuestionIds} onChange={setDuelQuestionIds} />
+              <>
+                <QuestionPicker questions={questions} categories={categories} selectedIds={duelQuestionIds} onChange={setDuelQuestionIds} />
+                <p className="text-xs text-ink-muted mt-1.5">{duelQuestionIds.length} rodada{duelQuestionIds.length === 1 ? '' : 's'} por duelo.</p>
+              </>
             )}
           </div>
         </div>
@@ -312,10 +317,14 @@ export function AdminLiveQuizConfigPage() {
               <p className="text-sm font-medium text-ink mb-1.5">Perguntas da final (etapa 3)</p>
               {sameQuestionsForFinal ? (
                 <p className="text-sm text-ink-muted rounded-xl border border-dashed border-border p-4 text-center">
-                  Usando as mesmas perguntas da etapa 2 — desmarque a opção acima para escolher outras.
+                  Usando as mesmas {sameQuestionsForDuel ? quizQuestionIds.length : duelQuestionIds.length} perguntas da etapa 2 (todas) —
+                  desmarque a opção acima para escolher outras.
                 </p>
               ) : (
-                <QuestionPicker questions={questions} categories={categories} selectedIds={finalQuestionIds} onChange={setFinalQuestionIds} />
+                <>
+                  <QuestionPicker questions={questions} categories={categories} selectedIds={finalQuestionIds} onChange={setFinalQuestionIds} />
+                  <p className="text-xs text-ink-muted mt-1.5">{finalQuestionIds.length} rodada{finalQuestionIds.length === 1 ? '' : 's'} na final.</p>
+                </>
               )}
             </div>
           </div>

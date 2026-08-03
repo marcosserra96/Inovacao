@@ -347,6 +347,7 @@ export interface Database {
           duel_win_condition: DuelWinCondition
           rules_text: string | null
           final_question_set_id: string | null
+          final_rounds_total: number | null
           presenter_id: string | null
           screen_message: string | null
           promoted_duel_match_id: string | null
@@ -380,6 +381,7 @@ export interface Database {
           duel_win_condition: DuelWinCondition
           rules_text: string
           final_question_set_id: string | null
+          final_rounds_total: number | null
           updated_at: string
         }
         Insert: never
