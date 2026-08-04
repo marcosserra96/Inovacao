@@ -9,10 +9,10 @@ export function PublicShell({ children }: { children: ReactNode }) {
   const { theme } = useTheme()
 
   return (
-    <div className="decorative-bg min-h-svh flex flex-col">
+    <div className="decorative-bg min-h-svh flex flex-col safe-bottom pb-4">
       <header className="flex items-center justify-center gap-2 py-5">
         {theme.logoUrl ? (
-          <img src={theme.logoUrl} alt={theme.eventName} className="h-36" />
+          <img src={theme.logoUrl} alt={theme.eventName} className="h-28" />
         ) : (
           <span className="font-display text-lg font-extrabold tracking-tight text-primary-dark">{theme.eventName}</span>
         )}

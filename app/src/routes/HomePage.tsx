@@ -91,15 +91,21 @@ export function HomePage() {
 
   return (
     <PublicShell>
-      <Card className="text-center">
-        <SparkBadge className="mb-5" />
-        <h1 className="font-display text-3xl font-extrabold mb-2 text-primary-dark leading-tight">
+      <div className="flex flex-col items-center text-center animate-fade-up">
+        <SparkBadge size="lg" className="mb-6 shadow-xl shadow-primary/20" />
+        <h1 className="font-display text-4xl font-extrabold mb-3 text-primary-dark leading-tight tracking-tight drop-shadow-sm">
           {theme.eventName}
         </h1>
-        <p className="text-ink-muted">{theme.welcomeMessage}</p>
-        <p className="text-ink-muted text-sm mt-4 mb-4">Aguarde o início da dinâmica.</p>
-        <WaitingDots className="justify-center" />
-      </Card>
+        <p className="text-lg font-medium text-primary mb-8 px-4">
+          {theme.welcomeMessage}
+        </p>
+        <Card className="w-full text-center py-8 bg-surface/90 backdrop-blur-sm border-primary/10 shadow-lg">
+          <p className="text-ink-muted text-base font-medium mb-5">Aguarde o início da dinâmica.</p>
+          <div className="animate-pulse">
+            <WaitingDots className="justify-center scale-110" />
+          </div>
+        </Card>
+      </div>
       <AdminAccessButton />
     </PublicShell>
   )
