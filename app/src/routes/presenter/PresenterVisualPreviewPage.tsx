@@ -63,13 +63,18 @@ function BrandHeader() {
         <div className="hidden h-9 w-px bg-white/30 sm:block" />
         <div className="hidden text-sm font-medium text-white/75 sm:block md:text-base">Painel do Apresentador</div>
       </div>
-      <div className="flex items-center gap-4 text-white">
-        <div className="text-right leading-none">
-          <div className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/65">Grupo</div>
-          <div className="font-display text-[clamp(1rem,1.35vw,1.25rem)] font-bold tracking-tight">energisa</div>
-        </div>
-        <div className="h-7 w-px bg-white/30" />
-        <div className="font-display text-[clamp(1rem,1.35vw,1.25rem)] font-bold tracking-tight"><span className="text-[#9dd52b]">e</span>nova</div>
+      <div className="flex shrink-0 items-center gap-[clamp(12px,1.2vw,18px)]">
+        <img
+          src="/brand/energisa.png"
+          alt="Grupo Energisa"
+          className="h-[clamp(28px,4.2vh,42px)] w-auto object-contain"
+        />
+        <div className="h-[clamp(26px,3.8vh,38px)] w-px bg-white/30" />
+        <img
+          src="/brand/enova.png"
+          alt="Enova"
+          className="h-[clamp(26px,3.9vh,39px)] w-auto object-contain"
+        />
       </div>
       <div className="absolute -bottom-px left-0 h-px w-[42%] bg-gradient-to-r from-[#a7d52c] via-[#6bd27f] to-[#00b6da]" />
     </header>
