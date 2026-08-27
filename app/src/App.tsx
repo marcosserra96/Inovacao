@@ -42,40 +42,19 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
 
-        {/* Nova experiência visual / funcional */}
+        {/* Nova experiência visual / funcional — apresentador sem login */}
         <Route path="/telao-visual" element={<ScreenVisualPreviewPage />} />
         <Route path="/telao-dinamica/:sessionId" element={<ScreenLiveVisualPage />} />
         <Route path="/participante-visual" element={<ParticipantVisualPreviewPage />} />
-        <Route
-          path="/apresentador-visual"
-          element={
-            <ProtectedRoute>
-              <PresenterFlowPreviewPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/apresentador-visual" element={<PresenterFlowPreviewPage />} />
 
-        {/* Etapa 1 — Quiz coletivo ao vivo */}
+        {/* Etapa 1 — Quiz coletivo ao vivo legado */}
         <Route path="/quiz/entrar/:codigo" element={<LiveQuizJoinPage />} />
         <Route path="/quiz/:sessionId/jogar/:participantId" element={<LiveQuizPlayerPage />} />
         <Route path="/telao-quiz/:sessionId" element={<LiveQuizScreenPage />} />
-        <Route
-          path="/apresentador-quiz/:sessionId"
-          element={
-            <ProtectedRoute>
-              <LiveQuizPresenterPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/apresentador-quiz/:sessionId" element={<ProtectedRoute><LiveQuizPresenterPage /></ProtectedRoute>} />
         <Route path="/telao-semifinais/:sessionId" element={<LiveQuizSemifinalsScreenPage />} />
-        <Route
-          path="/apresentador-semifinais/:sessionId"
-          element={
-            <ProtectedRoute>
-              <LiveQuizSemifinalsPresenterPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/apresentador-semifinais/:sessionId" element={<ProtectedRoute><LiveQuizSemifinalsPresenterPage /></ProtectedRoute>} />
 
         {/* Desafio individual */}
         <Route path="/j/:codigo" element={<JoinIndividualPage />} />
@@ -83,14 +62,14 @@ function App() {
         <Route path="/individual/:sessionId/resultado" element={<IndividualResultPage />} />
         <Route path="/ranking/:sessionId" element={<RankingPage />} />
 
-        {/* Duelo */}
+        {/* Duelo legado */}
         <Route path="/duelo/entrar/:codigo" element={<DuelJoinPage />} />
         <Route path="/duelo/:matchId/jogar/:playerId" element={<DuelPlayerPage />} />
         <Route path="/telao/:matchId" element={<ScreenPage />} />
         <Route path="/apresentador/nova" element={<ProtectedRoute><PresenterNewMatchPage /></ProtectedRoute>} />
         <Route path="/apresentador/:matchId" element={<ProtectedRoute><PresenterPage /></ProtectedRoute>} />
 
-        {/* Administrativo */}
+        {/* Administrativo — continua protegido */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/admin" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
         <Route path="/admin/jogo" element={<ProtectedRoute><AdminGameControlPage /></ProtectedRoute>} />
