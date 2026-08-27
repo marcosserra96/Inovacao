@@ -289,6 +289,16 @@ input, select, textarea {
   background: var(--color-ink-muted);
 }
 
+/* Ajuste visual específico do cronômetro circular do telão. */
+svg[viewBox="0 0 104 104"] + div > span:first-child {
+  font-size: clamp(1.75rem, 2.8vw, 2.8rem);
+  letter-spacing: -0.045em;
+}
+
+svg[viewBox="0 0 104 104"] + div > span:last-child {
+  display: none;
+}
+
 /* ─── Reduced Motion ────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
