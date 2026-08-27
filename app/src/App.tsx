@@ -10,7 +10,7 @@ import { ScreenPage } from '@/routes/screen/ScreenPage'
 import { ScreenVisualPreviewPage } from '@/routes/screen/ScreenVisualPreviewPage'
 import { PresenterNewMatchPage } from '@/routes/presenter/PresenterNewMatchPage'
 import { PresenterPage } from '@/routes/presenter/PresenterPage'
-import { PresenterVisualPreviewPage } from '@/routes/presenter/PresenterVisualPreviewPage'
+import { PresenterFlowPreviewPage } from '@/routes/presenter/PresenterFlowPreviewPage'
 import { LiveQuizJoinPage } from '@/routes/livequiz/LiveQuizJoinPage'
 import { LiveQuizPlayerPage } from '@/routes/livequiz/LiveQuizPlayerPage'
 import { ParticipantVisualPreviewPage } from '@/routes/livequiz/ParticipantVisualPreviewPage'
@@ -48,7 +48,7 @@ function App() {
           path="/apresentador-visual"
           element={
             <ProtectedRoute>
-              <PresenterVisualPreviewPage />
+              <PresenterFlowPreviewPage />
             </ProtectedRoute>
           }
         />
