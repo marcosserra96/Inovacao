@@ -89,7 +89,7 @@ export function ParticipantJoinVisualPage() {
     }
     const result = data as unknown as { sessionId: string; participantId: string; joinToken: string }
     saveLiveQuizParticipant(result.sessionId, { participantId: result.participantId, joinToken: result.joinToken })
-    navigate(`/quiz/${result.sessionId}/jogar/${result.participantId}`)
+    navigate(`/participante/${result.sessionId}/${result.participantId}`)
   }
 
   return (
