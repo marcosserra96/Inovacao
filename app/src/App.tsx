@@ -7,6 +7,7 @@ import { RankingPage } from '@/routes/ranking/RankingPage'
 import { DuelJoinPage } from '@/routes/duel/DuelJoinPage'
 import { DuelPlayerPage } from '@/routes/duel/DuelPlayerPage'
 import { ScreenPage } from '@/routes/screen/ScreenPage'
+import { ScreenVisualPreviewPage } from '@/routes/screen/ScreenVisualPreviewPage'
 import { PresenterNewMatchPage } from '@/routes/presenter/PresenterNewMatchPage'
 import { PresenterPage } from '@/routes/presenter/PresenterPage'
 import { PresenterVisualPreviewPage } from '@/routes/presenter/PresenterVisualPreviewPage'
@@ -39,7 +40,8 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
 
-        {/* Prévia visual isolada do novo painel do apresentador */}
+        {/* Prévias visuais isoladas da nova experiência */}
+        <Route path="/telao-visual" element={<ScreenVisualPreviewPage />} />
         <Route
           path="/apresentador-visual"
           element={
