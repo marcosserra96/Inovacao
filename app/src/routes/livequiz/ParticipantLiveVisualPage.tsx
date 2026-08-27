@@ -51,7 +51,7 @@ export function ParticipantLiveVisualPage(){
   const { row: me }=useRealtimeRow<Participant>('live_quiz_participants', participantId)
   const { rows: flags }=useRealtimeList<AnswerFlag>('live_quiz_answer_flags','round_id',currentRound?.id)
   const stored=sessionId&&participantId?loadLiveQuizParticipant(sessionId,participantId):null
-  const joinToken=stored?.participantId===participantId?stored.joinToken:null
+  const joinToken=stored&&stored.participantId===participantId?stored.joinToken:null
   const [selected,setSelected]=useState<string|null>(null)
   const [submitting,setSubmitting]=useState(false)
   const [result,setResult]=useState<RoundResult|null>(null)
