@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { PresenterVisualPreviewPage } from './PresenterVisualPreviewPage'
 
+type PresenterStep = 'setup' | 'lobby' | 'running'
+
+const connectedPeople = ['Ana Martins', 'João Pedro', 'Marcos Silva', 'Carla Souza', 'Pedro Lima', 'Bruno Alves']
+
 function BrandHeader() {
   return (
     <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 pb-[clamp(10px,1.7vh,20px)]">
@@ -35,20 +39,30 @@ function WaveDecoration() {
   )
 }
 
-function PlayIcon() {
+function PlayIcon({ className = 'h-6 w-6' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
       <path d="m10 8 6 4-6 4Z" />
     </svg>
   )
 }
 
-function ScreenIcon() {
+function ScreenIcon({ className = 'h-8 w-8' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="4" width="18" height="13" rx="2" />
       <path d="M8 21h8M12 17v4" />
+    </svg>
+  )
+}
+
+function UsersIcon({ className = 'h-6 w-6' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   )
 }
@@ -81,7 +95,7 @@ function SetupScreen({ onStart }: { onStart: () => void }) {
               </button>
 
               <div className="mt-4 flex items-center gap-2 text-xs text-white/42">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#00b6da]" /> A dinâmica permanece em Lobby até você iniciar o Quiz.
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#00b6da]" /> O telão abre no Lobby; o Quiz só começa quando você autorizar.
               </div>
             </div>
 
@@ -90,8 +104,8 @@ function SetupScreen({ onStart }: { onStart: () => void }) {
               <h2 className="mt-5 font-display text-[clamp(1.35rem,2vw,2rem)] font-bold text-white">Como funciona</h2>
               <div className="mt-5 space-y-4">
                 {[
-                  ['1', 'Abra o telão', 'O botão ao lado abre a tela que será compartilhada.'],
-                  ['2', 'Compartilhe a aba', 'Projete ou compartilhe apenas a aba do telão.'],
+                  ['1', 'Abra o telão', 'A dinâmica é preparada e o telão abre em outra aba.'],
+                  ['2', 'Compartilhe a aba', 'Projete ou compartilhe somente a aba do telão.'],
                   ['3', 'Controle por aqui', 'Quiz, pausa, semifinais e final ficam nesta tela.'],
                 ].map(([step, title, text]) => (
                   <div key={step} className="grid grid-cols-[34px_minmax(0,1fr)] gap-3">
@@ -108,15 +122,92 @@ function SetupScreen({ onStart }: { onStart: () => void }) {
   )
 }
 
-export function PresenterFlowPreviewPage() {
-  const [started, setStarted] = useState(false)
+function LobbyScreen({ onStartQuiz, onOpenScreen }: { onStartQuiz: () => void; onOpenScreen: () => void }) {
+  return (
+    <main className="relative h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#020d23] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(23,77,145,.23),transparent_32%),radial-gradient(circle_at_83%_20%,rgba(0,182,218,.08),transparent_28%),linear-gradient(180deg,#03102b_0%,#020d23_100%)]" />
+      <WaveDecoration />
 
-  const startDynamic = () => {
+      <div className="relative mx-auto grid h-full min-h-0 w-full max-w-[1800px] grid-rows-[auto_auto_minmax(0,1fr)] px-[clamp(14px,2.2vw,40px)] py-[clamp(10px,1.7vh,22px)]">
+        <BrandHeader />
+
+        <div className="relative z-20 flex h-[clamp(44px,6.5vh,58px)] shrink-0 items-center justify-end">
+          <button type="button" onClick={onOpenScreen} className="flex items-center gap-2 rounded-xl border border-[#00b6da]/24 bg-[#00b6da]/7 px-4 py-2 text-xs font-bold text-[#5ddcf2] transition hover:bg-[#00b6da]/12">
+            <ScreenIcon className="h-4 w-4" /> Abrir telão novamente
+          </button>
+        </div>
+
+        <div className="relative z-10 grid min-h-0 gap-[clamp(10px,1.2vw,20px)] lg:grid-cols-[minmax(0,1.85fr)_minmax(340px,.95fr)]">
+          <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] border border-white/12 bg-[#071936]/78 p-[clamp(14px,2.1vh,26px)] backdrop-blur-xl">
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#a7d52c]/24 bg-[#a7d52c]/8 px-3.5 py-1.5 text-[11px] font-bold text-[#c1e944]">
+              <span className="h-2 w-2 rounded-full bg-[#a7d52c]" /> Aguardando participantes
+            </div>
+
+            <div className="grid min-h-0 flex-1 items-center gap-[clamp(16px,2vw,30px)] lg:grid-cols-[minmax(0,1fr)_minmax(210px,27vh)]">
+              <div>
+                <h1 className="font-display text-[clamp(3rem,5vw,5.2rem)] font-extrabold leading-[.94] tracking-[-.06em] text-white">Lobby</h1>
+                <p className="mt-3 text-[clamp(1rem,1.4vw,1.4rem)] font-medium text-white/65">47 participantes conectados</p>
+                <div className="mt-4 h-px w-60 max-w-[45%] bg-gradient-to-r from-[#a7d52c] to-[#00b6da]" />
+
+                <div className="mt-[clamp(18px,3vh,32px)] grid max-w-xl grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-white/9 bg-white/[.035] p-4">
+                    <div className="text-xs text-white/50">Conectados</div>
+                    <div className="mt-1 font-display text-[clamp(2rem,3vw,3rem)] font-extrabold leading-none text-[#a7d52c]">47</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/9 bg-white/[.035] p-4">
+                    <div className="text-xs text-white/50">Status</div>
+                    <div className="mt-2 text-sm font-semibold text-white">Pronto para iniciar</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mx-auto grid aspect-square w-full max-w-[min(250px,27vh)] place-items-center rounded-full border border-[#00b6da]/20 bg-[#00b6da]/5 text-center">
+                <div><UsersIcon className="mx-auto mb-2 h-10 w-10 text-[#a7d52c]" /><div className="font-display text-[clamp(3rem,4.5vw,4.5rem)] font-extrabold leading-none text-white">47</div><div className="mt-1.5 text-xs text-white/55">participantes</div></div>
+              </div>
+            </div>
+
+            <div className="mb-[clamp(8px,1.2vh,14px)] flex h-[clamp(48px,7vh,64px)] shrink-0 items-center rounded-2xl border border-[#00b6da]/14 bg-[#06162f]/65 px-4">
+              <div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-full border border-[#00b6da]/30 text-[#00b6da]"><PlayIcon className="h-4 w-4" /></div><div><div className="text-[10px] text-white/50">Próxima etapa</div><div className="font-display text-sm font-bold text-[#a7d52c]">Quiz coletivo</div></div></div>
+            </div>
+
+            <button type="button" onClick={onStartQuiz} className="flex h-[clamp(50px,7vh,64px)] w-full shrink-0 items-center justify-center gap-3 rounded-2xl bg-[#a7d52c] px-6 font-display text-[clamp(1rem,1.35vw,1.25rem)] font-extrabold text-[#07152f] shadow-[0_0_34px_rgba(167,213,44,.18)] transition hover:bg-[#b6e33c]">
+              <PlayIcon /> Iniciar Quiz
+            </button>
+          </section>
+
+          <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] border border-white/12 bg-[#071936]/88 p-[clamp(12px,1.6vh,20px)] backdrop-blur-xl">
+            <div className="mb-3 flex items-center gap-3"><UsersIcon className="h-5 w-5 text-[#a7d52c]" /><h2 className="font-display text-[clamp(1rem,1.4vw,1.25rem)] font-bold text-white">Participantes conectados</h2></div>
+            <div className="grid min-h-0 flex-1 grid-rows-6 gap-[clamp(5px,.7vh,9px)]">
+              {connectedPeople.map((name, index) => (
+                <div key={name} className="grid min-h-0 grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-white/8 bg-white/[.028] px-3">
+                  <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#00b6da]/8 text-[11px] font-bold text-[#5ddcf2]">{index + 1}</div>
+                  <div className="truncate text-sm font-medium text-white/88">{name}</div>
+                  <span className="h-2 w-2 rounded-full bg-[#a7d52c]" />
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 border-t border-white/8 pt-3 text-xs text-white/45">+ 41 participantes conectados</div>
+          </aside>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+export function PresenterFlowPreviewPage() {
+  const [step, setStep] = useState<PresenterStep>('setup')
+
+  const openScreen = () => {
     const screenWindow = window.open('/telao-visual', '_blank', 'noopener,noreferrer')
     if (screenWindow) screenWindow.opener = null
-    setStarted(true)
   }
 
-  if (started) return <PresenterVisualPreviewPage />
-  return <SetupScreen onStart={startDynamic} />
+  const startDynamic = () => {
+    openScreen()
+    setStep('lobby')
+  }
+
+  if (step === 'setup') return <SetupScreen onStart={startDynamic} />
+  if (step === 'lobby') return <LobbyScreen onStartQuiz={() => setStep('running')} onOpenScreen={openScreen} />
+  return <PresenterVisualPreviewPage />
 }
