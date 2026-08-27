@@ -13,6 +13,7 @@ import { PresenterPage } from '@/routes/presenter/PresenterPage'
 import { PresenterVisualPreviewPage } from '@/routes/presenter/PresenterVisualPreviewPage'
 import { LiveQuizJoinPage } from '@/routes/livequiz/LiveQuizJoinPage'
 import { LiveQuizPlayerPage } from '@/routes/livequiz/LiveQuizPlayerPage'
+import { ParticipantVisualPreviewPage } from '@/routes/livequiz/ParticipantVisualPreviewPage'
 import { LiveQuizScreenPage } from '@/routes/livequiz/LiveQuizScreenPage'
 import { LiveQuizPresenterPage } from '@/routes/livequiz/LiveQuizPresenterPage'
 import { LiveQuizSemifinalsPresenterPage } from '@/routes/livequiz/LiveQuizSemifinalsPresenterPage'
@@ -42,6 +43,7 @@ function App() {
 
         {/* Prévias visuais isoladas da nova experiência */}
         <Route path="/telao-visual" element={<ScreenVisualPreviewPage />} />
+        <Route path="/participante-visual" element={<ParticipantVisualPreviewPage />} />
         <Route
           path="/apresentador-visual"
           element={
