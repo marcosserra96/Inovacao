@@ -12,7 +12,6 @@ import { ScreenLiveVisualPage } from '@/routes/screen/ScreenLiveVisualPage'
 import { PresenterNewMatchPage } from '@/routes/presenter/PresenterNewMatchPage'
 import { PresenterPage } from '@/routes/presenter/PresenterPage'
 import { PresenterFlowPreviewPage } from '@/routes/presenter/PresenterFlowPreviewPage'
-import { LiveQuizJoinPage } from '@/routes/livequiz/LiveQuizJoinPage'
 import { LiveQuizPlayerPage } from '@/routes/livequiz/LiveQuizPlayerPage'
 import { ParticipantVisualPreviewPage } from '@/routes/livequiz/ParticipantVisualPreviewPage'
 import { ParticipantJoinVisualPage } from '@/routes/livequiz/ParticipantJoinVisualPage'
@@ -50,8 +49,8 @@ function App() {
         <Route path="/participar/:codigo" element={<ParticipantJoinVisualPage />} />
         <Route path="/apresentador-visual" element={<PresenterFlowPreviewPage />} />
 
-        {/* Etapa 1 — Quiz coletivo ao vivo legado */}
-        <Route path="/quiz/entrar/:codigo" element={<LiveQuizJoinPage />} />
+        {/* QRs antigos também entram pela nova experiência mobile */}
+        <Route path="/quiz/entrar/:codigo" element={<ParticipantJoinVisualPage />} />
         <Route path="/quiz/:sessionId/jogar/:participantId" element={<LiveQuizPlayerPage />} />
         <Route path="/telao-quiz/:sessionId" element={<LiveQuizScreenPage />} />
         <Route path="/apresentador-quiz/:sessionId" element={<ProtectedRoute><LiveQuizPresenterPage /></ProtectedRoute>} />
