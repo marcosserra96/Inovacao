@@ -10,6 +10,7 @@ type ParticipantState =
   | 'wrong'
   | 'qualified'
   | 'spectator'
+  | 'ranking'
   | 'semifinal'
   | 'final'
   | 'finish'
@@ -24,6 +25,7 @@ const previewStates: Array<{ value: ParticipantState; label: string }> = [
   { value: 'wrong', label: 'Errou' },
   { value: 'qualified', label: 'Classificado' },
   { value: 'spectator', label: 'Acompanhando' },
+  { value: 'ranking', label: 'Ranking liberado' },
   { value: 'semifinal', label: 'Semifinal' },
   { value: 'final', label: 'Final' },
   { value: 'finish', label: 'Resultado final' },
@@ -38,7 +40,7 @@ const answers = [
 
 function MiniBrand() {
   return (
-    <header className="flex shrink-0 items-center justify-between border-b border-white/10 pb-3">
+    <header className="flex shrink-0 items-center justify-between border-b border-white/10 pb-3.5">
       <div className="font-display text-[19px] font-extrabold tracking-[-.045em]">
         <span className="text-[#a7d52c]">Rota de </span>
         <span className="text-white">Inovação</span>
@@ -72,7 +74,7 @@ function StatusBadge({ children, tone = 'lime' }: { children: ReactNode; tone?: 
       ? 'border-[#ffb547]/24 bg-[#ffb547]/8 text-[#ffc36b]'
       : 'border-[#a7d52c]/24 bg-[#a7d52c]/8 text-[#c1e944]'
 
-  return <div className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] ${style}`}>{children}</div>
+  return <div className={`inline-flex w-fit rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] ${style}`}>{children}</div>
 }
 
 function SmallTimer({ seconds = 8 }: { seconds?: number }) {
@@ -101,16 +103,18 @@ function PrepareCircle() {
 
 function EntryScreen() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col justify-center">
+    <div className="flex min-h-0 flex-1 flex-col pt-5">
       <StatusBadge>Bem-vindo</StatusBadge>
-      <h1 className="mt-4 font-display text-[42px] font-extrabold leading-[.95] tracking-[-.055em] text-white">Entre na<br /><span className="text-[#a7d52c]">dinâmica</span></h1>
-      <p className="mt-4 text-sm leading-relaxed text-white/58">Digite seu nome como você quer aparecer no ranking.</p>
-      <div className="mt-7">
-        <label className="mb-2 block text-xs font-semibold text-white/55">Seu nome</label>
-        <div className="rounded-2xl border border-white/12 bg-white/[.045] px-4 py-4 text-[15px] font-medium text-white/82">Marcos Silva</div>
+      <h1 className="mt-5 font-display text-[40px] font-extrabold leading-[.97] tracking-[-.055em] text-white">Entre na<br /><span className="text-[#a7d52c]">dinâmica</span></h1>
+      <p className="mt-5 max-w-[315px] text-sm leading-[1.65] text-white/58">Digite seu nome como você quer aparecer durante a experiência.</p>
+
+      <div className="mt-8">
+        <label className="mb-2.5 block text-xs font-semibold text-white/55">Seu nome</label>
+        <div className="rounded-2xl border border-white/12 bg-white/[.045] px-4 py-[17px] text-[15px] font-medium text-white/82">Marcos Silva</div>
       </div>
-      <button className="mt-4 rounded-2xl bg-[#a7d52c] px-5 py-4 font-display text-[15px] font-extrabold text-[#07152f] shadow-[0_12px_32px_rgba(167,213,44,.14)]">Entrar na dinâmica</button>
-      <div className="mt-5 text-center text-[11px] text-white/38">Um dispositivo por participante</div>
+
+      <button className="mt-5 rounded-2xl bg-[#a7d52c] px-5 py-[17px] font-display text-[15px] font-extrabold text-[#07152f] shadow-[0_12px_32px_rgba(167,213,44,.14)]">Entrar na dinâmica</button>
+      <div className="mt-4 text-center text-[11px] text-white/38">Um dispositivo por participante</div>
     </div>
   )
 }
@@ -121,12 +125,12 @@ function LobbyScreen() {
       <div className="grid h-20 w-20 place-items-center rounded-full border border-[#a7d52c]/24 bg-[#a7d52c]/8 text-[#a7d52c]">
         <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m5 12 4 4L19 6" /></svg>
       </div>
-      <StatusBadge>Conectado</StatusBadge>
-      <h1 className="mt-4 font-display text-[38px] font-extrabold leading-none tracking-[-.05em] text-white">Você está dentro!</h1>
-      <p className="mt-3 max-w-[280px] text-sm leading-relaxed text-white/58">Agora é só acompanhar o telão. O quiz começa quando o apresentador liberar.</p>
+      <div className="mt-5"><StatusBadge>Conectado</StatusBadge></div>
+      <h1 className="mt-5 font-display text-[38px] font-extrabold leading-none tracking-[-.05em] text-white">Você está dentro!</h1>
+      <p className="mt-4 max-w-[285px] text-sm leading-[1.65] text-white/58">Agora é só acompanhar o telão. O quiz começa quando o apresentador liberar.</p>
       <div className="mt-8 w-full rounded-2xl border border-white/10 bg-white/[.035] p-4 text-left">
         <div className="text-[10px] uppercase tracking-[.15em] text-white/38">Participante</div>
-        <div className="mt-1 font-display text-lg font-bold text-white">Marcos Silva</div>
+        <div className="mt-1.5 font-display text-lg font-bold text-white">Marcos Silva</div>
       </div>
     </div>
   )
@@ -136,9 +140,9 @@ function PrepareScreen() {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
       <StatusBadge tone="cyan">Próxima pergunta</StatusBadge>
-      <h1 className="mt-5 font-display text-[30px] font-extrabold tracking-[-.04em] text-white">Prepare-se</h1>
-      <div className="mt-6"><PrepareCircle /></div>
-      <p className="mt-6 text-sm font-medium text-white/48">A pergunta aparece em instantes</p>
+      <h1 className="mt-6 font-display text-[30px] font-extrabold tracking-[-.04em] text-white">Prepare-se</h1>
+      <div className="mt-7"><PrepareCircle /></div>
+      <p className="mt-7 text-sm font-medium text-white/48">A pergunta aparece em instantes</p>
     </div>
   )
 }
@@ -150,12 +154,12 @@ function QuestionScreen({ phase = 'quiz', locked = false }: { phase?: 'quiz' | '
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[.17em] text-[#00b6da]">{phaseLabel}</div>
-          <div className="mt-1 text-xs font-semibold text-white/48">Pergunta 06 de 10</div>
+          <div className="mt-1.5 text-xs font-semibold text-white/48">Pergunta 06 de 10</div>
         </div>
         <SmallTimer seconds={8} />
       </div>
-      <h1 className="mt-3 font-display text-[21px] font-extrabold leading-[1.15] tracking-[-.035em] text-white">Qual abordagem ajuda a compreender necessidades reais antes de desenvolver uma solução?</h1>
-      <div className="mt-4 grid min-h-0 flex-1 grid-rows-4 gap-2.5">
+      <h1 className="mt-4 font-display text-[21px] font-extrabold leading-[1.16] tracking-[-.035em] text-white">Qual abordagem ajuda a compreender necessidades reais antes de desenvolver uma solução?</h1>
+      <div className="mt-5 grid min-h-0 flex-1 grid-rows-4 gap-2.5">
         {answers.map((answer, index) => {
           const selected = locked && index === 1
           return (
@@ -166,7 +170,7 @@ function QuestionScreen({ phase = 'quiz', locked = false }: { phase?: 'quiz' | '
           )
         })}
       </div>
-      {locked && <div className="mt-3 rounded-xl border border-[#a7d52c]/20 bg-[#a7d52c]/8 px-3 py-2.5 text-center text-xs font-bold text-[#c1e944]">Resposta registrada</div>}
+      {locked && <div className="mt-3.5 rounded-xl border border-[#a7d52c]/20 bg-[#a7d52c]/8 px-3 py-2.5 text-center text-xs font-bold text-[#c1e944]">Resposta registrada</div>}
     </div>
   )
 }
@@ -181,13 +185,13 @@ function ResultScreen({ correct }: { correct: boolean }) {
           <svg viewBox="0 0 24 24" className="h-11 w-11" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m7 7 10 10M17 7 7 17" /></svg>
         )}
       </div>
-      <h1 className="mt-5 font-display text-[38px] font-extrabold leading-none tracking-[-.05em] text-white">{correct ? 'Mandou bem!' : 'Quase!'}</h1>
-      <p className="mt-3 text-sm text-white/55">Resposta correta: <span className="font-bold text-[#a7d52c]">B · Design Thinking</span></p>
-      <div className="mt-7 grid w-full grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-white/10 bg-white/[.035] p-4"><div className="text-[10px] uppercase tracking-[.15em] text-white/38">Pontos</div><div className="mt-1 font-display text-2xl font-extrabold text-[#a7d52c]">{correct ? '+890' : '+0'}</div></div>
-        <div className="rounded-2xl border border-white/10 bg-white/[.035] p-4"><div className="text-[10px] uppercase tracking-[.15em] text-white/38">Posição</div><div className="mt-1 font-display text-2xl font-extrabold text-white">4º</div></div>
+      <h1 className="mt-6 font-display text-[38px] font-extrabold leading-none tracking-[-.05em] text-white">{correct ? 'Mandou bem!' : 'Quase!'}</h1>
+      <p className="mt-4 text-sm leading-relaxed text-white/55">Resposta correta: <span className="font-bold text-[#a7d52c]">B · Design Thinking</span></p>
+      <div className="mt-8 w-full rounded-2xl border border-white/10 bg-white/[.035] p-5">
+        <div className="text-[10px] uppercase tracking-[.15em] text-white/38">Pontos desta pergunta</div>
+        <div className="mt-2 font-display text-[32px] font-extrabold text-[#a7d52c]">{correct ? '+890' : '+0'}</div>
       </div>
-      <div className="mt-5 text-xs font-medium text-white/42">Próxima pergunta em instantes</div>
+      <div className="mt-6 text-xs font-medium text-white/42">Próxima pergunta em instantes</div>
     </div>
   )
 }
@@ -198,10 +202,13 @@ function QualifiedScreen() {
       <div className="grid h-24 w-24 place-items-center rounded-full border border-[#a7d52c]/28 bg-[#a7d52c]/9 text-[#a7d52c] shadow-[0_0_50px_rgba(167,213,44,.1)]">
         <svg viewBox="0 0 24 24" className="h-12 w-12" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0Z"/><path d="M7 6H4v1a4 4 0 0 0 4 4M17 6h3v1a4 4 0 0 1-4 4"/></svg>
       </div>
-      <StatusBadge>Top 4</StatusBadge>
-      <h1 className="mt-4 font-display text-[38px] font-extrabold leading-[.98] tracking-[-.05em] text-white">Você está na<br /><span className="text-[#a7d52c]">semifinal!</span></h1>
-      <p className="mt-4 max-w-[290px] text-sm leading-relaxed text-white/58">Fique atento. Quando o apresentador iniciar a etapa, suas próximas respostas valem a vaga na final.</p>
-      <div className="mt-7 w-full rounded-2xl border border-[#a7d52c]/18 bg-[#a7d52c]/7 p-4"><div className="text-[10px] uppercase tracking-[.15em] text-white/38">Classificação</div><div className="mt-1 font-display text-[28px] font-extrabold text-[#a7d52c]">4º lugar</div></div>
+      <div className="mt-5"><StatusBadge>Classificado</StatusBadge></div>
+      <h1 className="mt-5 font-display text-[38px] font-extrabold leading-[.98] tracking-[-.05em] text-white">Você está na<br /><span className="text-[#a7d52c]">semifinal!</span></h1>
+      <p className="mt-5 max-w-[295px] text-sm leading-[1.65] text-white/58">Fique atento. Quando o apresentador iniciar a etapa, suas próximas respostas valem a vaga na final.</p>
+      <div className="mt-8 w-full rounded-2xl border border-[#a7d52c]/18 bg-[#a7d52c]/7 p-4">
+        <div className="text-[10px] uppercase tracking-[.15em] text-white/38">Próxima etapa</div>
+        <div className="mt-1.5 font-display text-[25px] font-extrabold text-[#a7d52c]">Semifinal</div>
+      </div>
     </div>
   )
 }
@@ -210,12 +217,27 @@ function SpectatorScreen() {
   return (
     <div className="flex min-h-0 flex-1 flex-col justify-center">
       <StatusBadge tone="cyan">Acompanhe a disputa</StatusBadge>
-      <h1 className="mt-4 font-display text-[36px] font-extrabold leading-[.98] tracking-[-.05em] text-white">O jogo continua</h1>
-      <p className="mt-3 text-sm leading-relaxed text-white/55">Você encerrou sua participação, mas pode acompanhar as semifinais e a grande final por aqui e pelo telão.</p>
-      <div className="mt-7 space-y-3">
+      <h1 className="mt-5 font-display text-[36px] font-extrabold leading-[.98] tracking-[-.05em] text-white">O jogo continua</h1>
+      <p className="mt-4 text-sm leading-[1.65] text-white/55">Você encerrou sua participação, mas pode acompanhar as semifinais e a grande final por aqui e pelo telão.</p>
+      <div className="mt-8 space-y-3">
         <div className="rounded-2xl border border-white/10 bg-white/[.04] p-4"><div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#00b6da]">Semifinal 1</div><div className="mt-3 flex items-center justify-between"><span className="font-display text-base font-bold text-white">Ana Martins</span><span className="font-display text-2xl font-extrabold text-[#a7d52c]">3</span></div><div className="mt-2 flex items-center justify-between"><span className="font-display text-base font-bold text-white">Carla Souza</span><span className="font-display text-2xl font-extrabold text-white/55">2</span></div></div>
         <div className="rounded-2xl border border-white/10 bg-white/[.04] p-4"><div className="text-[10px] font-bold uppercase tracking-[.15em] text-[#00b6da]">Semifinal 2</div><div className="mt-3 flex items-center justify-between"><span className="font-display text-base font-bold text-white">João Pedro</span><span className="font-display text-2xl font-extrabold text-white/55">1</span></div><div className="mt-2 flex items-center justify-between"><span className="font-display text-base font-bold text-white">Marcos Silva</span><span className="font-display text-2xl font-extrabold text-[#a7d52c]">3</span></div></div>
       </div>
+    </div>
+  )
+}
+
+function RankingReleasedScreen() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
+      <StatusBadge tone="cyan">Ranking liberado</StatusBadge>
+      <div className="mt-6 text-[11px] font-bold uppercase tracking-[.2em] text-white/40">Sua posição agora</div>
+      <div className="mt-3 font-display text-[76px] font-extrabold leading-none tracking-[-.07em] text-[#a7d52c]">4º</div>
+      <div className="mt-7 w-full rounded-2xl border border-white/10 bg-white/[.04] p-5">
+        <div className="text-[10px] uppercase tracking-[.15em] text-white/38">Pontuação atual</div>
+        <div className="mt-2 font-display text-[32px] font-extrabold text-white">8.780</div>
+      </div>
+      <p className="mt-6 max-w-[290px] text-xs leading-relaxed text-white/42">Esta informação aparece somente quando o apresentador decide exibir o ranking.</p>
     </div>
   )
 }
@@ -224,10 +246,10 @@ function FinishScreen() {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
       <StatusBadge tone="cyan">Dinâmica concluída</StatusBadge>
-      <div className="mt-5 text-[11px] font-bold uppercase tracking-[.2em] text-white/40">Sua colocação final</div>
-      <div className="mt-2 font-display text-[76px] font-extrabold leading-none tracking-[-.07em] text-[#a7d52c]">4º</div>
-      <div className="mt-5 w-full rounded-2xl border border-white/10 bg-white/[.04] p-5"><div className="text-[10px] uppercase tracking-[.15em] text-white/38">Pontuação</div><div className="mt-1 font-display text-[34px] font-extrabold text-white">8.780</div></div>
-      <p className="mt-5 text-sm leading-relaxed text-white/55">Obrigado por participar da Rota de Inovação.</p>
+      <div className="mt-6 text-[11px] font-bold uppercase tracking-[.2em] text-white/40">Sua colocação final</div>
+      <div className="mt-3 font-display text-[76px] font-extrabold leading-none tracking-[-.07em] text-[#a7d52c]">4º</div>
+      <div className="mt-7 w-full rounded-2xl border border-white/10 bg-white/[.04] p-5"><div className="text-[10px] uppercase tracking-[.15em] text-white/38">Pontuação final</div><div className="mt-2 font-display text-[34px] font-extrabold text-white">8.780</div></div>
+      <p className="mt-6 text-sm leading-relaxed text-white/55">Obrigado por participar da Rota de Inovação.</p>
     </div>
   )
 }
@@ -243,6 +265,7 @@ function PhoneScreen({ state }: { state: ParticipantState }) {
   else if (state === 'wrong') content = <ResultScreen correct={false} />
   else if (state === 'qualified') content = <QualifiedScreen />
   else if (state === 'spectator') content = <SpectatorScreen />
+  else if (state === 'ranking') content = <RankingReleasedScreen />
   else if (state === 'semifinal') content = <QuestionScreen phase="semifinal" />
   else if (state === 'final') content = <QuestionScreen phase="final" />
   else content = <FinishScreen />
@@ -253,17 +276,17 @@ function PhoneScreen({ state }: { state: ParticipantState }) {
       <Dots />
       <div className="relative z-10 flex h-full min-h-0 flex-col">
         <MiniBrand />
-        <div className="min-h-0 flex-1 pt-4">{content}</div>
+        <div className="min-h-0 flex-1 pt-5">{content}</div>
       </div>
     </div>
   )
 }
 
 export function ParticipantVisualPreviewPage() {
-  const [state, setState] = useState<ParticipantState>('question')
+  const [state, setState] = useState<ParticipantState>('entry')
 
   return (
-    <main className="relative grid h-[100dvh] max-h-[100dvh] overflow-hidden place-items-center bg-[#010817] px-4 py-4 text-white">
+    <main className="relative grid h-[100dvh] max-h-[100dvh] place-items-center overflow-hidden bg-[#010817] px-4 py-4 text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(19,72,136,.24),transparent_34%),linear-gradient(180deg,#06122b_0%,#010817_100%)]" />
 
       <div className="absolute right-5 top-5 z-30 hidden items-center gap-2 rounded-xl border border-white/10 bg-[#071936]/85 px-3 py-2 text-xs backdrop-blur-md sm:flex">
