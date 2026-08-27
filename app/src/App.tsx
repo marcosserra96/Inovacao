@@ -15,6 +15,7 @@ import { PresenterFlowPreviewPage } from '@/routes/presenter/PresenterFlowPrevie
 import { LiveQuizPlayerPage } from '@/routes/livequiz/LiveQuizPlayerPage'
 import { ParticipantVisualPreviewPage } from '@/routes/livequiz/ParticipantVisualPreviewPage'
 import { ParticipantJoinVisualPage } from '@/routes/livequiz/ParticipantJoinVisualPage'
+import { ParticipantLiveVisualPage } from '@/routes/livequiz/ParticipantLiveVisualPage'
 import { LiveQuizScreenPage } from '@/routes/livequiz/LiveQuizScreenPage'
 import { LiveQuizPresenterPage } from '@/routes/livequiz/LiveQuizPresenterPage'
 import { LiveQuizSemifinalsPresenterPage } from '@/routes/livequiz/LiveQuizSemifinalsPresenterPage'
@@ -47,6 +48,7 @@ function App() {
         <Route path="/telao-dinamica/:sessionId" element={<ScreenLiveVisualPage />} />
         <Route path="/participante-visual" element={<ParticipantVisualPreviewPage />} />
         <Route path="/participar/:codigo" element={<ParticipantJoinVisualPage />} />
+        <Route path="/participante/:sessionId/:participantId" element={<ParticipantLiveVisualPage />} />
         <Route path="/apresentador-visual" element={<PresenterFlowPreviewPage />} />
 
         {/* QRs antigos também entram pela nova experiência mobile */}
