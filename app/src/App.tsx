@@ -15,6 +15,7 @@ import { PresenterFlowPreviewPage } from '@/routes/presenter/PresenterFlowPrevie
 import { LiveQuizJoinPage } from '@/routes/livequiz/LiveQuizJoinPage'
 import { LiveQuizPlayerPage } from '@/routes/livequiz/LiveQuizPlayerPage'
 import { ParticipantVisualPreviewPage } from '@/routes/livequiz/ParticipantVisualPreviewPage'
+import { ParticipantJoinVisualPage } from '@/routes/livequiz/ParticipantJoinVisualPage'
 import { LiveQuizScreenPage } from '@/routes/livequiz/LiveQuizScreenPage'
 import { LiveQuizPresenterPage } from '@/routes/livequiz/LiveQuizPresenterPage'
 import { LiveQuizSemifinalsPresenterPage } from '@/routes/livequiz/LiveQuizSemifinalsPresenterPage'
@@ -42,10 +43,11 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
 
-        {/* Nova experiência visual / funcional — apresentador sem login */}
+        {/* Nova experiência visual / funcional — sem login */}
         <Route path="/telao-visual" element={<ScreenVisualPreviewPage />} />
         <Route path="/telao-dinamica/:sessionId" element={<ScreenLiveVisualPage />} />
         <Route path="/participante-visual" element={<ParticipantVisualPreviewPage />} />
+        <Route path="/participar/:codigo" element={<ParticipantJoinVisualPage />} />
         <Route path="/apresentador-visual" element={<PresenterFlowPreviewPage />} />
 
         {/* Etapa 1 — Quiz coletivo ao vivo legado */}
