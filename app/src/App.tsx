@@ -9,6 +9,7 @@ import { DuelPlayerPage } from '@/routes/duel/DuelPlayerPage'
 import { ScreenPage } from '@/routes/screen/ScreenPage'
 import { PresenterNewMatchPage } from '@/routes/presenter/PresenterNewMatchPage'
 import { PresenterPage } from '@/routes/presenter/PresenterPage'
+import { PresenterVisualPreviewPage } from '@/routes/presenter/PresenterVisualPreviewPage'
 import { LiveQuizJoinPage } from '@/routes/livequiz/LiveQuizJoinPage'
 import { LiveQuizPlayerPage } from '@/routes/livequiz/LiveQuizPlayerPage'
 import { LiveQuizScreenPage } from '@/routes/livequiz/LiveQuizScreenPage'
@@ -37,6 +38,16 @@ function App() {
       <ConfigWarningBanner />
       <Routes>
         <Route path="/" element={<HomePage />} />
+
+        {/* Prévia visual isolada do novo painel do apresentador */}
+        <Route
+          path="/apresentador-visual"
+          element={
+            <ProtectedRoute>
+              <PresenterVisualPreviewPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Etapa 1 — Quiz coletivo ao vivo (controlado pelo apresentador) */}
         <Route path="/quiz/entrar/:codigo" element={<LiveQuizJoinPage />} />
