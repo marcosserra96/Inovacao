@@ -1,0 +1,333 @@
+/* Motion system — Rota de Inovação
+   Movimento com função: ambientação, mudança de estado, resposta e celebração. */
+
+main[data-motion-surface] {
+  isolation: isolate;
+  background-color: #020d23 !important;
+  background-image:
+    radial-gradient(60rem 42rem at 12% 8%, rgba(0, 182, 218, .13), transparent 62%),
+    radial-gradient(54rem 38rem at 88% 16%, rgba(167, 213, 44, .08), transparent 64%),
+    radial-gradient(48rem 34rem at 58% 105%, rgba(26, 83, 154, .18), transparent 68%),
+    linear-gradient(145deg, #03102b 0%, #020d23 54%, #04132e 100%) !important;
+  background-size: 145% 145%, 155% 155%, 135% 135%, 100% 100%;
+  animation: motion-aurora 18s ease-in-out infinite alternate;
+}
+
+main[data-motion-surface]::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 24% 34%, rgba(0, 182, 218, .13) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 76% 60%, rgba(167, 213, 44, .11) 0 1px, transparent 1.8px);
+  background-size: 31px 31px, 43px 43px;
+  opacity: .36;
+  transform: rotate(-7deg) translate3d(0,0,0);
+  animation: motion-particle-drift 28s linear infinite;
+  will-change: transform;
+}
+
+main[data-motion-surface]::after {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  pointer-events: none;
+  background: linear-gradient(112deg, transparent 43%, rgba(0,182,218,.055) 49%, rgba(167,213,44,.035) 51%, transparent 57%);
+  transform: translate3d(-24%, 0, 0);
+  animation: motion-light-sweep 12s cubic-bezier(.45,0,.2,1) infinite;
+  will-change: transform;
+}
+
+body[data-live-experience="participant"] main[data-motion-surface]::before {
+  opacity: .25;
+  background-size: 27px 27px, 39px 39px;
+}
+
+.motion-brand-in {
+  animation: motion-header-in .75s cubic-bezier(.16,1,.3,1) both;
+}
+
+.motion-stage-enter {
+  animation: motion-stage-in .68s cubic-bezier(.16,1,.3,1) both;
+  transform-origin: 50% 52%;
+}
+
+body[data-live-experience="participant"] .motion-stage-enter {
+  animation-duration: .48s;
+}
+
+.motion-stage-enter > * {
+  animation: motion-child-rise .58s cubic-bezier(.16,1,.3,1) both;
+}
+
+.motion-stage-enter > *:nth-child(2) { animation-delay: 55ms; }
+.motion-stage-enter > *:nth-child(3) { animation-delay: 105ms; }
+.motion-stage-enter > *:nth-child(4) { animation-delay: 150ms; }
+
+.motion-option-in {
+  animation: motion-option-in .58s cubic-bezier(.16,1,.3,1) both !important;
+  animation-delay: calc(90ms + var(--motion-index, 0) * 65ms) !important;
+  will-change: transform, opacity;
+}
+
+.motion-rank-in {
+  animation: motion-rank-in .62s cubic-bezier(.16,1,.3,1) both !important;
+  animation-delay: calc(80ms + var(--motion-index, 0) * 72ms) !important;
+  will-change: transform, opacity;
+}
+
+.motion-pressable {
+  transform: translateZ(0);
+  transition:
+    transform .2s cubic-bezier(.16,1,.3,1),
+    box-shadow .25s ease,
+    border-color .25s ease,
+    background-color .25s ease,
+    filter .25s ease !important;
+}
+
+@media (hover: hover) {
+  body[data-live-experience="presenter"] .motion-pressable:hover,
+  body[data-live-experience="participant"] .motion-pressable:hover {
+    transform: translateY(-2px) scale(1.008);
+    filter: brightness(1.08);
+    box-shadow: 0 12px 36px rgba(0, 12, 36, .22);
+  }
+}
+
+.motion-pressable:active {
+  transform: translateY(1px) scale(.982) !important;
+  transition-duration: 80ms !important;
+}
+
+.motion-count-hit {
+  animation: motion-count-hit .7s cubic-bezier(.17,.89,.32,1.35) both !important;
+  text-shadow: 0 0 18px rgba(167,213,44,.52), 0 0 52px rgba(167,213,44,.18);
+}
+
+.motion-urgent-hit {
+  animation: motion-urgent-hit .58s cubic-bezier(.17,.89,.32,1.35) both !important;
+  text-shadow: 0 0 16px rgba(243,112,33,.58), 0 0 44px rgba(243,112,33,.2);
+}
+
+.motion-answer-lock {
+  animation: motion-answer-lock .5s cubic-bezier(.16,1,.3,1) both !important;
+  box-shadow: 0 0 0 1px rgba(167,213,44,.22), 0 12px 38px rgba(167,213,44,.1) !important;
+}
+
+.motion-answer-confirm {
+  animation: motion-confirm-in .52s cubic-bezier(.16,1,.3,1) both;
+}
+
+/* Tensão progressiva nas fases decisivas. */
+[data-motion-stage="semifinal-prepare"],
+[data-motion-stage="final-prepare"] {
+  position: relative;
+}
+
+[data-motion-stage="final-prepare"]::before,
+[data-motion-stage="final-question"]::before {
+  content: "";
+  position: absolute;
+  inset: 9% 6%;
+  z-index: -1;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(167,213,44,.11), rgba(0,182,218,.045) 42%, transparent 72%);
+  filter: blur(24px);
+  animation: motion-final-breathe 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+[data-motion-stage="ranking"] {
+  perspective: 1200px;
+}
+
+[data-motion-stage="reveal"],
+[data-motion-stage="semifinal-reveal"],
+[data-motion-stage="final-reveal"] {
+  animation-name: motion-reveal-in;
+}
+
+[data-motion-stage="quiz-result"],
+[data-motion-stage="semifinal-result"] {
+  animation-name: motion-result-in;
+}
+
+[data-motion-stage="champion"] {
+  animation: motion-champion-stage 1.05s cubic-bezier(.16,1,.3,1) both;
+}
+
+/* Celebração do campeão — determinística e leve, sem canvas. */
+.motion-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.motion-champion-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(76vw, 980px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(167,213,44,.18) 0%, rgba(0,182,218,.08) 34%, transparent 68%);
+  filter: blur(6px);
+  animation: motion-halo 2.8s ease-in-out infinite;
+}
+
+.motion-confetti {
+  --motion-rotation: 0deg;
+  position: absolute;
+  top: -7vh;
+  display: block;
+  border-radius: 2px;
+  background: #a7d52c;
+  box-shadow: 0 0 9px rgba(167,213,44,.35);
+  animation-name: motion-confetti-fall;
+  animation-timing-function: cubic-bezier(.22,.61,.36,1);
+  animation-iteration-count: infinite;
+  opacity: .9;
+}
+
+.motion-confetti-1 {
+  background: #00b6da;
+  box-shadow: 0 0 9px rgba(0,182,218,.32);
+}
+
+.motion-confetti-2 {
+  background: #f37021;
+  box-shadow: 0 0 9px rgba(243,112,33,.28);
+}
+
+@keyframes motion-aurora {
+  0% { background-position: 0% 0%, 100% 0%, 50% 100%, 0 0; }
+  50% { background-position: 12% 8%, 86% 14%, 46% 88%, 0 0; }
+  100% { background-position: 22% 14%, 76% 4%, 58% 78%, 0 0; }
+}
+
+@keyframes motion-particle-drift {
+  from { transform: rotate(-7deg) translate3d(-1.5%, -1%, 0); }
+  to { transform: rotate(-7deg) translate3d(6%, 4%, 0); }
+}
+
+@keyframes motion-light-sweep {
+  0%, 25% { transform: translate3d(-32%, 0, 0); opacity: 0; }
+  38% { opacity: .95; }
+  62% { opacity: .65; }
+  78%, 100% { transform: translate3d(34%, 0, 0); opacity: 0; }
+}
+
+@keyframes motion-header-in {
+  from { opacity: 0; transform: translateY(-12px); filter: blur(7px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes motion-stage-in {
+  0% { opacity: 0; transform: translateY(22px) scale(.985); filter: blur(10px); }
+  55% { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes motion-child-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes motion-option-in {
+  0% { opacity: 0; transform: translateY(18px) scale(.97); }
+  62% { opacity: 1; transform: translateY(-2px) scale(1.006); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes motion-rank-in {
+  0% { opacity: 0; transform: translate3d(0, 24px, -30px) scale(.975); }
+  65% { opacity: 1; transform: translate3d(0, -2px, 0) scale(1.004); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes motion-count-hit {
+  0% { opacity: .35; transform: scale(.48); filter: blur(8px); }
+  55% { opacity: 1; transform: scale(1.16); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes motion-urgent-hit {
+  0% { transform: scale(.92); }
+  45% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@keyframes motion-answer-lock {
+  0% { transform: scale(.985); }
+  48% { transform: scale(1.018); }
+  100% { transform: scale(1); }
+}
+
+@keyframes motion-confirm-in {
+  from { opacity: 0; transform: translateY(9px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes motion-reveal-in {
+  0% { opacity: 0; transform: scale(.88); filter: blur(12px); }
+  60% { opacity: 1; transform: scale(1.025); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes motion-result-in {
+  0% { opacity: 0; transform: translateY(30px) scale(.975); filter: blur(8px); }
+  62% { opacity: 1; transform: translateY(-3px) scale(1.004); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes motion-final-breathe {
+  0%, 100% { opacity: .46; transform: scale(.92); }
+  50% { opacity: .9; transform: scale(1.08); }
+}
+
+@keyframes motion-champion-stage {
+  0% { opacity: 0; transform: scale(.78); filter: blur(16px); }
+  58% { opacity: 1; transform: scale(1.045); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes motion-halo {
+  0%, 100% { opacity: .45; transform: translate(-50%, -50%) scale(.86); }
+  50% { opacity: .92; transform: translate(-50%, -50%) scale(1.08); }
+}
+
+@keyframes motion-confetti-fall {
+  0% { transform: translate3d(0, -8vh, 0) rotate(0deg); opacity: 0; }
+  8% { opacity: .95; }
+  100% { transform: translate3d(4vw, 114vh, 0) rotate(calc(var(--motion-rotation) + 760deg)); opacity: .72; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main[data-motion-surface],
+  main[data-motion-surface]::before,
+  main[data-motion-surface]::after,
+  .motion-brand-in,
+  .motion-stage-enter,
+  .motion-stage-enter > *,
+  .motion-option-in,
+  .motion-rank-in,
+  .motion-count-hit,
+  .motion-urgent-hit,
+  .motion-answer-lock,
+  .motion-answer-confirm,
+  .motion-champion-halo,
+  .motion-confetti,
+  [data-motion-stage="final-prepare"]::before,
+  [data-motion-stage="final-question"]::before {
+    animation: none !important;
+  }
+
+  .motion-pressable {
+    transition: none !important;
+  }
+}
