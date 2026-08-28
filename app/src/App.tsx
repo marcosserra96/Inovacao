@@ -35,10 +35,13 @@ import { NotFoundPage } from '@/routes/NotFoundPage'
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute'
 import { ConfigWarningBanner } from '@/components/ConfigWarningBanner'
 import { ParticipantErrorBoundary } from '@/components/ParticipantErrorBoundary'
+import { MotionOrchestrator } from '@/components/MotionOrchestrator'
+import '@/motion.css'
 
 function App() {
   return (
     <BrowserRouter>
+      <MotionOrchestrator />
       <ConfigWarningBanner />
       <Routes>
         {/* A experiência nova é a página inicial oficial */}
