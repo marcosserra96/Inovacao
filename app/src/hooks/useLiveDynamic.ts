@@ -18,7 +18,7 @@ const AUTO_FLOW_STATES = new Set([
 ])
 
 export function useLiveDynamic(sessionId?: string) {
-  const { row: session, error, retry } = useRealtimeRow<Session>('live_quiz_sessions', sessionId)
+  const { row: session, error, retry, refresh } = useRealtimeRow<Session>('live_quiz_sessions', sessionId)
   const { rows: participants } = useRealtimeList<Participant>('live_quiz_participants', 'session_id', sessionId)
   const { rows: rounds } = useRealtimeList<Round>('live_quiz_rounds', 'session_id', sessionId)
 
@@ -42,7 +42,7 @@ export function useLiveDynamic(sessionId?: string) {
     const timer = window.setInterval(updateNow, 100)
     const recover = () => {
       updateNow()
-      retry()
+      void refresh()
       void resyncClock()
     }
     window.addEventListener('focus', recover)
@@ -54,7 +54,7 @@ export function useLiveDynamic(sessionId?: string) {
       window.removeEventListener('pageshow', recover)
       document.removeEventListener('visibilitychange', recover)
     }
-  }, [retry, resyncClock])
+  }, [refresh, resyncClock])
 
   // Avanço normal agendado exatamente no deadline do servidor.
   useEffect(() => {
@@ -72,7 +72,7 @@ export function useLiveDynamic(sessionId?: string) {
       } as never)
       ticking = false
       if (active && !tickError) {
-        retry()
+        await refresh()
         void resyncClock()
       }
     }
@@ -80,14 +80,12 @@ export function useLiveDynamic(sessionId?: string) {
     const authoritativeNow = Date.now() + offsetMs
     const delay = Math.max(0, deadline - authoritativeNow + 30)
     const timeout = window.setTimeout(() => void tick(), delay)
-    const fallback = window.setTimeout(() => void tick(), delay + 1200)
+    const fallback = window.setTimeout(() => void tick(), delay + 900)
 
-    // Watchdog leve: não faz polling durante a contagem; só chama o backend
-    // se perceber que o deadline já passou e a transição não chegou por realtime.
     const watchdog = window.setInterval(() => {
       const serverNow = Date.now() + offsetMs
-      if (serverNow >= deadline + 250) void tick()
-    }, 1000)
+      if (serverNow >= deadline + 180) void tick()
+    }, 500)
 
     return () => {
       active = false
@@ -102,17 +100,34 @@ export function useLiveDynamic(sessionId?: string) {
     session?.paused,
     offsetMs,
     clockSynced,
-    retry,
+    refresh,
     resyncClock,
   ])
 
-  // Autocura de realtime: uma leitura barata e esparsa durante etapas cronometradas.
-  // Se o websocket perder uma atualização, telão/apresentador recuperam o estado sem refresh.
+  // Realtime continua sendo o caminho principal, mas em estados cronometrados
+  // confirmamos a sessão diretamente no banco. Isso não reinicia o websocket
+  // e recupera uma transição perdida em menos de 1 segundo.
   useEffect(() => {
     if (!sessionId || !session || session.paused || !AUTO_FLOW_STATES.has(session.flow_state)) return
-    const timer = window.setInterval(() => retry(), 4000)
-    return () => window.clearInterval(timer)
-  }, [sessionId, session?.flow_state, session?.paused, retry])
+    let active = true
+    let checking = false
+
+    const confirmState = async () => {
+      if (!active || checking) return
+      checking = true
+      try {
+        await refresh()
+      } finally {
+        checking = false
+      }
+    }
+
+    const timer = window.setInterval(() => void confirmState(), 750)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [sessionId, session?.flow_state, session?.paused, refresh])
 
   useEffect(() => {
     if (!currentRound?.id) {
@@ -160,16 +175,13 @@ export function useLiveDynamic(sessionId?: string) {
       ? Math.max(0, new Date(session.flow_deadline_at).getTime() - authoritativeNow)
       : 0
 
-  const rawRemainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
-  const isPrepare = session?.flow_state === 'prepare' || session?.flow_state === 'semifinal_prepare' || session?.flow_state === 'final_prepare'
-  const remainingSeconds = isPrepare && !session?.paused && session?.flow_deadline_at
-    ? Math.max(1, rawRemainingSeconds)
-    : rawRemainingSeconds
+  const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
 
   return {
     session,
     error,
     retry,
+    refresh,
     participants,
     connected,
     currentRound,
