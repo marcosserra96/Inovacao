@@ -151,21 +151,20 @@ function decorateParticipantAnswer(main: HTMLElement) {
 
 function decoratePresenterRevealClock(main: HTMLElement) {
   const shell = timerShell(main)
-  const number = largestNumericLeaf(main)
-  if (!shell || !number) return
-
-  shell.classList.add('m1-presenter-reveal-clock')
-  number.classList.add('m1-presenter-reveal-number')
-
-  leaves(shell).forEach((leaf) => {
-    if (normalize(leaf.textContent ?? '') === 'tempo') leaf.classList.add('m1-presenter-reveal-hide')
-  })
+  if (!shell || shell.dataset.m1RevealHidden === '1') return
+  shell.dataset.m1RevealHidden = '1'
+  shell.dataset.m1PreviousOpacity = shell.style.opacity
+  shell.style.opacity = '0'
+  shell.style.pointerEvents = 'none'
 }
 
 function clearPresenterRevealClock(main: HTMLElement) {
-  main.querySelectorAll<HTMLElement>('.m1-presenter-reveal-clock').forEach((element) => element.classList.remove('m1-presenter-reveal-clock'))
-  main.querySelectorAll<HTMLElement>('.m1-presenter-reveal-number').forEach((element) => element.classList.remove('m1-presenter-reveal-number'))
-  main.querySelectorAll<HTMLElement>('.m1-presenter-reveal-hide').forEach((element) => element.classList.remove('m1-presenter-reveal-hide'))
+  main.querySelectorAll<HTMLElement>('[data-m1-reveal-hidden="1"]').forEach((element) => {
+    element.style.opacity = element.dataset.m1PreviousOpacity ?? ''
+    element.style.pointerEvents = ''
+    delete element.dataset.m1RevealHidden
+    delete element.dataset.m1PreviousOpacity
+  })
 }
 
 function decorateReveal(main: HTMLElement) {
@@ -274,6 +273,8 @@ export function MotionPhaseOne() {
     return () => {
       observer.disconnect()
       cancelAnimationFrame(frame)
+      const main = document.querySelector<HTMLElement>('#root main')
+      if (main) clearPresenterRevealClock(main)
       if (earlyFinishTimeout.current) window.clearTimeout(earlyFinishTimeout.current)
       if (revealDelayTimeout.current) window.clearTimeout(revealDelayTimeout.current)
     }
@@ -282,7 +283,15 @@ export function MotionPhaseOne() {
   if (!earlyFinish || (experience !== 'screen' && experience !== 'presenter')) return null
 
   return (
-    <div className={`m1-all-answered ${experience === 'presenter' ? 'm1-all-answered-presenter' : ''}`} aria-hidden="true">
+    <div
+      className="m1-all-answered"
+      aria-hidden="true"
+      style={{
+        animationDuration: '1.12s',
+        background: 'radial-gradient(circle at center, rgba(7,25,54,.98), rgba(2,13,35,.97) 48%, rgba(2,13,35,.94) 100%)',
+        backdropFilter: 'blur(8px)',
+      }}
+    >
       <div className="m1-all-answered-ring"><span>✓</span></div>
       <div className="m1-all-answered-copy">
         <strong>Todos responderam</strong>
