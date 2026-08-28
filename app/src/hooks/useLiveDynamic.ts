@@ -10,6 +10,8 @@ type Round = any
 type AnswerFlag = any
 type RankingRow = any
 
+const AUTO_FLOW_STATES = new Set(['prepare', 'question', 'reveal', 'ranking'])
+
 export function useLiveDynamic(sessionId?: string) {
   const { row: session, error, retry } = useRealtimeRow<Session>('live_quiz_sessions', sessionId)
   const { rows: participants } = useRealtimeList<Participant>('live_quiz_participants', 'session_id', sessionId)
@@ -26,17 +28,38 @@ export function useLiveDynamic(sessionId?: string) {
   const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 200)
+    const timer = window.setInterval(() => setNow(Date.now()), 100)
     return () => window.clearInterval(timer)
   }, [])
 
   useEffect(() => {
-    if (!sessionId || !session || session.paused || !session.flow_deadline_at) return
-    const timer = window.setInterval(() => {
-      void supabase.rpc('tick_live_quiz_flow' as never, { p_session_id: sessionId } as never)
-    }, 500)
-    return () => window.clearInterval(timer)
-  }, [sessionId, session?.flow_state, session?.flow_deadline_at, session?.paused])
+    if (!sessionId || !session || session.paused || !AUTO_FLOW_STATES.has(session.flow_state) || !session.flow_deadline_at) return
+
+    let active = true
+    let ticking = false
+
+    const tick = async () => {
+      if (!active || ticking) return
+      const deadline = new Date(session.flow_deadline_at).getTime()
+      if (Date.now() < deadline) return
+
+      ticking = true
+      const { error: tickError } = await supabase.rpc('tick_live_quiz_flow' as never, { p_session_id: sessionId } as never)
+      ticking = false
+
+      // Não depender somente do Realtime para trocar de tela. Em redes móveis
+      // ou abas recém-abertas, o evento pode chegar atrasado; o refetch após
+      // o tick garante que telão, apresentador e celular convergem imediatamente.
+      if (active && !tickError) retry()
+    }
+
+    void tick()
+    const timer = window.setInterval(() => void tick(), 200)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [sessionId, session?.flow_state, session?.flow_deadline_at, session?.paused, retry])
 
   useEffect(() => {
     if (!currentRound?.id) {
@@ -45,7 +68,13 @@ export function useLiveDynamic(sessionId?: string) {
     }
     void supabase
       .rpc('get_public_live_quiz_round_question', { p_round_id: currentRound.id })
-      .then(({ data }) => setQuestion((data as unknown as QuestionPayload) ?? null))
+      .then(({ data, error: questionError }) => {
+        if (questionError || !data) {
+          setQuestion(null)
+          return
+        }
+        setQuestion(data as unknown as QuestionPayload)
+      })
   }, [currentRound?.id, currentRound?.revealed_at])
 
   useEffect(() => {
@@ -76,7 +105,11 @@ export function useLiveDynamic(sessionId?: string) {
     : session?.flow_deadline_at
       ? Math.max(0, new Date(session.flow_deadline_at).getTime() - now)
       : 0
-  const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
+
+  const rawRemainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
+  const remainingSeconds = session?.flow_state === 'prepare' && !session?.paused && session?.flow_deadline_at
+    ? Math.max(1, rawRemainingSeconds)
+    : rawRemainingSeconds
 
   return {
     session,
