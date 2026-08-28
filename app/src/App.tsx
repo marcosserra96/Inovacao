@@ -34,6 +34,7 @@ import { AdminUsersPage } from '@/routes/admin/AdminUsersPage'
 import { NotFoundPage } from '@/routes/NotFoundPage'
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute'
 import { ConfigWarningBanner } from '@/components/ConfigWarningBanner'
+import { ParticipantErrorBoundary } from '@/components/ParticipantErrorBoundary'
 
 function App() {
   return (
@@ -48,7 +49,7 @@ function App() {
         <Route path="/telao-dinamica/:sessionId" element={<ScreenLiveVisualPage />} />
         <Route path="/participante-visual" element={<ParticipantVisualPreviewPage />} />
         <Route path="/participar/:codigo" element={<ParticipantJoinVisualPage />} />
-        <Route path="/participante/:sessionId/:participantId" element={<ParticipantLiveVisualPage />} />
+        <Route path="/participante/:sessionId/:participantId" element={<ParticipantErrorBoundary><ParticipantLiveVisualPage /></ParticipantErrorBoundary>} />
         <Route path="/apresentador-visual" element={<PresenterFlowPreviewPage />} />
 
         {/* QRs antigos também entram pela nova experiência mobile */}
