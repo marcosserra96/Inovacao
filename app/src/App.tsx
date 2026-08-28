@@ -36,12 +36,15 @@ import { ProtectedRoute } from '@/components/admin/ProtectedRoute'
 import { ConfigWarningBanner } from '@/components/ConfigWarningBanner'
 import { ParticipantErrorBoundary } from '@/components/ParticipantErrorBoundary'
 import { MotionOrchestrator } from '@/components/MotionOrchestrator'
+import { MotionPhaseOne } from '@/components/MotionPhaseOne'
 import '@/motion.css'
+import '@/motion-phase-one.css'
 
 function App() {
   return (
     <BrowserRouter>
       <MotionOrchestrator />
+      <MotionPhaseOne />
       <ConfigWarningBanner />
       <Routes>
         {/* A experiência nova é a página inicial oficial */}
