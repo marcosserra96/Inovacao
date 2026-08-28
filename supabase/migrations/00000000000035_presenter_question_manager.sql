@@ -1,1 +1,0 @@
--- Placeholder migration created during presenter configuration redesign.
