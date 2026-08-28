@@ -162,8 +162,8 @@ function decorateReveal(main: HTMLElement) {
     .sort((a, b) => b.size - a.size)[0]?.element
   if (big) restart(big, 'm1-reveal-main-in')
 
-  const main = document.querySelector<HTMLElement>('#root main')
-  if (main) restart(main, 'm1-reveal-sweep')
+  const surface = document.querySelector<HTMLElement>('#root main')
+  if (surface) restart(surface, 'm1-reveal-sweep')
 }
 
 export function MotionPhaseOne() {
