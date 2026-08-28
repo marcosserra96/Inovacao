@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useServerClock } from '@/hooks/useServerClock'
 import type { QuestionPayload } from '@/types/domain'
 
 type Session = any
@@ -76,6 +77,11 @@ export function useParticipantLiveState(sessionId?: string, participantId?: stri
   const [duel, setDuel] = useState<DuelState>(EMPTY_DUEL)
   const [now, setNow] = useState(Date.now())
   const [error, setError] = useState<string | null>(null)
+
+  const clockKey = session
+    ? `${session.flow_state ?? ''}:${session.flow_deadline_at ?? ''}:${session.paused ? 1 : 0}`
+    : null
+  const { serverNowMs } = useServerClock(sessionId, clockKey)
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 100)
@@ -267,10 +273,11 @@ export function useParticipantLiveState(sessionId?: string, participantId?: stri
     }
   }, [sessionId, participantId, joinToken])
 
+  const authoritativeNow = serverNowMs(now)
   const remainingMs = session?.paused
     ? Number(session?.flow_remaining_ms ?? 0)
     : session?.flow_deadline_at
-      ? Math.max(0, new Date(session.flow_deadline_at).getTime() - now)
+      ? Math.max(0, new Date(session.flow_deadline_at).getTime() - authoritativeNow)
       : 0
 
   const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
