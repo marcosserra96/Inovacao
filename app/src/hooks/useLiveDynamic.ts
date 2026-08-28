@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRealtimeList } from '@/hooks/useRealtimeList'
 import { useRealtimeRow } from '@/hooks/useRealtimeRow'
+import { useServerClock } from '@/hooks/useServerClock'
 import type { QuestionPayload } from '@/types/domain'
 
 type Session = any
@@ -31,40 +32,63 @@ export function useLiveDynamic(sessionId?: string) {
   const [ranking, setRanking] = useState<RankingRow[]>([])
   const [now, setNow] = useState(Date.now())
 
+  const clockKey = session
+    ? `${session.flow_state ?? ''}:${session.flow_deadline_at ?? ''}:${session.paused ? 1 : 0}`
+    : null
+  const { offsetMs, synced: clockSynced, serverNowMs, resync: resyncClock } = useServerClock(sessionId, clockKey)
+
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 100)
     return () => window.clearInterval(timer)
   }, [])
 
+  // Apenas estados com deadline disparam avanço automático. A chamada é
+  // agendada para o instante do servidor; não existe mais polling de 400 ms
+  // nem tick antecipado durante toda a pergunta.
   useEffect(() => {
     if (!sessionId || !session || session.paused || !AUTO_FLOW_STATES.has(session.flow_state) || !session.flow_deadline_at) return
 
     let active = true
     let ticking = false
+    const deadline = new Date(session.flow_deadline_at).getTime()
 
     const tick = async () => {
       if (!active || ticking) return
-      const deadline = new Date(session.flow_deadline_at).getTime()
-      const allowsEarlyAdvance = session.flow_state === 'question'
-        || session.flow_state === 'semifinal_question'
-        || session.flow_state === 'final_question'
-      if (!allowsEarlyAdvance && Date.now() < deadline) return
-
       ticking = true
-      const { error: tickError } = await supabase.rpc('tick_current_dynamic_flow' as never, { p_session_id: sessionId } as never)
+      const { error: tickError } = await supabase.rpc('tick_current_dynamic_flow' as never, {
+        p_session_id: sessionId,
+      } as never)
       ticking = false
 
-      // Reconsulta logo após uma transição para não depender só do Realtime.
-      if (active && !tickError) retry()
+      if (active && !tickError) {
+        retry()
+        void resyncClock()
+      }
     }
 
-    void tick()
-    const timer = window.setInterval(() => void tick(), 400)
+    const authoritativeNow = Date.now() + offsetMs
+    const delay = Math.max(0, deadline - authoritativeNow + 30)
+    const timeout = window.setTimeout(() => void tick(), delay)
+
+    // Fallback leve para abas throttled/reconexões. Só ocorre depois do
+    // deadline; não gera chamadas contínuas enquanto a pergunta está aberta.
+    const fallback = window.setTimeout(() => void tick(), delay + 1200)
+
     return () => {
       active = false
-      window.clearInterval(timer)
+      window.clearTimeout(timeout)
+      window.clearTimeout(fallback)
     }
-  }, [sessionId, session?.flow_state, session?.flow_deadline_at, session?.paused, retry])
+  }, [
+    sessionId,
+    session?.flow_state,
+    session?.flow_deadline_at,
+    session?.paused,
+    offsetMs,
+    clockSynced,
+    retry,
+    resyncClock,
+  ])
 
   useEffect(() => {
     if (!currentRound?.id) {
@@ -105,10 +129,11 @@ export function useLiveDynamic(sessionId?: string) {
   const answeredCount = flags.filter((flag) => flag.answered).length
   const answerPercent = answerable.length ? Math.min(100, Math.round((answeredCount / answerable.length) * 100)) : 0
 
+  const authoritativeNow = serverNowMs(now)
   const remainingMs = session?.paused
     ? Number(session.flow_remaining_ms ?? 0)
     : session?.flow_deadline_at
-      ? Math.max(0, new Date(session.flow_deadline_at).getTime() - now)
+      ? Math.max(0, new Date(session.flow_deadline_at).getTime() - authoritativeNow)
       : 0
 
   const rawRemainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
@@ -131,5 +156,6 @@ export function useLiveDynamic(sessionId?: string) {
     answerPercent,
     remainingMs,
     remainingSeconds,
+    clockSynced,
   }
 }
