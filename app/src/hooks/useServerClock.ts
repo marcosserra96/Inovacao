@@ -18,6 +18,7 @@ type Sample = {
 export function useServerClock(sessionId?: string, resyncKey?: string | null) {
   const [offsetMs, setOffsetMs] = useState(0)
   const [synced, setSynced] = useState(false)
+  const syncedRef = useRef(false)
   const bestRttRef = useRef<number>(Number.POSITIVE_INFINITY)
 
   const sync = useCallback(async () => {
@@ -41,20 +42,22 @@ export function useServerClock(sessionId?: string, resyncKey?: string | null) {
       rttMs: finishedAt - startedAt,
     }
 
-    // Amostras de menor RTT sofrem menos erro de rede. Aceita também uma
-    // amostra um pouco pior periodicamente para acompanhar drift do relógio.
-    if (!synced || sample.rttMs <= bestRttRef.current + 40) {
+    if (!syncedRef.current || sample.rttMs <= bestRttRef.current + 40) {
       bestRttRef.current = Math.min(bestRttRef.current, sample.rttMs)
-      setOffsetMs((current) => synced ? (current * 0.25) + (sample.offsetMs * 0.75) : sample.offsetMs)
+      setOffsetMs((current) => syncedRef.current
+        ? (current * 0.25) + (sample.offsetMs * 0.75)
+        : sample.offsetMs)
+      syncedRef.current = true
       setSynced(true)
     }
 
     return payload
-  }, [sessionId, synced])
+  }, [sessionId])
 
   useEffect(() => {
     if (!sessionId) {
       setOffsetMs(0)
+      syncedRef.current = false
       setSynced(false)
       bestRttRef.current = Number.POSITIVE_INFINITY
       return
@@ -63,8 +66,6 @@ export function useServerClock(sessionId?: string, resyncKey?: string | null) {
     let active = true
 
     const calibrate = async () => {
-      // Duas amostras iniciais diminuem bastante o impacto de uma primeira
-      // chamada fria/mais lenta sem aumentar o tráfego durante a dinâmica.
       await sync()
       if (active) await sync()
     }
