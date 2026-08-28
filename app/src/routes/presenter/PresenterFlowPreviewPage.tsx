@@ -24,15 +24,20 @@ export function PresenterFlowPreviewPage(){
 
   useEffect(()=>{
     let active=true
-    void supabase.from('game_control').select('active_live_quiz_session_id').eq('id',true).maybeSingle().then(async({data})=>{
-      const id=(data as any)?.active_live_quiz_session_id as string|undefined
-      if(!active){return}
-      if(id){
-        const {data:session}=await supabase.from('live_quiz_sessions').select('id,status,flow_state').eq('id',id).maybeSingle()
-        if(active&&session&&(session as any).status!=='finished'&&(session as any).flow_state!=='finished') setSessionId(id)
+    const recover=async()=>{
+      try{
+        const {data}=await supabase.from('game_control').select('active_live_quiz_session_id').eq('id',true).maybeSingle()
+        const id=(data as any)?.active_live_quiz_session_id as string|undefined
+        if(!active)return
+        if(id){
+          const {data:session}=await supabase.from('live_quiz_sessions').select('id,status,flow_state').eq('id',id).maybeSingle()
+          if(active&&session&&(session as any).status!=='finished'&&(session as any).flow_state!=='finished')setSessionId(id)
+        }
+      }finally{
+        if(active)setRecovering(false)
       }
-      if(active)setRecovering(false)
-    }).catch(()=>{if(active)setRecovering(false)})
+    }
+    void recover()
     return()=>{active=false}
   },[])
 
