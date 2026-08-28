@@ -149,6 +149,25 @@ function decorateParticipantAnswer(main: HTMLElement) {
   }
 }
 
+function decoratePresenterRevealClock(main: HTMLElement) {
+  const shell = timerShell(main)
+  const number = largestNumericLeaf(main)
+  if (!shell || !number) return
+
+  shell.classList.add('m1-presenter-reveal-clock')
+  number.classList.add('m1-presenter-reveal-number')
+
+  leaves(shell).forEach((leaf) => {
+    if (normalize(leaf.textContent ?? '') === 'tempo') leaf.classList.add('m1-presenter-reveal-hide')
+  })
+}
+
+function clearPresenterRevealClock(main: HTMLElement) {
+  main.querySelectorAll<HTMLElement>('.m1-presenter-reveal-clock').forEach((element) => element.classList.remove('m1-presenter-reveal-clock'))
+  main.querySelectorAll<HTMLElement>('.m1-presenter-reveal-number').forEach((element) => element.classList.remove('m1-presenter-reveal-number'))
+  main.querySelectorAll<HTMLElement>('.m1-presenter-reveal-hide').forEach((element) => element.classList.remove('m1-presenter-reveal-hide'))
+}
+
 function decorateReveal(main: HTMLElement) {
   const textLeaves = leaves(main)
   const badge = textLeaves.find((element) => {
@@ -171,6 +190,7 @@ export function MotionPhaseOne() {
   const experience = useMemo(() => experienceFromPath(pathname), [pathname])
   const [earlyFinish, setEarlyFinish] = useState(false)
   const earlyFinishTimeout = useRef<number | null>(null)
+  const revealDelayTimeout = useRef<number | null>(null)
 
   useEffect(() => {
     if (!experience) return
@@ -195,6 +215,7 @@ export function MotionPhaseOne() {
       }
 
       if (stage === 'question') {
+        clearPresenterRevealClock(main)
         const heading = questionHeading(main)
         const signature = normalize(heading?.textContent ?? '')
         if (signature && signature !== lastQuestion) {
@@ -207,20 +228,32 @@ export function MotionPhaseOne() {
         if (experience === 'participant') decorateParticipantAnswer(main)
       }
 
-      if (stage === 'reveal' && previousStage === 'question') {
-        decorateReveal(main)
+      if (stage === 'reveal') {
+        if (experience === 'presenter') decoratePresenterRevealClock(main)
 
-        // Se a pergunta virou reveal com tempo visível sobrando, foi encerramento antecipado.
-        if (experience === 'screen' && lastQuestionTimerValue >= 2) {
-          setEarlyFinish(true)
-          if (earlyFinishTimeout.current) window.clearTimeout(earlyFinishTimeout.current)
-          earlyFinishTimeout.current = window.setTimeout(() => setEarlyFinish(false), 760)
+        if (previousStage === 'question') {
+          const endedEarly = lastQuestionTimerValue >= 2
+
+          if ((experience === 'screen' || experience === 'presenter') && endedEarly) {
+            setEarlyFinish(true)
+            if (earlyFinishTimeout.current) window.clearTimeout(earlyFinishTimeout.current)
+            earlyFinishTimeout.current = window.setTimeout(() => setEarlyFinish(false), 1120)
+
+            if (revealDelayTimeout.current) window.clearTimeout(revealDelayTimeout.current)
+            revealDelayTimeout.current = window.setTimeout(() => {
+              const currentMain = document.querySelector<HTMLElement>('#root main')
+              if (currentMain) decorateReveal(currentMain)
+            }, 1030)
+          } else {
+            decorateReveal(main)
+          }
         }
       }
 
       if (stage !== previousStage) {
         if (stage !== 'prepare') lastCountdown = ''
         if (stage !== 'question') lastTimer = ''
+        if (stage !== 'reveal' && experience === 'presenter') clearPresenterRevealClock(main)
         previousStage = stage
       }
     }
@@ -242,13 +275,14 @@ export function MotionPhaseOne() {
       observer.disconnect()
       cancelAnimationFrame(frame)
       if (earlyFinishTimeout.current) window.clearTimeout(earlyFinishTimeout.current)
+      if (revealDelayTimeout.current) window.clearTimeout(revealDelayTimeout.current)
     }
   }, [experience, pathname])
 
-  if (!earlyFinish || experience !== 'screen') return null
+  if (!earlyFinish || (experience !== 'screen' && experience !== 'presenter')) return null
 
   return (
-    <div className="m1-all-answered" aria-hidden="true">
+    <div className={`m1-all-answered ${experience === 'presenter' ? 'm1-all-answered-presenter' : ''}`} aria-hidden="true">
       <div className="m1-all-answered-ring"><span>✓</span></div>
       <div className="m1-all-answered-copy">
         <strong>Todos responderam</strong>
