@@ -10,7 +10,11 @@ type Round = any
 type AnswerFlag = any
 type RankingRow = any
 
-const AUTO_FLOW_STATES = new Set(['prepare', 'question', 'reveal', 'ranking'])
+const AUTO_FLOW_STATES = new Set([
+  'prepare', 'question', 'reveal', 'ranking',
+  'semifinal_prepare', 'semifinal_question', 'semifinal_reveal',
+  'final_prepare', 'final_question', 'final_reveal',
+])
 
 export function useLiveDynamic(sessionId?: string) {
   const { row: session, error, retry } = useRealtimeRow<Session>('live_quiz_sessions', sessionId)
@@ -41,20 +45,19 @@ export function useLiveDynamic(sessionId?: string) {
     const tick = async () => {
       if (!active || ticking) return
       const deadline = new Date(session.flow_deadline_at).getTime()
-      if (Date.now() < deadline) return
+      const allowsEarlyAdvance = session.flow_state === 'semifinal_question' || session.flow_state === 'final_question'
+      if (!allowsEarlyAdvance && Date.now() < deadline) return
 
       ticking = true
-      const { error: tickError } = await supabase.rpc('tick_live_quiz_flow' as never, { p_session_id: sessionId } as never)
+      const { error: tickError } = await supabase.rpc('tick_current_dynamic_flow' as never, { p_session_id: sessionId } as never)
       ticking = false
 
-      // Não depender somente do Realtime para trocar de tela. Em redes móveis
-      // ou abas recém-abertas, o evento pode chegar atrasado; o refetch após
-      // o tick garante que telão, apresentador e celular convergem imediatamente.
+      // Reconsulta logo após uma transição para não depender só do Realtime.
       if (active && !tickError) retry()
     }
 
     void tick()
-    const timer = window.setInterval(() => void tick(), 200)
+    const timer = window.setInterval(() => void tick(), 400)
     return () => {
       active = false
       window.clearInterval(timer)
@@ -107,7 +110,8 @@ export function useLiveDynamic(sessionId?: string) {
       : 0
 
   const rawRemainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
-  const remainingSeconds = session?.flow_state === 'prepare' && !session?.paused && session?.flow_deadline_at
+  const isPrepare = session?.flow_state === 'prepare' || session?.flow_state === 'semifinal_prepare' || session?.flow_state === 'final_prepare'
+  const remainingSeconds = isPrepare && !session?.paused && session?.flow_deadline_at
     ? Math.max(1, rawRemainingSeconds)
     : rawRemainingSeconds
 
