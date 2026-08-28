@@ -38,13 +38,25 @@ export function useLiveDynamic(sessionId?: string) {
   const { offsetMs, synced: clockSynced, serverNowMs, resync: resyncClock } = useServerClock(sessionId, clockKey)
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 100)
-    return () => window.clearInterval(timer)
-  }, [])
+    const updateNow = () => setNow(Date.now())
+    const timer = window.setInterval(updateNow, 100)
+    const recover = () => {
+      updateNow()
+      retry()
+      void resyncClock()
+    }
+    window.addEventListener('focus', recover)
+    window.addEventListener('pageshow', recover)
+    document.addEventListener('visibilitychange', recover)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', recover)
+      window.removeEventListener('pageshow', recover)
+      document.removeEventListener('visibilitychange', recover)
+    }
+  }, [retry, resyncClock])
 
-  // Apenas estados com deadline disparam avanço automático. A chamada é
-  // agendada para o instante do servidor; não existe mais polling de 400 ms
-  // nem tick antecipado durante toda a pergunta.
+  // Avanço normal agendado exatamente no deadline do servidor.
   useEffect(() => {
     if (!sessionId || !session || session.paused || !AUTO_FLOW_STATES.has(session.flow_state) || !session.flow_deadline_at) return
 
@@ -59,7 +71,6 @@ export function useLiveDynamic(sessionId?: string) {
         p_session_id: sessionId,
       } as never)
       ticking = false
-
       if (active && !tickError) {
         retry()
         void resyncClock()
@@ -69,15 +80,20 @@ export function useLiveDynamic(sessionId?: string) {
     const authoritativeNow = Date.now() + offsetMs
     const delay = Math.max(0, deadline - authoritativeNow + 30)
     const timeout = window.setTimeout(() => void tick(), delay)
-
-    // Fallback leve para abas throttled/reconexões. Só ocorre depois do
-    // deadline; não gera chamadas contínuas enquanto a pergunta está aberta.
     const fallback = window.setTimeout(() => void tick(), delay + 1200)
+
+    // Watchdog leve: não faz polling durante a contagem; só chama o backend
+    // se perceber que o deadline já passou e a transição não chegou por realtime.
+    const watchdog = window.setInterval(() => {
+      const serverNow = Date.now() + offsetMs
+      if (serverNow >= deadline + 250) void tick()
+    }, 1000)
 
     return () => {
       active = false
       window.clearTimeout(timeout)
       window.clearTimeout(fallback)
+      window.clearInterval(watchdog)
     }
   }, [
     sessionId,
@@ -89,6 +105,14 @@ export function useLiveDynamic(sessionId?: string) {
     retry,
     resyncClock,
   ])
+
+  // Autocura de realtime: uma leitura barata e esparsa durante etapas cronometradas.
+  // Se o websocket perder uma atualização, telão/apresentador recuperam o estado sem refresh.
+  useEffect(() => {
+    if (!sessionId || !session || session.paused || !AUTO_FLOW_STATES.has(session.flow_state)) return
+    const timer = window.setInterval(() => retry(), 4000)
+    return () => window.clearInterval(timer)
+  }, [sessionId, session?.flow_state, session?.paused, retry])
 
   useEffect(() => {
     if (!currentRound?.id) {
