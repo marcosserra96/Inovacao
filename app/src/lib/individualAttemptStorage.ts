@@ -12,13 +12,18 @@ function key(sessionId: string) {
 }
 
 export function saveAttempt(sessionId: string, attempt: StoredAttempt) {
-  localStorage.setItem(key(sessionId), JSON.stringify(attempt))
+  try {
+    localStorage.setItem(key(sessionId), JSON.stringify(attempt))
+  } catch {
+    // Alguns navegadores móveis/modos privados bloqueiam storage.
+    // A sessão continua funcionando; apenas a restauração após F5 fica indisponível.
+  }
 }
 
 export function loadAttempt(sessionId: string): StoredAttempt | null {
-  const raw = localStorage.getItem(key(sessionId))
-  if (!raw) return null
   try {
+    const raw = localStorage.getItem(key(sessionId))
+    if (!raw) return null
     return JSON.parse(raw) as StoredAttempt
   } catch {
     return null
@@ -26,17 +31,41 @@ export function loadAttempt(sessionId: string): StoredAttempt | null {
 }
 
 export function clearAttempt(sessionId: string) {
-  localStorage.removeItem(key(sessionId))
+  try {
+    localStorage.removeItem(key(sessionId))
+  } catch {
+    // Sem storage disponível, não há nada persistido para limpar.
+  }
+}
+
+let volatileDeviceId: string | null = null
+
+function createDeviceId() {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID()
+    }
+  } catch {
+    // fallback abaixo
+  }
+  return `device-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
 }
 
 // Identificador estável do dispositivo, usado apenas como sinal auxiliar
 // para impedir múltiplas participações quando allow_retry está desabilitado.
+// Nunca deve impedir a entrada caso o navegador bloqueie localStorage.
 export function getDeviceFingerprint(): string {
   const storageKey = 'inovacao:device'
-  let id = localStorage.getItem(storageKey)
-  if (!id) {
-    id = crypto.randomUUID()
-    localStorage.setItem(storageKey, id)
+
+  try {
+    const stored = localStorage.getItem(storageKey)
+    if (stored) return stored
+
+    const created = createDeviceId()
+    localStorage.setItem(storageKey, created)
+    return created
+  } catch {
+    if (!volatileDeviceId) volatileDeviceId = createDeviceId()
+    return volatileDeviceId
   }
-  return id
 }
