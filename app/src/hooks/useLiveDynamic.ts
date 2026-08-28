@@ -45,7 +45,9 @@ export function useLiveDynamic(sessionId?: string) {
     const tick = async () => {
       if (!active || ticking) return
       const deadline = new Date(session.flow_deadline_at).getTime()
-      const allowsEarlyAdvance = session.flow_state === 'semifinal_question' || session.flow_state === 'final_question'
+      const allowsEarlyAdvance = session.flow_state === 'question'
+        || session.flow_state === 'semifinal_question'
+        || session.flow_state === 'final_question'
       if (!allowsEarlyAdvance && Date.now() < deadline) return
 
       ticking = true
