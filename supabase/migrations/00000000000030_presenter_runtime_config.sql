@@ -65,19 +65,47 @@ set search_path = public
 as $$
 declare
   v_defaults live_quiz_defaults%rowtype;
-  v_time int;
+  v_selected json;
+  v_questions json;
+  v_scoring json;
 begin
   select * into v_defaults from live_quiz_defaults where id = true;
-  select coalesce(question_time_seconds, 20) into v_time from live_quiz_defaults where id = true;
+
+  select coalesce(json_agg(qsi.question_id order by qsi.position), '[]'::json)
+  into v_selected
+  from question_set_items qsi
+  where qsi.question_set_id = v_defaults.question_set_id;
+
+  select coalesce(json_agg(json_build_object(
+    'id', q.id,
+    'statement', q.statement
+  ) order by q.statement), '[]'::json)
+  into v_questions
+  from questions q
+  where q.status = 'active'
+    and q.type <> 'tiebreaker'
+    and 'live_quiz' = any(q.modes);
+
+  select coalesce(json_agg(json_build_object(
+    'id', s.id,
+    'name', s.name,
+    'isDefault', s.is_default
+  ) order by s.is_default desc, s.name), '[]'::json)
+  into v_scoring
+  from scoring_configs s;
 
   return json_build_object(
     'questionSetId', v_defaults.question_set_id,
+    'selectedQuestionIds', v_selected,
+    'questions', v_questions,
+    'scoringConfigs', v_scoring,
     'scoringConfigId', v_defaults.scoring_config_id,
     'questionsTotal', v_defaults.questions_total,
-    'questionTimeSeconds', v_time,
+    'questionTimeSeconds', v_defaults.question_time_seconds,
     'showRankingAfterQuestion', v_defaults.show_ranking_after_question,
     'hideStatementOnPhone', v_defaults.hide_statement_on_phone,
     'finalistsCount', v_defaults.finalists_count,
+    'prepareSeconds', 3,
     'revealSeconds', 3,
     'rankingSeconds', 3
   );
@@ -87,7 +115,7 @@ $$;
 grant execute on function presenter_get_dynamic_config() to anon, authenticated;
 
 create or replace function presenter_save_dynamic_config(
-  p_question_set_id uuid,
+  p_question_ids uuid[],
   p_scoring_config_id uuid,
   p_questions_total int,
   p_question_time_seconds int,
@@ -100,13 +128,48 @@ security definer
 set search_path = public
 as $$
 declare
+  v_defaults live_quiz_defaults%rowtype;
+  v_set_id uuid;
   v_current_id uuid;
+  v_count int;
 begin
-  if p_questions_total < 1 then raise exception 'A quantidade de perguntas deve ser maior que zero'; end if;
-  if p_question_time_seconds < 5 or p_question_time_seconds > 120 then raise exception 'O tempo por pergunta deve ficar entre 5 e 120 segundos'; end if;
+  v_count := coalesce(array_length(p_question_ids, 1), 0);
+  if v_count = 0 then raise exception 'Selecione ao menos uma pergunta'; end if;
+  if p_questions_total < 1 or p_questions_total > v_count then
+    raise exception 'A quantidade de perguntas deve ficar entre 1 e o total selecionado';
+  end if;
+  if p_question_time_seconds < 5 or p_question_time_seconds > 120 then
+    raise exception 'O tempo por pergunta deve ficar entre 5 e 120 segundos';
+  end if;
+  if not exists (select 1 from scoring_configs where id = p_scoring_config_id) then
+    raise exception 'Fórmula de pontuação inválida';
+  end if;
+
+  select * into v_defaults from live_quiz_defaults where id = true for update;
+  v_set_id := v_defaults.question_set_id;
+
+  if v_set_id is null then
+    insert into question_sets (name) values ('Dinâmica — Quiz coletivo') returning id into v_set_id;
+  end if;
+
+  delete from question_set_items where question_set_id = v_set_id;
+  insert into question_set_items (question_set_id, question_id, position)
+  select v_set_id, qid, ordinality::int - 1
+  from unnest(p_question_ids) with ordinality as x(qid, ordinality)
+  where exists (
+    select 1 from questions q
+    where q.id = qid
+      and q.status = 'active'
+      and q.type <> 'tiebreaker'
+      and 'live_quiz' = any(q.modes)
+  );
+
+  if (select count(*) from question_set_items where question_set_id = v_set_id) <> v_count then
+    raise exception 'Uma ou mais perguntas selecionadas são inválidas';
+  end if;
 
   update live_quiz_defaults
-  set question_set_id = p_question_set_id,
+  set question_set_id = v_set_id,
       scoring_config_id = p_scoring_config_id,
       questions_total = p_questions_total,
       question_time_seconds = p_question_time_seconds,
@@ -119,7 +182,7 @@ begin
 
   if v_current_id is not null then
     update live_quiz_sessions
-    set question_set_id = p_question_set_id,
+    set question_set_id = v_set_id,
         scoring_config_id = p_scoring_config_id,
         questions_total = p_questions_total,
         question_time_seconds = p_question_time_seconds,
@@ -133,7 +196,7 @@ begin
 end;
 $$;
 
-grant execute on function presenter_save_dynamic_config(uuid, uuid, int, int, boolean, boolean) to anon, authenticated;
+grant execute on function presenter_save_dynamic_config(uuid[], uuid, int, int, boolean, boolean) to anon, authenticated;
 
 -- O motor automático passa a respeitar o tempo configurado no painel.
 create or replace function ensure_auto_live_quiz_round(p_session_id uuid)
