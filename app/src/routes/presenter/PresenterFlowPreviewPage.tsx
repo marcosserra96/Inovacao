@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/contexts/ToastContext'
 import { PresenterLiveVisualPage } from './PresenterLiveVisualPage'
@@ -19,11 +19,27 @@ export function PresenterFlowPreviewPage(){
   const notify=useToast()
   const [sessionId,setSessionId]=useState<string|null>(null)
   const [busy,setBusy]=useState(false)
+  const [recovering,setRecovering]=useState(true)
   const [configOpen,setConfigOpen]=useState(false)
 
-  const openScreen=(id=sessionId)=>{if(id) window.open(`/telao-dinamica/${id}`,'_blank','noopener,noreferrer')}
+  useEffect(()=>{
+    let active=true
+    void supabase.from('game_control').select('active_live_quiz_session_id').eq('id',true).maybeSingle().then(async({data})=>{
+      const id=(data as any)?.active_live_quiz_session_id as string|undefined
+      if(!active){return}
+      if(id){
+        const {data:session}=await supabase.from('live_quiz_sessions').select('id,status,flow_state').eq('id',id).maybeSingle()
+        if(active&&session&&(session as any).status!=='finished'&&(session as any).flow_state!=='finished') setSessionId(id)
+      }
+      if(active)setRecovering(false)
+    }).catch(()=>{if(active)setRecovering(false)})
+    return()=>{active=false}
+  },[])
+
+  const openScreen=(id=sessionId)=>{if(id)window.open(`/telao-dinamica/${id}`,'_blank','noopener,noreferrer')}
   const start=async()=>{setBusy(true);const {data,error}=await supabase.rpc('presenter_prepare_current_dynamic' as never,{p_name:'Rota de Inovação'} as never);setBusy(false);if(error){notify(error.message,'error');return}const result=data as unknown as {sessionId:string};setSessionId(result.sessionId);openScreen(result.sessionId)}
 
-  if(sessionId) return <PresenterLiveVisualPage sessionId={sessionId} onOpenScreen={()=>openScreen()} onFinish={()=>setSessionId(null)}/>
+  if(recovering)return <main className="grid h-[100dvh] place-items-center bg-[#020d23] text-white"><div className="text-center"><div className="font-display text-3xl font-extrabold"><span className="text-[#a7d52c]">Rota de </span>Inovação</div><div className="mt-3 text-sm text-white/50">Recuperando a dinâmica atual…</div></div></main>
+  if(sessionId)return <PresenterLiveVisualPage sessionId={sessionId} onOpenScreen={()=>openScreen()} onFinish={()=>setSessionId(null)}/>
   return <><SetupScreen onStart={start} onConfig={()=>setConfigOpen(true)} busy={busy}/><PresenterConfigModal open={configOpen} onClose={()=>setConfigOpen(false)}/></>
 }
