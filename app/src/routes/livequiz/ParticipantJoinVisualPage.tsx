@@ -54,11 +54,7 @@ export function ParticipantJoinVisualPage() {
     if (!codigo) return
     let active = true
     ;(async () => {
-      const { data, error: fetchError } = await supabase
-        .from('live_quiz_sessions')
-        .select('*')
-        .eq('code', codigo.toUpperCase())
-        .maybeSingle()
+      const { data, error: fetchError } = await supabase.from('live_quiz_sessions').select('*').eq('code', codigo.toUpperCase()).maybeSingle()
       if (!active) return
       if (fetchError) return setState('error')
       if (!data) return setState('not_found')
@@ -70,26 +66,16 @@ export function ParticipantJoinVisualPage() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!displayName.trim()) {
-      setError('Digite seu nome para entrar.')
-      return
-    }
-    setSubmitting(true)
-    setError(null)
+    if (!displayName.trim()) { setError('Digite seu nome para entrar.'); return }
+    setSubmitting(true); setError(null)
     const { data, error: rpcError } = await supabase.rpc('join_live_quiz', {
-      p_code: codigo ?? '',
-      p_display_name: displayName.trim(),
-      p_team: null,
-      p_device_fingerprint: getLiveQuizDeviceFingerprint(),
+      p_code: codigo ?? '', p_display_name: displayName.trim(), p_team: null, p_device_fingerprint: getLiveQuizDeviceFingerprint(),
     })
     setSubmitting(false)
-    if (rpcError || !data) {
-      setError('Não foi possível entrar na dinâmica. Tente novamente.')
-      return
-    }
+    if (rpcError || !data) { setError('Não foi possível entrar na dinâmica. Tente novamente.'); return }
     const result = data as unknown as { sessionId: string; participantId: string; joinToken: string }
     saveLiveQuizParticipant(result.sessionId, { participantId: result.participantId, joinToken: result.joinToken })
-    navigate(`/participante/${result.sessionId}/${result.participantId}`)
+    navigate(`/participante/${result.sessionId}/${result.participantId}`, { state: { joinToken: result.joinToken } })
   }
 
   return (
@@ -98,36 +84,21 @@ export function ParticipantJoinVisualPage() {
       <Dots />
       <div className="relative mx-auto flex h-full w-full max-w-[430px] flex-col px-5 py-4">
         <BrandHeader />
-
         {state === 'loading' && <Message title="Carregando…" text="Só um instante enquanto preparamos sua entrada." />}
         {state === 'not_found' && <Message title="Link inválido" text="Não encontramos esta dinâmica. Confira o QR Code e tente novamente." />}
         {state === 'closed' && <Message title="Dinâmica encerrada" text="Esta dinâmica já foi finalizada." />}
         {state === 'error' && <Message title="Não foi possível conectar" text="Verifique sua internet e abra o QR Code novamente." />}
-
         {state === 'ready' && (
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col pt-5">
             <div className="inline-flex w-fit rounded-full border border-[#a7d52c]/24 bg-[#a7d52c]/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-[#c1e944]">Bem-vindo</div>
             <h1 className="mt-5 font-display text-[40px] font-extrabold leading-[.97] tracking-[-.055em] text-white">Entre na<br /><span className="text-[#a7d52c]">dinâmica</span></h1>
             <p className="mt-5 max-w-[315px] text-sm leading-[1.65] text-white/58">Digite seu nome como você quer aparecer durante a experiência.</p>
-
             <div className="mt-8">
               <label htmlFor="participant-name" className="mb-2.5 block text-xs font-semibold text-white/55">Seu nome</label>
-              <input
-                id="participant-name"
-                autoFocus
-                autoComplete="name"
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="Ex.: Marcos Silva"
-                className="w-full rounded-2xl border border-white/12 bg-white/[.045] px-4 py-[17px] text-[15px] font-medium text-white outline-none placeholder:text-white/25 focus:border-[#00b6da]/60"
-              />
+              <input id="participant-name" autoFocus autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Ex.: Marcos Silva" className="w-full rounded-2xl border border-white/12 bg-white/[.045] px-4 py-[17px] text-[15px] font-medium text-white outline-none placeholder:text-white/25 focus:border-[#00b6da]/60" />
             </div>
-
             {error && <div className="mt-3 rounded-xl border border-[#ff7f71]/20 bg-[#ff7f71]/8 px-3 py-2.5 text-xs font-semibold text-[#ff9a90]">{error}</div>}
-
-            <button disabled={submitting} className="mt-5 rounded-2xl bg-[#a7d52c] px-5 py-[17px] font-display text-[15px] font-extrabold text-[#07152f] shadow-[0_12px_32px_rgba(167,213,44,.14)] disabled:opacity-60">
-              {submitting ? 'Entrando…' : 'Entrar na dinâmica'}
-            </button>
+            <button disabled={submitting} className="mt-5 rounded-2xl bg-[#a7d52c] px-5 py-[17px] font-display text-[15px] font-extrabold text-[#07152f] shadow-[0_12px_32px_rgba(167,213,44,.14)] disabled:opacity-60">{submitting ? 'Entrando…' : 'Entrar na dinâmica'}</button>
             <div className="mt-4 text-center text-[11px] text-white/38">{session?.name ?? 'Rota de Inovação'} · um dispositivo por participante</div>
           </form>
         )}
