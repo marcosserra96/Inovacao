@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { useLiveDynamic } from '@/hooks/useLiveDynamic'
 import { useRealtimeList } from '@/hooks/useRealtimeList'
 import { useRealtimeRow } from '@/hooks/useRealtimeRow'
@@ -18,7 +18,7 @@ type RoundResult = {
     isCorrect: boolean
     isLate: boolean
     pointsAwarded: number
-  }>
+  }> | null
 }
 
 function BrandHeader() {
@@ -47,11 +47,13 @@ function CenterMessage({ badge, title, text }: { badge:string; title:string; tex
 
 export function ParticipantLiveVisualPage(){
   const { sessionId, participantId }=useParams<{sessionId:string;participantId:string}>()
+  const location=useLocation()
   const { session, question, currentRound, remainingSeconds }=useLiveDynamic(sessionId)
   const { row: me }=useRealtimeRow<Participant>('live_quiz_participants', participantId)
   const { rows: flags }=useRealtimeList<AnswerFlag>('live_quiz_answer_flags','round_id',currentRound?.id)
   const stored=sessionId&&participantId?loadLiveQuizParticipant(sessionId,participantId):null
-  const joinToken=stored&&stored.participantId===participantId?stored.joinToken:null
+  const navigationToken=(location.state as {joinToken?:string}|null)?.joinToken ?? null
+  const joinToken=stored&&stored.participantId===participantId?stored.joinToken:navigationToken
   const [selected,setSelected]=useState<string|null>(null)
   const [submitting,setSubmitting]=useState(false)
   const [result,setResult]=useState<RoundResult|null>(null)
@@ -59,11 +61,16 @@ export function ParticipantLiveVisualPage(){
   useEffect(()=>{setSelected(null);setResult(null)},[currentRound?.id])
   useEffect(()=>{
     if(!currentRound?.revealed_at) return
-    void supabase.rpc('get_live_quiz_round_result',{p_round_id:currentRound.id}).then(({data})=>setResult(data as unknown as RoundResult))
+    void supabase.rpc('get_live_quiz_round_result',{p_round_id:currentRound.id}).then(({data,error})=>{
+      if(error||!data){setResult(null);return}
+      setResult(data as unknown as RoundResult)
+    })
   },[currentRound?.id,currentRound?.revealed_at])
 
   const answered=flags.some((flag:any)=>flag.participant_id===participantId&&flag.answered)
-  const myResult=useMemo(()=>result?.answers.find(answer=>answer.participantId===participantId)??null,[result,participantId])
+  const answers=result?.answers ?? []
+  const myResult=useMemo(()=>answers.find(answer=>answer.participantId===participantId)??null,[answers,participantId])
+  const options=question?.options ?? []
   const flow=session?.paused?'paused':session?.flow_state
   const timerTotal=currentRound?.timer_duration_seconds ?? session?.prepare_seconds ?? 3
 
@@ -78,10 +85,11 @@ export function ParticipantLiveVisualPage(){
   let content:React.ReactNode
   if(!session||!me) content=<CenterMessage badge="Conectando" title="Só um instante…" text="Estamos preparando sua participação."/>
   else if(!joinToken) content=<CenterMessage badge="Atenção" title="Entrada não encontrada" text="Abra novamente o QR Code neste mesmo celular para entrar na dinâmica."/>
+  else if(flow==='finished'||session.status==='finished') content=<CenterMessage badge="Encerrado" title="Dinâmica finalizada" text="Obrigado por participar da Rota de Inovação."/>
   else if(flow==='lobby') content=<CenterMessage badge="Conectado" title="Você está dentro!" text={`${me.display_name}, acompanhe o telão. O quiz começa quando o apresentador liberar.`}/>
   else if(flow==='paused') content=<CenterMessage badge="Jogo pausado" title="Aguarde um instante" text="A dinâmica continuará exatamente do ponto em que parou."/>
   else if(flow==='prepare') content=<div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center"><Badge cyan>Próxima pergunta</Badge><h1 className="mt-6 font-display text-[30px] font-extrabold text-white">Prepare-se</h1><div className="mt-7"><Timer seconds={remainingSeconds} total={session.prepare_seconds??3}/></div><p className="mt-7 text-sm text-white/48">A pergunta aparece em instantes</p></div>
-  else if(flow==='question') content=<div className="flex min-h-0 flex-1 flex-col"><div className="flex items-center justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[.17em] text-[#00b6da]">Quiz coletivo</div><div className="mt-1.5 text-xs font-semibold text-white/48">Pergunta {session.current_question_number} de {session.questions_total}</div></div><Timer seconds={remainingSeconds} total={timerTotal}/></div><h1 className="mt-4 font-display text-[21px] font-extrabold leading-[1.16] tracking-[-.035em] text-white">{question?.statement??'Preparando pergunta…'}</h1><div className="mt-5 grid min-h-0 flex-1 gap-2.5" style={{gridTemplateRows:`repeat(${Math.max(1,question?.options.length??4)},minmax(0,1fr))`}}>{question?.options.map((option,index)=>{const isSelected=selected===option.optionId||answered&&selected===option.optionId;return <button key={option.optionId} disabled={answered||submitting} onClick={()=>void answer(option.optionId)} className={`flex min-h-0 items-center gap-3 rounded-2xl border px-3 text-left ${isSelected?'border-[#a7d52c]/55 bg-[#a7d52c]/12':'border-white/10 bg-white/[.04]'}`}><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border font-display text-base font-extrabold ${isSelected?'border-[#a7d52c]/40 bg-[#a7d52c]/14 text-[#c1e944]':'border-[#00b6da]/25 bg-[#00b6da]/8 text-[#5ddcf2]'}`}>{String.fromCharCode(65+index)}</span><span className="text-[13px] font-semibold leading-snug text-white/86">{option.text}</span></button>})}</div>{answered&&<div className="mt-3.5 rounded-xl border border-[#a7d52c]/20 bg-[#a7d52c]/8 px-3 py-2.5 text-center text-xs font-bold text-[#c1e944]">Resposta registrada</div>}</div>
+  else if(flow==='question') content=<div className="flex min-h-0 flex-1 flex-col"><div className="flex items-center justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[.17em] text-[#00b6da]">Quiz coletivo</div><div className="mt-1.5 text-xs font-semibold text-white/48">Pergunta {session.current_question_number} de {session.questions_total}</div></div><Timer seconds={remainingSeconds} total={timerTotal}/></div><h1 className="mt-4 font-display text-[21px] font-extrabold leading-[1.16] tracking-[-.035em] text-white">{question?.statement??'Preparando pergunta…'}</h1><div className="mt-5 grid min-h-0 flex-1 gap-2.5" style={{gridTemplateRows:`repeat(${Math.max(1,options.length||4)},minmax(0,1fr))`}}>{options.map((option,index)=>{const isSelected=selected===option.optionId||answered&&selected===option.optionId;return <button key={option.optionId} disabled={answered||submitting} onClick={()=>void answer(option.optionId)} className={`flex min-h-0 items-center gap-3 rounded-2xl border px-3 text-left ${isSelected?'border-[#a7d52c]/55 bg-[#a7d52c]/12':'border-white/10 bg-white/[.04]'}`}><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border font-display text-base font-extrabold ${isSelected?'border-[#a7d52c]/40 bg-[#a7d52c]/14 text-[#c1e944]':'border-[#00b6da]/25 bg-[#00b6da]/8 text-[#5ddcf2]'}`}>{String.fromCharCode(65+index)}</span><span className="text-[13px] font-semibold leading-snug text-white/86">{option.text}</span></button>})}</div>{answered&&<div className="mt-3.5 rounded-xl border border-[#a7d52c]/20 bg-[#a7d52c]/8 px-3 py-2.5 text-center text-xs font-bold text-[#c1e944]">Resposta registrada</div>}</div>
   else if(flow==='reveal') content=<div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center"><div className={`grid h-24 w-24 place-items-center rounded-full border ${myResult?.isCorrect?'border-[#a7d52c]/28 bg-[#a7d52c]/9 text-[#a7d52c]':'border-[#ff7f71]/25 bg-[#ff7f71]/8 text-[#ff9186]'}`}><span className="text-4xl">{myResult?.isCorrect?'✓':'×'}</span></div><h1 className="mt-6 font-display text-[38px] font-extrabold leading-none tracking-[-.05em] text-white">{myResult?.isCorrect?'Mandou bem!':'Quase!'}</h1><div className="mt-8 w-full rounded-2xl border border-white/10 bg-white/[.035] p-5"><div className="text-[10px] uppercase tracking-[.15em] text-white/38">Pontos desta pergunta</div><div className="mt-2 font-display text-[32px] font-extrabold text-[#a7d52c]">+{myResult?.pointsAwarded??0}</div></div><div className="mt-6 text-xs text-white/42">Próxima pergunta em instantes</div></div>
   else if(flow==='quiz_result') content=me.is_finalist?<CenterMessage badge="Classificado" title="Você está na semifinal!" text="Fique atento ao telão. A próxima etapa começa quando o apresentador liberar."/>:<CenterMessage badge="Quiz concluído" title="Valeu pela participação!" text="Continue acompanhando as semifinais e a final pelo telão."/>
   else content=<CenterMessage badge="Rota de Inovação" title="Acompanhe o telão" text="A dinâmica está seguindo para a próxima etapa."/>
