@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { HomePage } from '@/routes/HomePage'
 import { JoinIndividualPage } from '@/routes/individual/JoinIndividualPage'
 import { IndividualPlayPage } from '@/routes/individual/IndividualPlayPage'
 import { IndividualResultPage } from '@/routes/individual/IndividualResultPage'
@@ -41,7 +40,8 @@ function App() {
     <BrowserRouter>
       <ConfigWarningBanner />
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        {/* A experiência nova é a página inicial oficial */}
+        <Route path="/" element={<PresenterFlowPreviewPage />} />
 
         {/* Nova experiência visual / funcional — sem login */}
         <Route path="/telao-visual" element={<ScreenVisualPreviewPage />} />
