@@ -21,8 +21,10 @@ export function OpenQuizAdminPage() {
   const [scoringConfigs, setScoringConfigs] = useState<ScoringConfig[]>([])
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   async function load() {
+    setLoading(true)
     const [s, qs, sc] = await Promise.all([
       supabase.from('individual_sessions').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('question_sets').select('*').order('name'),
@@ -31,10 +33,11 @@ export function OpenQuizAdminPage() {
     setSession(s.data ?? null)
     setQuestionSets(qs.data ?? [])
     setScoringConfigs(sc.data ?? [])
+    setLoading(false)
   }
 
   useEffect(() => {
-    load()
+    void load()
   }, [])
 
   async function toggleAnswers() {
@@ -49,7 +52,7 @@ export function OpenQuizAdminPage() {
     setBusy(false)
     if (error) return notify(error.message, 'error')
     notify(opening ? 'Respostas abertas.' : 'Respostas encerradas.')
-    load()
+    void load()
   }
 
   async function resetRanking() {
@@ -79,8 +82,10 @@ export function OpenQuizAdminPage() {
     setBusy(false)
     if (error) return notify(error.message, 'error')
     notify('Ranking zerado. Uma nova rodada foi criada mantendo a configuração.')
-    load()
+    void load()
   }
+
+  const canCreate = questionSets.length > 0 && scoringConfigs.length > 0
 
   return (
     <AdminShell>
@@ -95,12 +100,37 @@ export function OpenQuizAdminPage() {
         </Link>
       </div>
 
+      {!loading && !session && (
+        <Card className="mb-5 border-2" style={{ borderColor: '#009FC233' }}>
+          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: '#F37021' }}>Primeiro acesso</p>
+              <h2 className="mt-2 font-display text-2xl font-extrabold" style={{ color: '#005061' }}>Crie a primeira rodada do Quiz Energisa</h2>
+              <p className="mt-2 max-w-3xl text-sm text-ink-muted">
+                A rota <strong>/participar</strong> e o QR Code são permanentes. Depois que a primeira rodada for criada, eles sempre apontarão para o quiz atual.
+              </p>
+              {!canCreate && (
+                <p className="mt-3 rounded-xl px-4 py-3 text-sm" style={{ background: '#F3702110', color: '#8B451E' }}>
+                  Para criar a primeira rodada, é preciso ter pelo menos um conjunto de perguntas e uma fórmula de pontuação cadastrados.
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {!canCreate && questionSets.length === 0 && <Link to="/admin/conjuntos"><Button variant="ghost">Criar conjunto</Button></Link>}
+              <Button onClick={() => setEditing(true)} disabled={!canCreate}>Criar primeira rodada</Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-ink-muted">Rodada ativa</p>
-              <h2 className="mt-1 font-display text-2xl font-extrabold" style={{ color: '#005061' }}>{session?.name ?? 'Nenhuma rodada criada'}</h2>
+              <h2 className="mt-1 font-display text-2xl font-extrabold" style={{ color: '#005061' }}>
+                {loading ? 'Carregando…' : session?.name ?? 'Nenhuma rodada criada'}
+              </h2>
               {session && <p className="mt-1 text-sm text-ink-muted">{session.question_count} perguntas · ordem {session.question_order === 'random' ? 'aleatória' : 'fixa'} · ranking com {session.ranking_size}</p>}
             </div>
             {session && (
@@ -111,11 +141,19 @@ export function OpenQuizAdminPage() {
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <Button onClick={toggleAnswers} disabled={!session || busy}>
-              {session?.status === 'open' ? 'Fechar respostas' : 'Abrir respostas'}
-            </Button>
-            <Button variant="ghost" onClick={() => setEditing(true)} disabled={!session || busy}>Configurar quiz</Button>
-            <Button variant="ghost" onClick={resetRanking} disabled={!session || busy}>Zerar ranking</Button>
+            {session ? (
+              <>
+                <Button onClick={toggleAnswers} disabled={busy}>
+                  {session.status === 'open' ? 'Fechar respostas' : 'Abrir respostas'}
+                </Button>
+                <Button variant="ghost" onClick={() => setEditing(true)} disabled={busy}>Configurar quiz</Button>
+                <Button variant="ghost" onClick={resetRanking} disabled={busy}>Zerar ranking</Button>
+              </>
+            ) : (
+              <Button onClick={() => setEditing(true)} disabled={!canCreate || loading} className="sm:col-span-3">
+                Criar primeira rodada
+              </Button>
+            )}
           </div>
         </Card>
 
@@ -144,19 +182,17 @@ export function OpenQuizAdminPage() {
         </Card>
       </div>
 
-      <Modal open={editing} onClose={() => setEditing(false)} title="Configurar quiz" wide>
-        {session && (
-          <IndividualSessionForm
-            session={session}
-            questionSets={questionSets}
-            scoringConfigs={scoringConfigs}
-            onCancel={() => setEditing(false)}
-            onSaved={() => {
-              setEditing(false)
-              load()
-            }}
-          />
-        )}
+      <Modal open={editing} onClose={() => setEditing(false)} title={session ? 'Configurar quiz' : 'Criar primeira rodada'} wide>
+        <IndividualSessionForm
+          session={session}
+          questionSets={questionSets}
+          scoringConfigs={scoringConfigs}
+          onCancel={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false)
+            void load()
+          }}
+        />
       </Modal>
     </AdminShell>
   )
