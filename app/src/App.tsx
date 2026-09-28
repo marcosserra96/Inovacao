@@ -1,11 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { OpenQuizEntryPage } from '@/routes/openquiz/OpenQuizEntryPage'
+import { OpenQuizParticipantPage } from '@/routes/openquiz/OpenQuizParticipantPage'
+import { OpenQuizPlayPage } from '@/routes/openquiz/OpenQuizPlayPage'
 import { OpenQuizScreenPage } from '@/routes/openquiz/OpenQuizScreenPage'
 import { OpenQuizAdminPage } from '@/routes/openquiz/OpenQuizAdminPage'
-import { JoinIndividualPage } from '@/routes/individual/JoinIndividualPage'
-import { IndividualPlayPage } from '@/routes/individual/IndividualPlayPage'
-import { IndividualResultPage } from '@/routes/individual/IndividualResultPage'
-import { RankingPage } from '@/routes/ranking/RankingPage'
 import { AdminLoginPage } from '@/routes/admin/AdminLoginPage'
 import { AdminQuestionsPage } from '@/routes/admin/AdminQuestionsPage'
 import { AdminCategoriesPage } from '@/routes/admin/AdminCategoriesPage'
@@ -20,13 +17,9 @@ function App() {
     <BrowserRouter>
       <ConfigWarningBanner />
       <Routes>
-        <Route path="/" element={<OpenQuizEntryPage />} />
-        <Route path="/participar" element={<OpenQuizEntryPage />} />
-        <Route path="/j/:codigo" element={<JoinIndividualPage />} />
-        <Route path="/individual/:sessionId/play" element={<IndividualPlayPage />} />
-        <Route path="/individual/:sessionId/resultado" element={<IndividualResultPage />} />
-        <Route path="/ranking/:sessionId" element={<RankingPage />} />
-
+        <Route path="/" element={<OpenQuizParticipantPage />} />
+        <Route path="/participar" element={<OpenQuizParticipantPage />} />
+        <Route path="/quiz/:sessionId/jogar" element={<OpenQuizPlayPage />} />
         <Route path="/telao" element={<OpenQuizScreenPage />} />
 
         <Route path="/admin/login" element={<AdminLoginPage />} />
