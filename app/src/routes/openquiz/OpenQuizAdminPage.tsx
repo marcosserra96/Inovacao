@@ -10,6 +10,7 @@ import { useToast } from '@/contexts/ToastContext'
 import type { Database } from '@/types/database.types'
 
 type IndividualSession = Database['public']['Tables']['individual_sessions']['Row']
+type IndividualSessionInsert = Database['public']['Tables']['individual_sessions']['Insert']
 type QuestionSet = Database['public']['Tables']['question_sets']['Row']
 type ScoringConfig = Database['public']['Tables']['scoring_configs']['Row']
 
@@ -40,10 +41,11 @@ export function OpenQuizAdminPage() {
     if (!session) return
     setBusy(true)
     const opening = session.status !== 'open'
-    const { error } = await supabase
-      .from('individual_sessions')
-      .update(opening ? { status: 'open', opens_at: null, closes_at: null } : { status: 'closed' })
-      .eq('id', session.id)
+    const update: Database['public']['Tables']['individual_sessions']['Update'] = opening
+      ? { status: 'open', opens_at: null, closes_at: null }
+      : { status: 'closed' }
+
+    const { error } = await supabase.from('individual_sessions').update(update).eq('id', session.id)
     setBusy(false)
     if (error) return notify(error.message, 'error')
     notify(opening ? 'Respostas abertas.' : 'Respostas encerradas.')
@@ -55,7 +57,7 @@ export function OpenQuizAdminPage() {
     if (!confirm('Zerar o ranking e iniciar uma nova rodada com a mesma configuração? O histórico anterior será preservado.')) return
 
     setBusy(true)
-    const payload = {
+    const payload: IndividualSessionInsert = {
       name: session.name,
       question_set_id: session.question_set_id,
       scoring_config_id: session.scoring_config_id,
@@ -89,7 +91,7 @@ export function OpenQuizAdminPage() {
           <p className="mt-1 text-ink-muted">Controle o quiz aberto sem alterar o QR Code exibido no telão.</p>
         </div>
         <Link to="/telao" target="_blank">
-          <Button>Abir telão</Button>
+          <Button>Abrir telão</Button>
         </Link>
       </div>
 
