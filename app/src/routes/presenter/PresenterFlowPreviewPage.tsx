@@ -43,7 +43,7 @@ export function PresenterFlowPreviewPage(){
   },[])
 
   const openScreen=(id=sessionId)=>{if(id)window.open(`/telao-dinamica/${id}`,'_blank','noopener,noreferrer')}
-  const start=async()=>{setBusy(true);const {data,error}=await supabase.rpc('presenter_prepare_current_dynamic' as never,{p_name:theme.title} as never);setBusy(false);if(error){notify(error.message,'error');return}const result=data as unknown as {sessionId:string};setSessionId(result.sessionId);openScreen(result.sessionId)}
+  const start=async()=>{setBusy(true);const {data,error}=await supabase.rpc('presenter_prepare_current_dynamic' as never,{p_name:theme.title} as never);setBusy(false);if(error){notify(error.message,'error');if(/cadastre|importe|perguntas para/i.test(error.message))setConfigOpen(true);return}const result=data as unknown as {sessionId:string};setSessionId(result.sessionId);openScreen(result.sessionId)}
 
   if(recovering)return <main style={themeStyle(theme)} className="grid h-[100dvh] place-items-center bg-[var(--quiz-bg)] text-white"><div className="text-center"><div className="font-display text-3xl font-extrabold">{theme.title}</div><div className="mt-3 text-sm text-white/50">Recuperando a dinâmica atual…</div></div></main>
   if(sessionId)return <PresenterLiveVisualPage sessionId={sessionId} onOpenScreen={()=>openScreen()} onFinish={()=>setSessionId(null)}/>
