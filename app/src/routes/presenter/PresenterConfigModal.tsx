@@ -314,17 +314,44 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
           explanation:value(row,'explicacao'),options,
           useInQuiz:quiz,useInSemifinal:semifinal,useInFinal:final,used:false }
       })
+      // IDs de outros eventos/importações podem não existir neste banco.
+      // Prioridade: ID existente -> enunciado idêntico (preferir ativo) -> nova pergunta.
+      const key = (value: string) => value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR')
+      const known = [...(config?.questions ?? [])].sort((a,b) =>
+        Number(b.status === 'active') - Number(a.status === 'active'))
+      const knownById = new Map(known.map(question => [question.id, question]))
+      const knownByStatement = new Map<string, Question>()
+      for (const question of known) {
+        const statementKey = key(question.statement)
+        if (!knownByStatement.has(statementKey)) knownByStatement.set(statementKey, question)
+      }
       let latest: Config | null = null
-      for (const entry of imported) {
+      let created = 0
+      let updated = 0
+      for (const [index, entry] of imported.entries()) {
+        const existing = (entry.id ? knownById.get(entry.id) : undefined)
+          ?? knownByStatement.get(key(entry.statement))
+        const targetId = existing?.id ?? null
         const { data,error } = await supabase.rpc('presenter_upsert_dynamic_question' as never,{
-          p_question_id:entry.id,p_statement:entry.statement,p_explanation:entry.explanation || null,
+          p_question_id:targetId,p_statement:entry.statement,p_explanation:entry.explanation || null,
           p_options:entry.options,p_use_in_quiz:entry.useInQuiz,p_use_in_semifinal:entry.useInSemifinal,p_use_in_final:entry.useInFinal,
         } as never)
-        if (error || !data) throw new Error('Importação interrompida após '+(latest ? 'algumas' : 'nenhuma')+' linhas: '+(error?.message ?? 'erro desconhecido'))
+        if (error || !data) {
+          if (latest) refreshFromQuestionChange(latest)
+          throw new Error('Importação interrompida na linha '+(index+3)+
+            ' ('+(index)+' de '+imported.length+' concluídas): '+(error?.message ?? 'erro desconhecido'))
+        }
         latest = data as unknown as Config
+        const saved = latest.questions.find(question => key(question.statement) === key(entry.statement) && question.status === 'active')
+        if (saved) {
+          knownById.set(saved.id, saved)
+          knownByStatement.set(key(entry.statement), saved)
+        }
+        if (targetId) updated++
+        else created++
       }
       if (latest) refreshFromQuestionChange(latest)
-      notify(imported.length+' pergunta(s) importada(s).')
+      notify(imported.length+' pergunta(s) importada(s): '+created+' nova(s), '+updated+' atualizada(s).')
     } catch (error) {
       notify(error instanceof Error ? error.message : 'Falha ao importar arquivo.', 'error')
     } finally {
