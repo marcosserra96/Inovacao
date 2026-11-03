@@ -7,7 +7,9 @@ export function parseCsv(source: string): string[][] {
   // adicionada pela própria exportação da plataforma.
   let text = source.replace(/^\uFEFF/, '')
   const directive = text.match(/^sep\s*=\s*([,;])\s*(?:\r?\n|$)/i)
-  const header = directive ? '' : (text.split(/\r?\n/, 1)[0] ?? '')
+  // Se o Excel regravou o arquivo com outro separador, priorize o cabeçalho real.
+  const withoutDirective = directive ? text.slice(directive[0].length) : text
+  const header = withoutDirective.split(/\r?\n/, 1)[0] ?? ''
   const countOutsideQuotes = (line: string, separator: string) => {
     let inside = false
     let count = 0
@@ -19,9 +21,12 @@ export function parseCsv(source: string): string[][] {
     }
     return count
   }
-  const delimiter = directive?.[1] ??
-    (countOutsideQuotes(header, ';') > countOutsideQuotes(header, ',') ? ';' : ',')
-  if (directive) text = text.slice(directive[0].length)
+  const commas = countOutsideQuotes(header, ',')
+  const semicolons = countOutsideQuotes(header, ';')
+  const delimiter = commas === semicolons
+    ? (directive?.[1] ?? ',')
+    : (semicolons > commas ? ';' : ',')
+  text = withoutDirective
 
   const rows: string[][] = []
   let row: string[] = []
