@@ -2,49 +2,47 @@
 // linha dentro de campo), suficiente para importar/exportar perguntas sem
 // depender de uma biblioteca externa.
 
-export function parseCsv(text: string): string[][] {
+export function parseCsv(source: string): string[][] {
+  // Excel em pt-BR pode usar ';' ao salvar. Aceita também a linha "sep=,"
+  // adicionada pela própria exportação da plataforma.
+  let text = source.replace(/^\uFEFF/, '')
+  const directive = text.match(/^sep\s*=\s*([,;])\s*(?:\r?\n|$)/i)
+  const header = directive ? '' : (text.split(/\r?\n/, 1)[0] ?? '')
+  const countOutsideQuotes = (line: string, separator: string) => {
+    let inside = false
+    let count = 0
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') {
+        if (inside && line[i + 1] === '"') i++
+        else inside = !inside
+      } else if (!inside && line[i] === separator) count++
+    }
+    return count
+  }
+  const delimiter = directive?.[1] ??
+    (countOutsideQuotes(header, ';') > countOutsideQuotes(header, ',') ? ';' : ',')
+  if (directive) text = text.slice(directive[0].length)
+
   const rows: string[][] = []
   let row: string[] = []
   let field = ''
-  let inQuotes = false
-
+  let quoted = false
   for (let i = 0; i < text.length; i++) {
     const char = text[i]
-    const next = text[i + 1]
-
-    if (inQuotes) {
-      if (char === '"' && next === '"') {
-        field += '"'
-        i++
-      } else if (char === '"') {
-        inQuotes = false
-      } else {
-        field += char
-      }
-      continue
-    }
-
     if (char === '"') {
-      inQuotes = true
-    } else if (char === ',') {
-      row.push(field)
-      field = ''
-    } else if (char === '\n') {
-      row.push(field)
-      rows.push(row)
-      row = []
-      field = ''
-    } else if (char === '\r') {
-      // ignora, tratado junto com \n
+      if (quoted && text[i + 1] === '"') { field += '"'; i++ }
+      else quoted = !quoted
+    } else if (!quoted && char === delimiter) {
+      row.push(field); field = ''
+    } else if (!quoted && (char === '\n' || char === '\r')) {
+      if (char === '\r' && text[i + 1] === '\n') i++
+      row.push(field); rows.push(row); row = []; field = ''
     } else {
       field += char
     }
   }
-  if (field.length > 0 || row.length > 0) {
-    row.push(field)
-    rows.push(row)
-  }
-  return rows.filter((r) => r.some((cell) => cell.trim() !== ''))
+  if (field || row.length) rows.push([...row, field])
+  return rows.filter(r => r.some(v => v.trim()))
 }
 
 function escapeCsvField(value: string): string {
