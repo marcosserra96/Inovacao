@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/contexts/ToastContext'
-import { DEFAULT_QUIZ_THEME, normalizeQuizTheme, themeFromRow, themeStyle, type QuizVisualTheme } from '@/lib/quizVisualTheme'
+import { DEFAULT_QUIZ_THEME, normalizeQuizTheme, fallbackTitleSegments, colorTitleRange, themeFromRow, themeStyle, type QuizVisualTheme, type TitleSegment } from '@/lib/quizVisualTheme'
 
 type ThemeRow = QuizVisualTheme & { isSystem?: boolean }
 
@@ -35,6 +35,8 @@ export function PresenterVisualThemes() {
   const [draft, setDraft] = useState<QuizVisualTheme>(DEFAULT_QUIZ_THEME)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
+  const titleRef = useRef<HTMLInputElement>(null)
+  const [selection, setSelection] = useState({start:0,end:0})
 
   const load = async () => {
     const [{data, error}, {data: defaults}] = await Promise.all([
@@ -60,6 +62,22 @@ export function PresenterVisualThemes() {
   }, [selected, themes])
 
   const change = (data: Partial<QuizVisualTheme>) => setDraft(d => ({...d,...data}))
+  const changeTitle = (value: string) => {
+    setDraft(d => ({...d,title:value,titleSegments:fallbackTitleSegments(value)}))
+    setSelection({start:0,end:0})
+  }
+  const selectTitle = () => {
+    const input=titleRef.current
+    if (input) setSelection({start:input.selectionStart??0,end:input.selectionEnd??0})
+  }
+  const applyTitleColor = (color: TitleSegment['color']) => {
+    const input=titleRef.current
+    const start=input?.selectionStart??selection.start
+    const end=input?.selectionEnd??selection.end
+    if (end<=start) {notify('Selecione uma palavra ou trecho do título primeiro.','error');return}
+    setDraft(d=>({...d,titleSegments:colorTitleRange(d.title,d.titleSegments,start,end,color)}))
+    setSelection({start,end})
+  }
   const duplicate = () => {
     setSelected('')
     setDraft({...draft,id:'',name:draft.name+' — cópia'})
@@ -70,7 +88,7 @@ export function PresenterVisualThemes() {
     setBusy(true)
     const {data,error} = await supabase.rpc('presenter_save_visual_theme' as never, {
       p_theme_id: draft.id || null,
-      p_data: {name:draft.name,title:draft.title,subtitle:draft.subtitle,primaryColor:draft.primaryColor,
+      p_data: {name:draft.name,title:draft.title,titleSegments:draft.titleSegments,subtitle:draft.subtitle,primaryColor:draft.primaryColor,
         secondaryColor:draft.secondaryColor,backgroundColor:draft.backgroundColor,
         surfaceColor:draft.surfaceColor,logoPrimary:draft.logoPrimary,logoSecondary:draft.logoSecondary},
     } as never)
@@ -127,7 +145,21 @@ export function PresenterVisualThemes() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Nome do tema" value={draft.name} onChange={v=>change({name:v})} />
-        <Field label="Título do evento" value={draft.title} onChange={v=>change({title:v})} />
+        <div>
+          <label className="block"><span className="mb-1.5 block text-xs font-semibold text-white/65">Título do evento</span>
+            <input ref={titleRef} maxLength={150} value={draft.title} onChange={e=>changeTitle(e.target.value)}
+              onSelect={selectTitle} onKeyUp={selectTitle} onMouseUp={selectTitle}
+              className="h-11 w-full rounded-xl border border-white/15 bg-[#020d23] px-3 text-sm outline-none focus:border-[#a7d52c]" />
+          </label>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {([['primary','Principal'],['white','Branco'],['secondary','Secundária']] as const).map(([color,label])=>
+              <button key={color} type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>applyTitleColor(color)}
+                className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[.04] px-2.5 py-2 text-xs font-semibold hover:border-white/35">
+                <span className="h-3 w-3 rounded-full border border-white/20" style={{backgroundColor:color==='primary'?draft.primaryColor:color==='secondary'?draft.secondaryColor:'#fff'}}/>{label}
+              </button>)}
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-white/45">Selecione uma parte do título acima e clique na cor desejada. A prévia muda na hora.</p>
+        </div>
         <div className="sm:col-span-2"><Field label="Subtítulo (opcional)" value={draft.subtitle} onChange={v=>change({subtitle:v})}/></div>
         {([
           ['primaryColor','Cor principal'],
@@ -151,7 +183,7 @@ export function PresenterVisualThemes() {
     </div>
     <div className="space-y-3"><h3 className="text-sm font-bold">Prévia do tema</h3>
       <div style={themeStyle(draft)} className="overflow-hidden rounded-[24px] border border-white/15 bg-[var(--quiz-bg)] p-5 text-white">
-        <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-4"><div className="min-w-0"><div className="break-words text-xl font-extrabold"><span className="text-[var(--quiz-primary)]">{draft.title === "Rota de Inovação" ? "Rota de " : draft.title.split(" ")[0]}</span>{draft.title.includes(" ") && <span className="text-white">{draft.title === "Rota de Inovação" ? "Inovação" : draft.title.slice(draft.title.indexOf(" "))}</span>}</div><div className="mt-1 text-xs text-white/55">{draft.subtitle}</div></div><div className="flex shrink-0 gap-2">{[draft.logoPrimary,draft.logoSecondary].filter(Boolean).map((logo,i)=><img key={i} src={logo!} alt="" className="h-8 max-w-14 object-contain"/>)}</div></div>
+        <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-4"><div className="min-w-0"><div className="break-words text-xl font-extrabold">{normalizeQuizTheme(draft).titleSegments.map((part,index)=><span key={index} style={{color:part.color==='primary'?draft.primaryColor:part.color==='secondary'?draft.secondaryColor:'#fff'}}>{part.text}</span>)}</div><div className="mt-1 text-xs text-white/55">{draft.subtitle}</div></div><div className="flex shrink-0 gap-2">{[draft.logoPrimary,draft.logoSecondary].filter(Boolean).map((logo,i)=><img key={i} src={logo!} alt="" className="h-8 max-w-14 object-contain"/>)}</div></div>
         <div className="mt-5 rounded-2xl bg-[var(--quiz-surface)] p-5"><div className="text-xs font-semibold text-[var(--quiz-secondary)]">QUIZ AO VIVO</div><div className="mt-3 text-xl font-bold">Qual alternativa você escolheria?</div><div className="mt-5 space-y-2"><div className="rounded-xl border border-[var(--quiz-primary)] bg-white/5 p-3 text-sm"><span className="mr-2 font-bold text-[var(--quiz-primary)]">A</span> Primeira alternativa</div><div className="rounded-xl border border-white/15 p-3 text-sm"><span className="mr-2 font-bold text-[var(--quiz-secondary)]">B</span> Segunda alternativa</div></div></div>
       </div>
       <p className="text-xs leading-relaxed text-white/45">O tema escolhido é copiado para cada nova dinâmica. Temas antigos não mudam ao editar este cadastro.</p>
