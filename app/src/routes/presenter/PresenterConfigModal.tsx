@@ -132,12 +132,15 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
   const [draft, setDraft] = useState<QuestionDraft | null>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([])
+  const [bulkBusy, setBulkBusy] = useState(false)
   const [stages, setStages] = useState({ enableSemifinals: true, enableFinal: true })
 
   useEffect(() => {
     if (!open) return
     setLoading(true)
     setDraft(null)
+    setSelectedQuestionIds([])
     setTab('questions')
     void supabase.rpc('presenter_get_dynamic_config' as never).then(({ data, error }) => {
       setLoading(false)
@@ -173,6 +176,36 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
       return true
     })
   }, [config, search, filter])
+
+  const selectedActive = selectedQuestionIds.filter(id => activeQuestions.some(question => question.id === id))
+  const visibleActive = visibleQuestions.filter(question => question.status === 'active')
+  const allVisibleSelected = visibleActive.length > 0 && visibleActive.every(question => selectedQuestionIds.includes(question.id))
+  const toggleSelected = (id: string) => setSelectedQuestionIds(current =>
+    current.includes(id) ? current.filter(value => value !== id) : [...current, id])
+  const toggleVisible = () => setSelectedQuestionIds(current =>
+    allVisibleSelected ? current.filter(id => !visibleActive.some(question => question.id === id)) :
+      [...new Set([...current, ...visibleActive.map(question => question.id)])])
+
+  const archiveQuestions = async (all: boolean) => {
+    const count = all ? activeQuestions.length : selectedActive.length
+    if (!count || bulkBusy) return
+    const message = all
+      ? `Remover TODAS as ${count} perguntas ativas? A lista ficará vazia. As perguntas usadas em eventos anteriores serão preservadas no histórico e poderão ser reativadas.`
+      : `Remover ${count} pergunta(s) selecionada(s)? Elas deixarão de participar das próximas dinâmicas e permanecerão no histórico.`
+    if (!window.confirm(message)) return
+    setBulkBusy(true)
+    const { data, error } = await supabase.rpc('presenter_archive_dynamic_questions' as never, {
+      p_question_ids: all ? null : selectedActive,
+      p_all_active: all,
+    } as never)
+    setBulkBusy(false)
+    if (error || !data) { notify(error?.message ?? 'Falha ao remover perguntas.', 'error'); return }
+    refreshFromQuestionChange(data as unknown as Config)
+    setSelectedQuestionIds([])
+    setDraft(null)
+    setFilter('active')
+    notify(`${count} pergunta(s) removida(s) da lista ativa. Histórico preservado.`)
+  }
 
   if (!open) return null
 
@@ -247,6 +280,7 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
       return
     }
     refreshFromQuestionChange(data as unknown as Config)
+    setSelectedQuestionIds(current => current.filter(id => id !== question.id))
     notify(question.used ? 'Pergunta arquivada. O histórico foi preservado.' : 'Pergunta excluída.')
   }
 
@@ -442,12 +476,12 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
                   <SummaryPill label="Semifinais" value={semifinalPool.length} tone="cyan" />
                   <SummaryPill label="Final" value={finalPool.length} tone="orange" />
                 </div>
-                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/48">Cadastre e mantenha o banco de perguntas aqui. Ao editar uma pergunta já utilizada, o histórico anterior é preservado automaticamente.</p>
+                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/48">Cadastre e mantenha o banco de perguntas aqui. É possível limpar a lista para o próximo evento. As perguntas removidas permanecem arquivadas, preservando o histórico.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <input ref={importInputRef} type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" className="hidden" onChange={(e) => { const file=e.target.files?.[0]; if(file) void importQuestions(file) }} />
                 <button type="button" onClick={() => exportQuestions()} className="h-11 rounded-xl border border-white/20 px-4 text-sm font-bold">Exportar Excel (.xlsx)</button>
-                <button type="button" disabled={importing} onClick={() => importInputRef.current?.click()} className="h-11 rounded-xl border border-white/20 px-4 text-sm font-bold">{importing ? 'Importando…' : 'Importar Excel (CSV)'}</button>
+                <button type="button" disabled={importing} onClick={() => importInputRef.current?.click()} className="h-11 rounded-xl border border-white/20 px-4 text-sm font-bold">{importing ? 'Importando…' : 'Importar Excel (.xlsx/CSV)'}</button>
                 <button type="button" onClick={() => setDraft(newQuestionDraft())} className="h-11 rounded-xl bg-[#a7d52c] px-5 font-display text-sm font-extrabold text-[#07152f]">+ Nova pergunta</button>
               </div>
             </div>
@@ -458,17 +492,27 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
                 <FilterButton active={filter === 'active'} onClick={() => setFilter('active')}>Ativas</FilterButton>
                 <FilterButton active={filter === 'archived'} onClick={() => setFilter('archived')}>Arquivadas</FilterButton>
                 <FilterButton active={filter === 'all'} onClick={() => setFilter('all')}>Todas</FilterButton>
+                <div className="flex w-full flex-wrap items-center gap-2 border-t border-white/8 pt-3 sm:w-auto sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
+                  <label className="flex cursor-pointer items-center gap-2 text-xs text-white/65">
+                    <input type="checkbox" checked={allVisibleSelected} disabled={!visibleActive.length || bulkBusy} onChange={toggleVisible} className="h-4 w-4 accent-[#a7d52c]" />
+                    Selecionar visíveis
+                  </label>
+                  {selectedActive.length > 0 && <button type="button" disabled={bulkBusy} onClick={() => void archiveQuestions(false)} className="rounded-lg border border-red-400/25 px-3 py-2 text-xs font-bold text-red-200 disabled:opacity-50">{bulkBusy ? 'Removendo…' : `Remover selecionadas (${selectedActive.length})`}</button>}
+                  <button type="button" disabled={bulkBusy || !activeQuestions.length} onClick={() => void archiveQuestions(true)} className="rounded-lg border border-red-400/20 px-3 py-2 text-xs font-bold text-red-200/80 hover:bg-red-400/[.08] disabled:opacity-40">Remover todas as ativas</button>
+                </div>
               </div>
 
               <div className="min-h-0 overflow-y-auto p-3">
                 {visibleQuestions.length === 0 ? (
-                  <div className="grid h-full min-h-48 place-items-center text-sm text-white/42">Nenhuma pergunta encontrada.</div>
+                  <div className="grid h-full min-h-48 place-items-center px-4 text-center text-sm text-white/50">{filter === "active" && !activeQuestions.length ? "Nenhuma pergunta ativa. Importe um Excel ou cadastre uma pergunta antes de iniciar uma dinâmica." : "Nenhuma pergunta encontrada."}</div>
                 ) : (
                   <div className="space-y-2.5">
                     {visibleQuestions.map((question) => (
                       <QuestionRow
                         key={question.id}
                         question={question}
+                        selected={selectedQuestionIds.includes(question.id)}
+                        onSelect={() => toggleSelected(question.id)}
                         onEdit={() => setDraft(questionToDraft(question))}
                         onDelete={() => void removeQuestion(question)}
                         onRestore={() => void restoreQuestion(question)}
@@ -606,11 +650,13 @@ function QuestionEditor({ draft, saving, onChange, onCancel, onSave }: { draft: 
   )
 }
 
-function QuestionRow({ question, onEdit, onDelete, onRestore }: { question: Question; onEdit: () => void; onDelete: () => void; onRestore: () => void }) {
+function QuestionRow({ question, selected, onSelect, onEdit, onDelete, onRestore }: { question: Question; selected: boolean; onSelect: () => void; onEdit: () => void; onDelete: () => void; onRestore: () => void }) {
   const isActive = question.status === 'active'
   return (
     <div className={`grid gap-3 rounded-2xl border p-4 transition lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center ${isActive ? 'border-white/8 bg-white/[.025] hover:border-white/14' : 'border-white/6 bg-black/10 opacity-70'}`}>
-      <div className="min-w-0">
+      <div className="flex min-w-0 items-start gap-3">
+        {isActive && <input type="checkbox" aria-label={`Selecionar pergunta: ${question.statement}`} checked={selected} onChange={onSelect} className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[#a7d52c]" />}
+        <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
           <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-white/84">{question.statement}</p>
           {question.used && <span className="shrink-0 rounded-md border border-white/10 bg-white/[.04] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/38">Histórico</span>}
@@ -625,6 +671,7 @@ function QuestionRow({ question, onEdit, onDelete, onRestore }: { question: Ques
             </>
           ) : <StageBadge>{question.status === 'archived' ? 'Arquivada' : 'Inativa'}</StageBadge>}
           <span className="rounded-md bg-white/[.035] px-2 py-1 text-[10px] text-white/35">{question.options.length} alternativas</span>
+        </div>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
