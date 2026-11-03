@@ -32,8 +32,8 @@ function PairCard({ label, players, winnerId }: { label:string; players:any[]; w
   return <div className="rounded-[18px] border border-white/9 bg-white/[.035] p-3.5"><div className="mb-2 text-[10px] font-bold uppercase tracking-[.14em] text-[#00b6da]">{label}</div><div className="space-y-2">{players.map((p:any)=><div key={p.id} className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2 ${winnerId===p.id?'bg-[#a7d52c]/10':'bg-white/[.025]'}`}><div className="min-w-0"><div className="truncate text-sm font-semibold">{winnerId===p.id?'🏆 ':''}{p.display_name}</div><div className="text-[10px] text-white/42">{Number(p.correct_count??0)} acertos</div></div><div className="font-display text-lg font-extrabold text-[#bfe84a]">{Number(p.total_score??0).toLocaleString('pt-BR')}</div></div>)}</div></div>
 }
 
-function StageRail({ flow }: { flow:string }) {
-  const stages=[['quiz','Quiz'],['semi','Semifinais'],['final','Final']]
+function StageRail({ flow, semifinal=true, final=true }: { flow:string; semifinal?:boolean; final?:boolean }) {
+  const stages=[['quiz','Quiz'],...(semifinal && final ? [['semi','Semifinais']] : []),...(final ? [['final','Final']] : [])]
   const active=flow.startsWith('semifinal')?'semi':flow.startsWith('final')||flow==='champion'?'final':'quiz'
   return <div className="grid grid-cols-3 gap-2">{stages.map(([key,label],index)=>{const order=['quiz','semi','final'];const done=order.indexOf(key)<order.indexOf(active)||flow==='champion';const isActive=key===active&&flow!=='champion';return <div key={key} className={`rounded-xl border px-3 py-2 text-center text-[11px] font-bold ${done?'border-[#a7d52c]/25 bg-[#a7d52c]/9 text-[#c3e94b]':isActive?'border-[#00b6da]/28 bg-[#00b6da]/8 text-[#62dcef]':'border-white/8 bg-white/[.025] text-white/35'}`}><div className="text-[9px] opacity-60">0{index+1}</div>{label}</div>})}</div>
 }
@@ -46,7 +46,7 @@ export function PresenterLiveVisualPage({ sessionId, onOpenScreen, onFinish }: P
   const flow=String(session?.paused?'paused':session?.flow_state??'lobby')
   const underlyingFlow=flow==='paused'?String(session?.paused_from_flow_state??''):flow
   const top=ranking.slice(0,10)
-  const top4=ranking.slice(0,4)
+  const top4=ranking.slice(0,session?.enable_semifinals && session?.enable_final ? 4 : session?.enable_final ? 2 : 1)
 
   const call=async(fn:string,args:Record<string,unknown>)=>{setBusy(true);const {data,error}=await supabase.rpc(fn as never,args as never);setBusy(false);if(error){notify(error.message,'error');return null}return data}
 
@@ -67,7 +67,7 @@ export function PresenterLiveVisualPage({ sessionId, onOpenScreen, onFinish }: P
     if(flow==='question') return ['Jogo ao vivo','Quiz Coletivo',`Pergunta ${session?.current_question_number??1} de ${session?.questions_total??0}`]
     if(flow==='reveal') return ['Resposta revelada','Quiz Coletivo',`Pergunta ${session?.current_question_number??1} concluída`]
     if(flow==='ranking') return ['Ranking parcial','Quiz Coletivo','Próxima pergunta em instantes']
-    if(flow==='quiz_result') return ['Etapa concluída','Top 4 definido','Pronto para iniciar as semifinais']
+    if(flow==='quiz_result') return !session?.enable_final ? ['Quiz concluído','Campeão definido','Pronto para revelar o vencedor'] : !session?.enable_semifinals ? ['Quiz concluído','Finalistas definidos','Pronto para iniciar a final'] : ['Etapa concluída','Top 4 definido','Pronto para iniciar as semifinais']
     if(flow==='semifinal_prepare') return ['Prepare-se','Semifinais','1º × 4º e 2º × 3º']
     if(flow==='semifinal_question') return ['Jogo ao vivo','Semifinais',`Rodada ${bracket.semifinal1.match?.current_round_number??1}`]
     if(flow==='semifinal_reveal') return ['Resposta revelada','Semifinais','Placares atualizados']
@@ -83,7 +83,7 @@ export function PresenterLiveVisualPage({ sessionId, onOpenScreen, onFinish }: P
   const activeRound=underlyingFlow.startsWith('semifinal')?bracket.semifinal1.round:underlyingFlow.startsWith('final')?bracket.final.round:currentRound
   const total=underlyingFlow.endsWith('prepare')?Number(session?.prepare_seconds??3):Number(activeRound?.timer_duration_seconds??session?.question_time_seconds??20)
   const canPause=['prepare','question','reveal','ranking','semifinal_prepare','semifinal_question','semifinal_reveal','final_prepare','final_question','final_reveal'].includes(flow)
-  const buttonLabel=flow==='lobby'?'Iniciar Quiz':flow==='paused'?'Retomar':canPause?'Pausar':flow==='quiz_result'?'Iniciar Semifinais':flow==='semifinal_result'?'Iniciar Final':null
+  const buttonLabel=flow==='lobby'?'Iniciar Quiz':flow==='paused'?'Retomar':canPause?'Pausar':flow==='quiz_result'?(!session?.enable_final?'Revelar Campeão':!session?.enable_semifinals?'Iniciar Final':'Iniciar Semifinais'):flow==='semifinal_result'?'Iniciar Final':null
   const champion=bracket.final.players.find((p:any)=>p.id===bracket.final.match?.winner_player_id)
   const semiWinner1=bracket.semifinal1.players.find((p:any)=>p.id===bracket.semifinal1.match?.winner_player_id)
   const semiWinner2=bracket.semifinal2.players.find((p:any)=>p.id===bracket.semifinal2.match?.winner_player_id)
