@@ -50,6 +50,7 @@ type DuelState = {
   question: QuestionPayload | null
   answered: boolean
   myResult: DuelRoundResult['answers'] extends Array<infer T> | null ? T | null : never
+  resultLoaded: boolean
 }
 
 const EMPTY_DUEL: DuelState = {
@@ -61,6 +62,7 @@ const EMPTY_DUEL: DuelState = {
   question: null,
   answered: false,
   myResult: null,
+  resultLoaded: false,
 }
 
 function isBracketFlow(flow?: string | null) {
@@ -137,6 +139,7 @@ export function useParticipantLiveState(sessionId?: string, participantId?: stri
       let duelQuestion: QuestionPayload | null = null
       let duelAnswered = false
       let duelMyResult: any = null
+      let duelResultLoaded = false
 
       if (roundNumber > 0) {
         const { data: roundData } = await supabase
@@ -170,6 +173,7 @@ export function useParticipantLiveState(sessionId?: string, participantId?: stri
           if ((duelRound as any).revealed_at) {
             const { data: duelResultData } = await supabase.rpc('get_duel_round_result', { p_round_id: (duelRound as any).id })
             const duelResult = (duelResultData as unknown as DuelRoundResult) ?? null
+            duelResultLoaded = Boolean(duelResult?.roundId === (duelRound as any).id)
             duelMyResult = (duelResult?.answers ?? []).find((answer) => answer.playerId === promotion.duelPlayerId) ?? null
           }
         }
@@ -184,6 +188,7 @@ export function useParticipantLiveState(sessionId?: string, participantId?: stri
         question: duelQuestion,
         answered: duelAnswered,
         myResult: duelMyResult,
+        resultLoaded: duelResultLoaded,
       })
     }
 
@@ -281,9 +286,13 @@ export function useParticipantLiveState(sessionId?: string, participantId?: stri
       : 0
 
   const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
-  const myResult = (result?.answers ?? []).find((answer) => answer.participantId === participantId) ?? null
+  // Resultados de uma rodada anterior jamais podem aparecer na revelação da próxima.
+  const myResult = result?.roundId === round?.id
+    ? (result?.answers ?? []).find((answer) => answer.participantId === participantId) ?? null
+    : null
 
   return {
+    resultLoaded: Boolean(result?.roundId === round?.id),
     session,
     participant,
     round,

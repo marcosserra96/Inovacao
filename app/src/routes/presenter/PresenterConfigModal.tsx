@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { downloadCsv, parseCsv } from '@/lib/csv'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/contexts/ToastContext'
 
@@ -127,6 +128,9 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'active' | 'archived' | 'all'>('active')
   const [draft, setDraft] = useState<QuestionDraft | null>(null)
+  const importInputRef = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
+  const [stages, setStages] = useState({ enableSemifinals: true, enableFinal: true })
 
   useEffect(() => {
     if (!open) return
@@ -142,6 +146,10 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
       const next = data as unknown as Config
       setConfig(next)
       setSettings(settingsFromConfig(next))
+    })
+    void supabase.rpc('presenter_get_stage_flags' as never).then(({ data, error }) => {
+      if (error) { notify('Configuração das etapas indisponível: aplique a migração do banco.', 'error'); return }
+      if (data) setStages(data as unknown as { enableSemifinals: boolean; enableFinal: boolean })
     })
   }, [open, notify])
 
@@ -252,6 +260,55 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
     notify('Pergunta reativada. Edite-a para escolher em quais etapas será usada.')
   }
 
+  const exportQuestions = () => {
+    if (!config) return
+    const headers = ['id','enunciado','explicacao','quiz','semifinal','final','alternativa_1','alternativa_2','alternativa_3','alternativa_4','alternativa_5','alternativa_6','correta']
+    const rows = config.questions.filter((q) => q.status === 'active').map((q) => {
+      const options = [...q.options].sort((a,b) => a.position-b.position)
+      return [q.id,q.statement,q.explanation ?? '',String(q.quizSelected),String(q.semifinalSelected),String(q.finalSelected),
+        ...Array.from({length:6},(_,i) => options[i]?.text ?? ''),String(options.findIndex((o) => o.isCorrect)+1)]
+    })
+    downloadCsv('perguntas_rota_inovacao_excel.csv',[headers,...rows],true)
+  }
+
+  const importQuestions = async (file: File) => {
+    setImporting(true)
+    try {
+      const text = await file.text()
+      const parsed = parseCsv(text.replace(/^\uFEFF/,''))
+      const rows = parsed[0]?.[0] === 'sep=' ? parsed.slice(1) : parsed
+      const expected = ['id','enunciado','explicacao','quiz','semifinal','final','alternativa_1','alternativa_2','alternativa_3','alternativa_4','correta']
+      if (rows[0]?.join('|').toLowerCase() !== expected.join('|')) throw new Error('Cabeçalhos diferentes do modelo exportado.')
+      const imported: QuestionDraft[] = rows.slice(1).map((row,index) => {
+        const [id,statement,explanation,quiz,semifinal,final,...rest] = row
+        const answer = Number(rest[6])
+        const options = rest.slice(0,6).map((value,i) => ({ text:value?.trim() ?? '',isCorrect:i+1===answer })).filter((o) => o.text)
+        if (!statement?.trim() || options.length < 2 || !Number.isInteger(answer) || answer < 1 || answer > options.length)
+          throw new Error('Linha '+(index+2)+': enunciado, alternativas ou resposta correta inválidos.')
+        const flag = (value:string) => ['true','1','sim','s'].includes((value ?? '').trim().toLowerCase())
+        if (![quiz,semifinal,final].some(flag)) throw new Error('Linha '+(index+2)+': selecione ao menos uma etapa.')
+        return { id:id?.trim() || null,statement:statement.trim(),explanation:explanation ?? '',options,
+          useInQuiz:flag(quiz),useInSemifinal:flag(semifinal),useInFinal:flag(final),used:false }
+      })
+      let latest: Config | null = null
+      for (const entry of imported) {
+        const { data,error } = await supabase.rpc('presenter_upsert_dynamic_question' as never,{
+          p_question_id:entry.id,p_statement:entry.statement,p_explanation:entry.explanation || null,
+          p_options:entry.options,p_use_in_quiz:entry.useInQuiz,p_use_in_semifinal:entry.useInSemifinal,p_use_in_final:entry.useInFinal,
+        } as never)
+        if (error || !data) throw new Error('Importação interrompida após '+(latest ? 'algumas' : 'nenhuma')+' linhas: '+(error?.message ?? 'erro desconhecido'))
+        latest = data as unknown as Config
+      }
+      if (latest) refreshFromQuestionChange(latest)
+      notify(imported.length+' pergunta(s) importada(s).')
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Falha ao importar arquivo.', 'error')
+    } finally {
+      setImporting(false)
+      if (importInputRef.current) importInputRef.current.value = ''
+    }
+  }
+
   const saveDynamic = async () => {
     if (!config || !settings) return
     const quizIds = config.questions.filter((q) => q.status === 'active' && q.quizSelected).map((q) => q.id)
@@ -277,6 +334,13 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
       p_enable_speed_bonus: settings.enableSpeedBonus,
       p_end_when_all_answered: settings.endWhenAllAnswered,
     } as never)
+    if (!error && data) {
+      const { error: stageError } = await supabase.rpc('presenter_set_stage_flags' as never, {
+        p_enable_semifinals: stages.enableSemifinals && stages.enableFinal,
+        p_enable_final: stages.enableFinal,
+      } as never)
+      if (stageError) { setSaving(false); notify(stageError.message, 'error'); return }
+    }
     setSaving(false)
 
     if (error || !data) {
@@ -323,7 +387,12 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
                 </div>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/48">Cadastre e mantenha o banco de perguntas aqui. Ao editar uma pergunta já utilizada, o histórico anterior é preservado automaticamente.</p>
               </div>
-              <button type="button" onClick={() => setDraft(newQuestionDraft())} className="h-11 rounded-xl bg-[#a7d52c] px-5 font-display text-sm font-extrabold text-[#07152f]">+ Nova pergunta</button>
+              <div className="flex flex-wrap items-center gap-2">
+                <input ref={importInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => { const file=e.target.files?.[0]; if(file) void importQuestions(file) }} />
+                <button type="button" onClick={exportQuestions} className="h-11 rounded-xl border border-white/20 px-4 text-sm font-bold">Exportar Excel (CSV)</button>
+                <button type="button" disabled={importing} onClick={() => importInputRef.current?.click()} className="h-11 rounded-xl border border-white/20 px-4 text-sm font-bold">{importing ? 'Importando…' : 'Importar Excel (CSV)'}</button>
+                <button type="button" onClick={() => setDraft(newQuestionDraft())} className="h-11 rounded-xl bg-[#a7d52c] px-5 font-display text-sm font-extrabold text-[#07152f]">+ Nova pergunta</button>
+              </div>
             </div>
 
             <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-2xl border border-white/10 bg-white/[.025]">
@@ -362,8 +431,10 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
               </StageCard>
 
               <StageCard eyebrow="Etapas finais" title="Semifinais e final" description="Os 4 melhores avançam automaticamente para o chaveamento">
-                <NumberField label="Perguntas por semifinal" value={settings.duelRoundsTotal} min={1} max={Math.max(1, semifinalPool.length)} onChange={(value) => setSettings({ ...settings, duelRoundsTotal: value })} suffix={`de ${semifinalPool.length}`} />
-                <NumberField label="Perguntas na final" value={settings.finalRoundsTotal} min={1} max={Math.max(1, finalPool.length)} onChange={(value) => setSettings({ ...settings, finalRoundsTotal: value })} suffix={`de ${finalPool.length}`} />
+                <Toggle checked={stages.enableSemifinals} onChange={(checked) => setStages({ ...stages, enableSemifinals: checked, enableFinal: checked ? true : stages.enableFinal })} title="Habilitar semifinais" description="Desligado: os dois melhores do quiz vão direto para a final." />
+                <Toggle checked={stages.enableFinal} onChange={(checked) => setStages({ enableFinal: checked, enableSemifinals: checked ? stages.enableSemifinals : false })} title="Habilitar final" description="Desligado: o primeiro colocado no quiz é campeão direto." />
+                {stages.enableSemifinals && <NumberField label="Perguntas por semifinal" value={settings.duelRoundsTotal} min={1} max={Math.max(1, semifinalPool.length)} onChange={(value) => setSettings({ ...settings, duelRoundsTotal: value })} suffix={`de ${semifinalPool.length}`} />}
+                {stages.enableFinal && <NumberField label="Perguntas na final" value={settings.finalRoundsTotal} min={1} max={Math.max(1, finalPool.length)} onChange={(value) => setSettings({ ...settings, finalRoundsTotal: value })} suffix={`de ${finalPool.length}`} />}
               </StageCard>
 
               <StageCard eyebrow="Ritmo" title="Comportamento das perguntas" description="Regras que afetam a velocidade da dinâmica">
