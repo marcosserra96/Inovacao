@@ -278,8 +278,8 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
       const text = await file.text()
       const parsed = parseCsv(text.replace(/^\uFEFF/,''))
       const rows = parsed[0]?.[0] === 'sep=' ? parsed.slice(1) : parsed
-      const expected = ['id','enunciado','explicacao','quiz','semifinal','final','alternativa_1','alternativa_2','alternativa_3','alternativa_4','correta']
-      if (rows[0]?.join('|').toLowerCase() !== expected.join('|')) throw new Error('Cabeçalhos diferentes do modelo exportado.')
+      const expected = ['id','enunciado','explicacao','quiz','semifinal','final','alternativa_1','alternativa_2','alternativa_3','alternativa_4','alternativa_5','alternativa_6','correta']
+      if ((rows[0] ?? []).map(value => value.trim().replace(/^\uFEFF/, '').toLowerCase()).join('|') !== expected.join('|')) throw new Error('Cabeçalhos diferentes do modelo exportado. Confira as 6 colunas de alternativas.')
       const imported: QuestionDraft[] = rows.slice(1).map((row,index) => {
         const [id,statement,explanation,quiz,semifinal,final,...rest] = row
         const answer = Number(rest[6])

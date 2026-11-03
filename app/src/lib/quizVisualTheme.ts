@@ -59,22 +59,50 @@ export function themeStyle(theme: QuizVisualTheme): CSSProperties {
 /** Cada partida lê seu tema congelado; no painel de preparação vale o tema selecionado. */
 export function useQuizVisualTheme(sessionId?: string | null) {
   const [theme, setTheme] = useState<QuizVisualTheme>(DEFAULT_QUIZ_THEME)
+
   useEffect(() => {
     let active = true
+    let running = false
+
     const load = async () => {
-      if (sessionId) {
-        const { data } = await supabase.from('live_quiz_sessions').select('*').eq('id', sessionId).maybeSingle()
-        if (active && (data as any)?.visual_theme) setTheme(normalizeQuizTheme((data as any).visual_theme))
-      } else {
-        const { data: defaults } = await supabase.from('live_quiz_defaults').select('*').eq('id', true).maybeSingle()
-        if (!(defaults as any)?.visual_theme_id) return
-        const { data } = await supabase.from('quiz_visual_themes' as never).select('*').eq('id', (defaults as any).visual_theme_id).maybeSingle()
-        if (active && data) setTheme(themeFromRow(data))
-      }
+      if (running) return
+      running = true
+      try {
+        if (sessionId) {
+          const { data, error } = await supabase.from('live_quiz_sessions').select('*').eq('id', sessionId).maybeSingle()
+          if (active && !error && data) {
+            const snapshot = (data as any).visual_theme
+            // Sessões antigas sem identidade própria usam a identidade atual.
+            if (snapshot) setTheme(normalizeQuizTheme(snapshot))
+            else {
+              const {data:current} = await supabase.rpc('quiz_get_active_visual_theme' as never)
+              if (active && current) setTheme(normalizeQuizTheme(current))
+            }
+          }
+        } else {
+          // A tela inicial é pública: live_quiz_defaults tem RLS apenas para apresentadores.
+          const { data, error } = await supabase.rpc('quiz_get_active_visual_theme' as never)
+          if (active && !error && data) setTheme(normalizeQuizTheme(data))
+        }
+      } finally { running = false }
     }
+
+    const onThemeApplied = (event: Event) => {
+      const custom = event as CustomEvent<QuizVisualTheme>
+      if (!sessionId && custom.detail) setTheme(normalizeQuizTheme(custom.detail))
+      void load()
+    }
+    const onFocus = () => void load()
     void load()
     const timer = window.setInterval(() => void load(), 2500)
-    return () => { active = false; window.clearInterval(timer) }
+    window.addEventListener('quiz-theme-applied', onThemeApplied)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      window.removeEventListener('quiz-theme-applied', onThemeApplied)
+      window.removeEventListener('focus', onFocus)
+    }
   }, [sessionId])
   return theme
 }

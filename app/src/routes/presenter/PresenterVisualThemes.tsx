@@ -39,7 +39,7 @@ export function PresenterVisualThemes() {
   const load = async () => {
     const [{data, error}, {data: defaults}] = await Promise.all([
       supabase.from('quiz_visual_themes' as never).select('*').order('created_at'),
-      supabase.from('live_quiz_defaults').select('*').eq('id',true).maybeSingle(),
+      supabase.rpc('quiz_get_active_visual_theme' as never),
     ])
     if (error) { notify('Não foi possível carregar os temas: '+error.message,'error'); setLoading(false); return }
     const items = ((data ?? []) as unknown as Record<string,unknown>[]).map(row => ({
@@ -47,8 +47,8 @@ export function PresenterVisualThemes() {
       isSystem: Boolean(row.is_system),
     }))
     setThemes(items)
-    setActiveId((defaults as any)?.visual_theme_id ?? '')
-    setSelected(old => old && items.some(t => t.id===old) ? old : ((defaults as any)?.visual_theme_id ?? items[0]?.id ?? ''))
+    setActiveId((defaults as any)?.id ?? '')
+    setSelected(old => old && items.some(t => t.id===old) ? old : ((defaults as any)?.id ?? items[0]?.id ?? ''))
     setLoading(false)
   }
 
@@ -86,11 +86,12 @@ export function PresenterVisualThemes() {
   const activate = async () => {
     if (!selected || selected!==draft.id) { notify('Salve ou selecione um tema antes de aplicar.','error'); return }
     setBusy(true)
-    const {error} = await supabase.rpc('presenter_select_visual_theme' as never,{p_theme_id:selected} as never)
+    const {data,error} = await supabase.rpc('presenter_select_visual_theme' as never,{p_theme_id:selected} as never)
     setBusy(false)
     if (error) { notify(error.message,'error'); return }
     setActiveId(selected)
-    notify('Tema aplicado à próxima dinâmica.')
+    if (data) window.dispatchEvent(new CustomEvent('quiz-theme-applied',{detail:normalizeQuizTheme(data)}))
+    notify('Tema aplicado. O painel inicial foi atualizado; partidas encerradas mantêm a identidade original.')
   }
 
   const remove = async () => {
@@ -116,7 +117,7 @@ export function PresenterVisualThemes() {
       <div className="rounded-2xl border border-white/10 bg-white/[.025] p-4">
         <div className="mb-2 text-sm font-bold">Temas salvos</div>
         <select value={selected} onChange={e=>setSelected(e.target.value)} className="h-11 w-full rounded-xl border border-white/15 bg-[#071936] px-3 text-sm text-white">
-          <option value="" disabled>Unsaved theme</option>
+          <option value="" disabled>Novo tema não salvo</option>
           {themes.map(t=><option key={t.id} value={t.id}>{t.name}{t.id===activeId?' · Em uso':''}{t.isSystem?' · Padrão':''}</option>)}
         </select>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -150,7 +151,7 @@ export function PresenterVisualThemes() {
     </div>
     <div className="space-y-3"><h3 className="text-sm font-bold">Prévia do tema</h3>
       <div style={themeStyle(draft)} className="overflow-hidden rounded-[24px] border border-white/15 bg-[var(--quiz-bg)] p-5 text-white">
-        <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-4"><div className="min-w-0"><div className="break-words text-xl font-extrabold text-[var(--quiz-primary)]">{draft.title}</div><div className="mt-1 text-xs text-white/55">{draft.subtitle}</div></div><div className="flex shrink-0 gap-2">{[draft.logoPrimary,draft.logoSecondary].filter(Boolean).map((logo,i)=><img key={i} src={logo!} alt="" className="h-8 max-w-14 object-contain"/>)}</div></div>
+        <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-4"><div className="min-w-0"><div className="break-words text-xl font-extrabold"><span className="text-[var(--quiz-primary)]">{draft.title === "Rota de Inovação" ? "Rota de " : draft.title.split(" ")[0]}</span>{draft.title.includes(" ") && <span className="text-white">{draft.title === "Rota de Inovação" ? "Inovação" : draft.title.slice(draft.title.indexOf(" "))}</span>}</div><div className="mt-1 text-xs text-white/55">{draft.subtitle}</div></div><div className="flex shrink-0 gap-2">{[draft.logoPrimary,draft.logoSecondary].filter(Boolean).map((logo,i)=><img key={i} src={logo!} alt="" className="h-8 max-w-14 object-contain"/>)}</div></div>
         <div className="mt-5 rounded-2xl bg-[var(--quiz-surface)] p-5"><div className="text-xs font-semibold text-[var(--quiz-secondary)]">QUIZ AO VIVO</div><div className="mt-3 text-xl font-bold">Qual alternativa você escolheria?</div><div className="mt-5 space-y-2"><div className="rounded-xl border border-[var(--quiz-primary)] bg-white/5 p-3 text-sm"><span className="mr-2 font-bold text-[var(--quiz-primary)]">A</span> Primeira alternativa</div><div className="rounded-xl border border-white/15 p-3 text-sm"><span className="mr-2 font-bold text-[var(--quiz-secondary)]">B</span> Segunda alternativa</div></div></div>
       </div>
       <p className="text-xs leading-relaxed text-white/45">O tema escolhido é copiado para cada nova dinâmica. Temas antigos não mudam ao editar este cadastro.</p>
