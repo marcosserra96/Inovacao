@@ -59,7 +59,7 @@ export function toCsv(rows: string[][]): string {
 }
 
 export function downloadCsv(filename: string, rows: string[][]) {
-  const blob = new Blob([toCsv(rows)], { type: 'text/csv;charset=utf-8;' })
+  const blob = new Blob(['\uFEFF',toCsv(rows)], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
