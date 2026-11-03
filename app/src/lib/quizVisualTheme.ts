@@ -49,7 +49,6 @@ export function normalizeTitleSegments(title: string, input: unknown): TitleSegm
 export function colorTitleRange(title: string, input: TitleSegment[], start: number, end: number, color: TitleSegment['color']): TitleSegment[] {
   if (start >= end || start < 0 || end > title.length) return input
   const segments = normalizeTitleSegments(title,input)
-  const chars = [...title].length === title.length ? [...title] : title.split('')
   // Os offsets da seleção HTML usam unidades UTF-16, como String.slice.
   const result: TitleSegment[] = []
   let offset = 0
@@ -69,7 +68,6 @@ export function colorTitleRange(title: string, input: TitleSegment[], start: num
     } else push(segment.text,segment.color)
     offset=segmentEnd
   }
-  void chars
   return result
 }
 export function normalizeQuizTheme(value: unknown): QuizVisualTheme {
