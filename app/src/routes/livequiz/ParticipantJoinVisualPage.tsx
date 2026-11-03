@@ -74,7 +74,7 @@ export function ParticipantJoinVisualPage() {
       <Dots />
       <div className="relative mx-auto flex h-full w-full max-w-[430px] flex-col px-5 py-4">
         <BrandHeader theme={theme} />
-        {state === 'loading' && <Message theme={theme} theme={theme} title="Carregando…" text="Só um instante enquanto preparamos sua entrada." />}
+        {state === 'loading' && <Message theme={theme} title="Carregando…" text="Só um instante enquanto preparamos sua entrada." />}
         {state === 'not_found' && <Message theme={theme} title="Link inválido" text="Não encontramos esta dinâmica. Confira o QR Code e tente novamente." />}
         {state === 'closed' && <Message theme={theme} title="Dinâmica encerrada" text="Esta dinâmica já foi finalizada." />}
         {state === 'error' && <Message theme={theme} title="Não foi possível conectar" text="Verifique sua internet e abra o QR Code novamente." />}
