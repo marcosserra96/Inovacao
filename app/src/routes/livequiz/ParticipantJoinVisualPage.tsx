@@ -1,3 +1,5 @@
+import { QuizBrand } from '@/components/quiz/QuizBrand'
+import { useQuizVisualTheme, themeStyle, type QuizVisualTheme } from '@/lib/quizVisualTheme'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
@@ -7,34 +9,21 @@ import type { Database } from '@/types/database.types'
 type LiveQuizSession = Database['public']['Tables']['live_quiz_sessions']['Row']
 type LoadState = 'loading' | 'ready' | 'not_found' | 'closed' | 'error'
 
-function BrandHeader() {
-  return (
-    <header className="flex shrink-0 items-center justify-between border-b border-white/10 pb-3.5">
-      <div className="font-display text-[19px] font-extrabold tracking-[-.045em]">
-        <span className="text-[#a7d52c]">Rota de </span><span className="text-white">Inovação</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <img src="/brand/energisa.png" alt="Grupo Energisa" className="h-5 w-auto object-contain" />
-        <div className="h-5 w-px bg-white/25" />
-        <img src="/brand/enova.png" alt="Enova" className="h-[18px] w-auto object-contain" />
-      </div>
-    </header>
-  )
-}
+function BrandHeader({theme}:{theme:QuizVisualTheme}) { return <header className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 pb-3.5"><QuizBrand theme={theme} small /></header> }
 
 function Dots() {
   return (
     <svg className="pointer-events-none absolute inset-x-0 bottom-0 h-[22%] w-full opacity-40" viewBox="0 0 420 180" preserveAspectRatio="none" aria-hidden="true">
-      <defs><pattern id="join-mobile-dots" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="#00b6da" /></pattern></defs>
+      <defs><pattern id="join-mobile-dots" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="var(--quiz-secondary)" /></pattern></defs>
       <path d="M-20 135 C72 72 144 184 230 122 C302 70 344 78 450 104 L450 190 L-20 190 Z" fill="url(#join-mobile-dots)" />
     </svg>
   )
 }
 
-function Message({ title, text }: { title: string; text: string }) {
+function Message({ title, text, theme }: { title: string; text: string; theme: QuizVisualTheme }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
-      <div className="inline-flex rounded-full border border-[#00b6da]/24 bg-[#00b6da]/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-[#5ddcf2]">Rota de Inovação</div>
+      <div className="inline-flex rounded-full border border-[var(--quiz-secondary)]/24 bg-[var(--quiz-secondary)]/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-[#5ddcf2]">{theme.title}</div>
       <h1 className="mt-5 font-display text-[34px] font-extrabold leading-none tracking-[-.05em] text-white">{title}</h1>
       <p className="mt-4 max-w-[290px] text-sm leading-[1.65] text-white/58">{text}</p>
     </div>
@@ -45,6 +34,7 @@ export function ParticipantJoinVisualPage() {
   const { codigo } = useParams<{ codigo: string }>()
   const navigate = useNavigate()
   const [session, setSession] = useState<LiveQuizSession | null>(null)
+  const theme = useQuizVisualTheme(session?.id)
   const [state, setState] = useState<LoadState>('loading')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -79,27 +69,27 @@ export function ParticipantJoinVisualPage() {
   }
 
   return (
-    <main className="relative h-[100dvh] min-h-[100dvh] overflow-hidden bg-[#020d23] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_5%,rgba(23,77,145,.24),transparent_32%),radial-gradient(circle_at_88%_20%,rgba(0,182,218,.08),transparent_28%),linear-gradient(180deg,#03102b_0%,#020d23_100%)]" />
+    <main style={themeStyle(theme)} className="relative h-[100dvh] min-h-[100dvh] overflow-hidden bg-[var(--quiz-bg)] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_5%,rgba(23,77,145,.24),transparent_32%),radial-gradient(circle_at_88%_20%,rgba(0,182,218,.08),transparent_28%),linear-gradient(180deg,#03102b_0%,var(--quiz-bg)_100%)]" />
       <Dots />
       <div className="relative mx-auto flex h-full w-full max-w-[430px] flex-col px-5 py-4">
-        <BrandHeader />
-        {state === 'loading' && <Message title="Carregando…" text="Só um instante enquanto preparamos sua entrada." />}
-        {state === 'not_found' && <Message title="Link inválido" text="Não encontramos esta dinâmica. Confira o QR Code e tente novamente." />}
-        {state === 'closed' && <Message title="Dinâmica encerrada" text="Esta dinâmica já foi finalizada." />}
-        {state === 'error' && <Message title="Não foi possível conectar" text="Verifique sua internet e abra o QR Code novamente." />}
+        <BrandHeader theme={theme} />
+        {state === 'loading' && <Message theme={theme} title="Carregando…" text="Só um instante enquanto preparamos sua entrada." />}
+        {state === 'not_found' && <Message theme={theme} title="Link inválido" text="Não encontramos esta dinâmica. Confira o QR Code e tente novamente." />}
+        {state === 'closed' && <Message theme={theme} title="Dinâmica encerrada" text="Esta dinâmica já foi finalizada." />}
+        {state === 'error' && <Message theme={theme} title="Não foi possível conectar" text="Verifique sua internet e abra o QR Code novamente." />}
         {state === 'ready' && (
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col pt-5">
-            <div className="inline-flex w-fit rounded-full border border-[#a7d52c]/24 bg-[#a7d52c]/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-[#c1e944]">Bem-vindo</div>
-            <h1 className="mt-5 font-display text-[40px] font-extrabold leading-[.97] tracking-[-.055em] text-white">Entre na<br /><span className="text-[#a7d52c]">dinâmica</span></h1>
+            <div className="inline-flex w-fit rounded-full border border-[var(--quiz-primary)]/24 bg-[var(--quiz-primary)]/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-[#c1e944]">Bem-vindo</div>
+            <h1 className="mt-5 font-display text-[40px] font-extrabold leading-[.97] tracking-[-.055em] text-white">Entre na<br /><span className="text-[var(--quiz-primary)]">dinâmica</span></h1>
             <p className="mt-5 max-w-[315px] text-sm leading-[1.65] text-white/58">Digite seu nome como você quer aparecer durante a experiência.</p>
             <div className="mt-8">
               <label htmlFor="participant-name" className="mb-2.5 block text-xs font-semibold text-white/55">Seu nome</label>
-              <input id="participant-name" autoFocus autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Ex.: Marcos Silva" className="w-full rounded-2xl border border-white/12 bg-white/[.045] px-4 py-[17px] text-[15px] font-medium text-white outline-none placeholder:text-white/25 focus:border-[#00b6da]/60" />
+              <input id="participant-name" autoFocus autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Ex.: Marcos Silva" className="w-full rounded-2xl border border-white/12 bg-white/[.045] px-4 py-[17px] text-[15px] font-medium text-white outline-none placeholder:text-white/25 focus:border-[var(--quiz-secondary)]/60" />
             </div>
             {error && <div className="mt-3 rounded-xl border border-[#ff7f71]/20 bg-[#ff7f71]/8 px-3 py-2.5 text-xs font-semibold text-[#ff9a90]">{error}</div>}
-            <button disabled={submitting} className="mt-5 rounded-2xl bg-[#a7d52c] px-5 py-[17px] font-display text-[15px] font-extrabold text-[#07152f] shadow-[0_12px_32px_rgba(167,213,44,.14)] disabled:opacity-60">{submitting ? 'Entrando…' : 'Entrar na dinâmica'}</button>
-            <div className="mt-4 text-center text-[11px] text-white/38">{session?.name ?? 'Rota de Inovação'} · um dispositivo por participante</div>
+            <button disabled={submitting} className="mt-5 rounded-2xl bg-[var(--quiz-primary)] px-5 py-[17px] font-display text-[15px] font-extrabold text-[#07152f] shadow-[0_12px_32px_rgba(167,213,44,.14)] disabled:opacity-60">{submitting ? 'Entrando…' : 'Entrar na dinâmica'}</button>
+            <div className="mt-4 text-center text-[11px] text-white/38">{session?.name ?? theme.title} · um dispositivo por participante</div>
           </form>
         )}
       </div>

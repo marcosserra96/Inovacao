@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { downloadCsv, parseCsv } from '@/lib/csv'
+import { PresenterVisualThemes } from './PresenterVisualThemes'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/contexts/ToastContext'
 
@@ -124,7 +125,7 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
   const [questionSaving, setQuestionSaving] = useState(false)
   const [config, setConfig] = useState<Config | null>(null)
   const [settings, setSettings] = useState<Settings | null>(null)
-  const [tab, setTab] = useState<'questions' | 'dynamic'>('questions')
+  const [tab, setTab] = useState<'questions' | 'dynamic' | 'visual'>('questions')
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'active' | 'archived' | 'all'>('active')
   const [draft, setDraft] = useState<QuestionDraft | null>(null)
@@ -368,6 +369,7 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
             <div className="flex rounded-xl border border-white/10 bg-[#020d23] p-1">
               <TabButton active={tab === 'questions'} onClick={() => setTab('questions')}>Perguntas</TabButton>
               <TabButton active={tab === 'dynamic'} onClick={() => setTab('dynamic')}>Dinâmica</TabButton>
+              <TabButton active={tab === 'visual'} onClick={() => setTab('visual')}>Identidade visual</TabButton>
             </div>
             <button onClick={onClose} className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[.04] text-xl text-white/65 hover:bg-white/[.08]">×</button>
           </div>
@@ -375,6 +377,8 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
 
         {loading || !config || !settings ? (
           <div className="grid min-h-0 place-items-center text-white/60">Carregando configurações…</div>
+        ) : tab === 'visual' ? (
+          <PresenterVisualThemes />
         ) : tab === 'questions' ? (
           <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden p-5 sm:p-6">
             <div className="grid gap-4 pb-4 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -458,7 +462,7 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
           <div className="text-xs text-white/40">Perguntas são salvas individualmente. As regras da dinâmica valem para a próxima sessão e para uma sessão ainda no Lobby.</div>
           <div className="flex gap-2">
             <button onClick={onClose} className="h-11 rounded-xl border border-white/12 px-5 text-sm font-bold text-white/65 hover:bg-white/[.05]">Fechar</button>
-            <button disabled={saving || loading || !config || !settings} onClick={() => void saveDynamic()} className="h-11 rounded-xl bg-[#a7d52c] px-6 font-display text-sm font-extrabold text-[#07152f] disabled:opacity-50">{saving ? 'Salvando…' : 'Salvar regras da dinâmica'}</button>
+            <button disabled={tab === 'visual' || saving || loading || !config || !settings} onClick={() => void saveDynamic()} className="h-11 rounded-xl bg-[#a7d52c] px-6 font-display text-sm font-extrabold text-[#07152f] disabled:opacity-50">{saving ? 'Salvando…' : 'Salvar regras da dinâmica'}</button>
           </div>
         </footer>
 
