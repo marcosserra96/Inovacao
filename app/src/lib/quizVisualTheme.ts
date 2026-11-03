@@ -63,12 +63,12 @@ export function useQuizVisualTheme(sessionId?: string | null) {
     let active = true
     const load = async () => {
       if (sessionId) {
-        const { data } = await supabase.from('live_quiz_sessions').select('visual_theme').eq('id', sessionId).maybeSingle()
-        if (active && data?.visual_theme) setTheme(normalizeQuizTheme(data.visual_theme))
+        const { data } = await supabase.from('live_quiz_sessions').select('*').eq('id', sessionId).maybeSingle()
+        if (active && (data as any)?.visual_theme) setTheme(normalizeQuizTheme((data as any).visual_theme))
       } else {
-        const { data: defaults } = await supabase.from('live_quiz_defaults').select('visual_theme_id').eq('id', true).maybeSingle()
-        if (!defaults?.visual_theme_id) return
-        const { data } = await supabase.from('quiz_visual_themes' as never).select('*').eq('id', defaults.visual_theme_id).maybeSingle()
+        const { data: defaults } = await supabase.from('live_quiz_defaults').select('*').eq('id', true).maybeSingle()
+        if (!(defaults as any)?.visual_theme_id) return
+        const { data } = await supabase.from('quiz_visual_themes' as never).select('*').eq('id', (defaults as any).visual_theme_id).maybeSingle()
         if (active && data) setTheme(themeFromRow(data))
       }
     }
