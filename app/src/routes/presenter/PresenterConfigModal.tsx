@@ -276,20 +276,43 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
     setImporting(true)
     try {
       const text = await file.text()
-      const parsed = parseCsv(text.replace(/^\uFEFF/,''))
-      const rows = parsed[0]?.[0] === 'sep=' ? parsed.slice(1) : parsed
-      const expected = ['id','enunciado','explicacao','quiz','semifinal','final','alternativa_1','alternativa_2','alternativa_3','alternativa_4','alternativa_5','alternativa_6','correta']
-      if ((rows[0] ?? []).map(value => value.trim().replace(/^\uFEFF/, '').toLowerCase()).join('|') !== expected.join('|')) throw new Error('Cabeçalhos diferentes do modelo exportado. Confira as 6 colunas de alternativas.')
-      const imported: QuestionDraft[] = rows.slice(1).map((row,index) => {
-        const [id,statement,explanation,quiz,semifinal,final,...rest] = row
-        const answer = Number(rest[6])
-        const options = rest.slice(0,6).map((value,i) => ({ text:value?.trim() ?? '',isCorrect:i+1===answer })).filter((o) => o.text)
-        if (!statement?.trim() || options.length < 2 || !Number.isInteger(answer) || answer < 1 || answer > options.length)
-          throw new Error('Linha '+(index+2)+': enunciado, alternativas ou resposta correta inválidos.')
-        const flag = (value:string) => ['true','1','sim','s'].includes((value ?? '').trim().toLowerCase())
-        if (![quiz,semifinal,final].some(flag)) throw new Error('Linha '+(index+2)+': selecione ao menos uma etapa.')
-        return { id:id?.trim() || null,statement:statement.trim(),explanation:explanation ?? '',options,
-          useInQuiz:flag(quiz),useInSemifinal:flag(semifinal),useInFinal:flag(final),used:false }
+      const rows = parseCsv(text)
+      const normalize = (value: string) => (value ?? '').replace(/^\uFEFF/, '').trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s-]+/g, '_')
+      const header = (rows[0] ?? []).map(normalize)
+      const required = ['enunciado','quiz','semifinal','final','correta','alternativa_1','alternativa_2']
+      const missing = required.filter(name => !header.includes(name))
+      if (missing.length) {
+        throw new Error('Colunas não reconhecidas: ' + missing.join(', ') +
+          '. Use o CSV exportado pelo quiz e mantenha os nomes dos cabeçalhos.')
+      }
+      const index = (column: string) => header.indexOf(column)
+      const value = (row: string[], column: string) => {
+        const position = index(column)
+        return position < 0 ? '' : (row[position] ?? '')
+      }
+      const optionColumns = Array.from({length: 6}, (_,i) => 'alternativa_' + (i+1))
+        .filter(name => index(name) >= 0)
+      const imported: QuestionDraft[] = rows.slice(1).map((row,number) => {
+        const statement = value(row,'enunciado').trim()
+        const rawOptions = optionColumns.map(name => value(row,name).trim())
+        const answer = Number(value(row,'correta').trim())
+        // A posição correta é relativa à coluna original, não às vazias removidas.
+        const selected = rawOptions.map((text,i) => ({text,isCorrect:i+1===answer}))
+        const options = selected.filter(option => option.text)
+        const selectedAnswer = selected[answer-1]
+        if (!statement || options.length < 2 || !Number.isInteger(answer) ||
+            answer < 1 || answer > rawOptions.length || !selectedAnswer?.text)
+          throw new Error('Linha ' + (number+2) + ': enunciado, alternativas ou resposta correta inválidos.')
+        const flag = (raw: string) => ['true','1','sim','s','verdadeiro'].includes(raw.trim().toLowerCase())
+        const quiz = flag(value(row,'quiz'))
+        const semifinal = flag(value(row,'semifinal'))
+        const final = flag(value(row,'final'))
+        if (![quiz,semifinal,final].some(Boolean))
+          throw new Error('Linha '+(number+2)+': selecione ao menos uma etapa.')
+        return { id:value(row,'id').trim() || null, statement,
+          explanation:value(row,'explicacao'),options,
+          useInQuiz:quiz,useInSemifinal:semifinal,useInFinal:final,used:false }
       })
       let latest: Config | null = null
       for (const entry of imported) {
