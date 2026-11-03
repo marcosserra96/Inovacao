@@ -281,7 +281,10 @@ export function useParticipantLiveState(sessionId?: string, participantId?: stri
       : 0
 
   const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
-  const myResult = (result?.answers ?? []).find((answer) => answer.participantId === participantId) ?? null
+  // Resultados de uma rodada anterior jamais podem aparecer na revelação da próxima.
+  const myResult = result?.roundId === round?.id
+    ? (result?.answers ?? []).find((answer) => answer.participantId === participantId) ?? null
+    : null
 
   return {
     session,
