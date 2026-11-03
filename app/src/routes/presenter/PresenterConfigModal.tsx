@@ -262,11 +262,11 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
 
   const exportQuestions = () => {
     if (!config) return
-    const headers = ['id','enunciado','explicacao','quiz','semifinal','final','alternativa_1','alternativa_2','alternativa_3','alternativa_4','correta']
+    const headers = ['id','enunciado','explicacao','quiz','semifinal','final','alternativa_1','alternativa_2','alternativa_3','alternativa_4','alternativa_5','alternativa_6','correta']
     const rows = config.questions.filter((q) => q.status === 'active').map((q) => {
       const options = [...q.options].sort((a,b) => a.position-b.position)
       return [q.id,q.statement,q.explanation ?? '',String(q.quizSelected),String(q.semifinalSelected),String(q.finalSelected),
-        ...Array.from({length:4},(_,i) => options[i]?.text ?? ''),String(options.findIndex((o) => o.isCorrect)+1)]
+        ...Array.from({length:6},(_,i) => options[i]?.text ?? ''),String(options.findIndex((o) => o.isCorrect)+1)]
     })
     downloadCsv('perguntas_rota_inovacao_excel.csv',[headers,...rows])
   }
@@ -280,8 +280,8 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
       if (rows[0]?.join('|').toLowerCase() !== expected.join('|')) throw new Error('Cabeçalhos diferentes do modelo exportado.')
       const imported: QuestionDraft[] = rows.slice(1).map((row,index) => {
         const [id,statement,explanation,quiz,semifinal,final,...rest] = row
-        const answer = Number(rest[4])
-        const options = rest.slice(0,4).map((value,i) => ({ text:value?.trim() ?? '',isCorrect:i+1===answer })).filter((o) => o.text)
+        const answer = Number(rest[6])
+        const options = rest.slice(0,6).map((value,i) => ({ text:value?.trim() ?? '',isCorrect:i+1===answer })).filter((o) => o.text)
         if (!statement?.trim() || options.length < 2 || !Number.isInteger(answer) || answer < 1 || answer > options.length)
           throw new Error('Linha '+(index+2)+': enunciado, alternativas ou resposta correta inválidos.')
         const flag = (value:string) => ['true','1','sim','s'].includes((value ?? '').trim().toLowerCase())
