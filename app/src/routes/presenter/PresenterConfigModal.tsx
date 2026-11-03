@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { downloadCsv, parseCsv } from '@/lib/csv'
+import { downloadQuestionsXlsx, parseQuestionsXlsx } from '@/lib/xlsx'
 import { PresenterVisualThemes } from './PresenterVisualThemes'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/contexts/ToastContext'
@@ -261,7 +262,7 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
     notify('Pergunta reativada. Edite-a para escolher em quais etapas será usada.')
   }
 
-  const exportQuestions = () => {
+  const exportQuestions = (format: 'xlsx' | 'csv' = 'xlsx') => {
     if (!config) return
     const headers = ['id','enunciado','explicacao','quiz','semifinal','final','alternativa_1','alternativa_2','alternativa_3','alternativa_4','alternativa_5','alternativa_6','correta']
     const rows = config.questions.filter((q) => q.status === 'active').map((q) => {
@@ -269,14 +270,16 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
       return [q.id,q.statement,q.explanation ?? '',String(q.quizSelected),String(q.semifinalSelected),String(q.finalSelected),
         ...Array.from({length:6},(_,i) => options[i]?.text ?? ''),String(options.findIndex((o) => o.isCorrect)+1)]
     })
-    downloadCsv('perguntas_rota_inovacao_excel.csv',[headers,...rows],true)
+    if (format === 'xlsx') downloadQuestionsXlsx([headers,...rows], 'perguntas_quiz.xlsx')
+    else downloadCsv('perguntas_quiz.csv',[headers,...rows],true)
   }
 
   const importQuestions = async (file: File) => {
     setImporting(true)
     try {
-      const text = await file.text()
-      const rows = parseCsv(text)
+      const rows = /\.xlsx$/i.test(file.name)
+        ? await parseQuestionsXlsx(file)
+        : parseCsv(await file.text())
       const normalize = (value: string) => (value ?? '').replace(/^\uFEFF/, '').trim().toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s-]+/g, '_')
       const header = (rows[0] ?? []).map(normalize)
@@ -442,8 +445,8 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/48">Cadastre e mantenha o banco de perguntas aqui. Ao editar uma pergunta já utilizada, o histórico anterior é preservado automaticamente.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <input ref={importInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => { const file=e.target.files?.[0]; if(file) void importQuestions(file) }} />
-                <button type="button" onClick={exportQuestions} className="h-11 rounded-xl border border-white/20 px-4 text-sm font-bold">Exportar Excel (CSV)</button>
+                <input ref={importInputRef} type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" className="hidden" onChange={(e) => { const file=e.target.files?.[0]; if(file) void importQuestions(file) }} />
+                <button type="button" onClick={() => exportQuestions()} className="h-11 rounded-xl border border-white/20 px-4 text-sm font-bold">Exportar Excel (.xlsx)</button>
                 <button type="button" disabled={importing} onClick={() => importInputRef.current?.click()} className="h-11 rounded-xl border border-white/20 px-4 text-sm font-bold">{importing ? 'Importando…' : 'Importar Excel (CSV)'}</button>
                 <button type="button" onClick={() => setDraft(newQuestionDraft())} className="h-11 rounded-xl bg-[#a7d52c] px-5 font-display text-sm font-extrabold text-[#07152f]">+ Nova pergunta</button>
               </div>
