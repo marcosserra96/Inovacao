@@ -39,7 +39,7 @@ export function PresenterVisualThemes() {
   const load = async () => {
     const [{data, error}, {data: defaults}] = await Promise.all([
       supabase.from('quiz_visual_themes' as never).select('*').order('created_at'),
-      supabase.from('live_quiz_defaults').select('visual_theme_id').eq('id',true).maybeSingle(),
+      supabase.from('live_quiz_defaults').select('*').eq('id',true).maybeSingle(),
     ])
     if (error) { notify('Não foi possível carregar os temas: '+error.message,'error'); setLoading(false); return }
     const items = ((data ?? []) as unknown as Record<string,unknown>[]).map(row => ({
@@ -47,8 +47,8 @@ export function PresenterVisualThemes() {
       isSystem: Boolean(row.is_system),
     }))
     setThemes(items)
-    setActiveId(defaults?.visual_theme_id ?? '')
-    setSelected(old => old && items.some(t => t.id===old) ? old : (defaults?.visual_theme_id ?? items[0]?.id ?? ''))
+    setActiveId((defaults as any)?.visual_theme_id ?? '')
+    setSelected(old => old && items.some(t => t.id===old) ? old : ((defaults as any)?.visual_theme_id ?? items[0]?.id ?? ''))
     setLoading(false)
   }
 
