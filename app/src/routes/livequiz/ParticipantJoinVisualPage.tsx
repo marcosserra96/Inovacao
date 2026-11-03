@@ -33,8 +33,8 @@ function Message({ title, text, theme }: { title: string; text: string; theme: Q
 export function ParticipantJoinVisualPage() {
   const { codigo } = useParams<{ codigo: string }>()
   const navigate = useNavigate()
-  const theme = useQuizVisualTheme(session?.id)
   const [session, setSession] = useState<LiveQuizSession | null>(null)
+  const theme = useQuizVisualTheme(session?.id)
   const [state, setState] = useState<LoadState>('loading')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -74,10 +74,10 @@ export function ParticipantJoinVisualPage() {
       <Dots />
       <div className="relative mx-auto flex h-full w-full max-w-[430px] flex-col px-5 py-4">
         <BrandHeader theme={theme} />
-        {state === 'loading' && <Message theme={theme} title="Carregando…" text="Só um instante enquanto preparamos sua entrada." />}
-        {state === 'not_found' && <Message title="Link inválido" text="Não encontramos esta dinâmica. Confira o QR Code e tente novamente." />}
-        {state === 'closed' && <Message title="Dinâmica encerrada" text="Esta dinâmica já foi finalizada." />}
-        {state === 'error' && <Message title="Não foi possível conectar" text="Verifique sua internet e abra o QR Code novamente." />}
+        {state === 'loading' && <Message theme={theme} theme={theme} title="Carregando…" text="Só um instante enquanto preparamos sua entrada." />}
+        {state === 'not_found' && <Message theme={theme} title="Link inválido" text="Não encontramos esta dinâmica. Confira o QR Code e tente novamente." />}
+        {state === 'closed' && <Message theme={theme} title="Dinâmica encerrada" text="Esta dinâmica já foi finalizada." />}
+        {state === 'error' && <Message theme={theme} title="Não foi possível conectar" text="Verifique sua internet e abra o QR Code novamente." />}
         {state === 'ready' && (
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col pt-5">
             <div className="inline-flex w-fit rounded-full border border-[var(--quiz-primary)]/24 bg-[var(--quiz-primary)]/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-[#c1e944]">Bem-vindo</div>
