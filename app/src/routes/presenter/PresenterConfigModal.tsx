@@ -268,14 +268,15 @@ export function PresenterConfigModal({ open, onClose, onSaved }: Props) {
       return [q.id,q.statement,q.explanation ?? '',String(q.quizSelected),String(q.semifinalSelected),String(q.finalSelected),
         ...Array.from({length:6},(_,i) => options[i]?.text ?? ''),String(options.findIndex((o) => o.isCorrect)+1)]
     })
-    downloadCsv('perguntas_rota_inovacao_excel.csv',[headers,...rows])
+    downloadCsv('perguntas_rota_inovacao_excel.csv',[headers,...rows],true)
   }
 
   const importQuestions = async (file: File) => {
     setImporting(true)
     try {
       const text = await file.text()
-      const rows = parseCsv(text.replace(/^\uFEFF/,''))
+      const parsed = parseCsv(text.replace(/^\uFEFF/,''))
+      const rows = parsed[0]?.[0] === 'sep=' ? parsed.slice(1) : parsed
       const expected = ['id','enunciado','explicacao','quiz','semifinal','final','alternativa_1','alternativa_2','alternativa_3','alternativa_4','correta']
       if (rows[0]?.join('|').toLowerCase() !== expected.join('|')) throw new Error('Cabeçalhos diferentes do modelo exportado.')
       const imported: QuestionDraft[] = rows.slice(1).map((row,index) => {
