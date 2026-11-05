@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useLiveDynamic } from '@/hooks/useLiveDynamic'
 import { useLiveBracket } from '@/hooks/useLiveBracket'
 import { useToast } from '@/contexts/ToastContext'
+import { sendScreenCommand } from '@/lib/screenControls'
 
 type Props = { sessionId: string; onOpenScreen?: () => void; onFinish?: () => void }
 
@@ -50,10 +51,16 @@ export function PresenterLiveVisualPage({ sessionId, onOpenScreen, onFinish }: P
   const { session, connected, ranking, answeredCount, answerableCount, answerPercent, remainingSeconds, currentRound, question }=useLiveDynamic(sessionId)
   const bracket=useLiveBracket(session)
   const [busy,setBusy]=useState(false)
+  const [hideRanking,setHideRanking]=useState(false)
+  const [noticeDraft,setNoticeDraft]=useState('')
   const flow=String(session?.paused?'paused':session?.flow_state??'lobby')
   const underlyingFlow=flow==='paused'?String(session?.paused_from_flow_state??''):flow
   const top=ranking.slice(0,10)
   const top4=ranking.slice(0,session?.enable_semifinals && session?.enable_final ? 4 : session?.enable_final ? 2 : 1)
+
+  const controlScreen=(command:Parameters<typeof sendScreenCommand>[1])=>{
+    try {sendScreenCommand(sessionId,command)}catch {notify('Não foi possível enviar o comando para a aba do telão.','error')}
+  }
 
   const call=async(fn:string,args:Record<string,unknown>)=>{setBusy(true);const {data,error}=await supabase.rpc(fn as never,args as never);setBusy(false);if(error){notify(error.message,'error');return null}return data}
 
@@ -117,7 +124,17 @@ export function PresenterLiveVisualPage({ sessionId, onOpenScreen, onFinish }: P
     {buttonLabel&&<button type="button" disabled={busy} onClick={()=>void action()} className="mt-3 flex h-[clamp(48px,6.3vh,66px)] shrink-0 items-center justify-center gap-3 rounded-2xl bg-[var(--quiz-primary)] font-display text-[clamp(1rem,1.3vw,1.3rem)] font-extrabold text-[#07152f] transition hover:brightness-105 disabled:opacity-50">{flow==='paused'||flow==='lobby'||flow==='quiz_result'||flow==='semifinal_result'?<Icon name="play"/>:<Icon name="pause"/>}{busy?'Processando…':buttonLabel}</button>}
     </section>
 
-    <aside className="flex min-h-0 flex-col gap-3 overflow-hidden"><div className="rounded-[22px] border border-white/10 bg-[var(--quiz-surface)]/82 p-4"><div className="mb-3 text-xs font-bold uppercase tracking-[.14em] text-white/48">Etapas</div><StageRail flow={underlyingFlow} semifinal={session?.enable_semifinals} final={session?.enable_final}/></div><div className="min-h-0 flex-1 overflow-hidden rounded-[22px] border border-white/10 bg-[var(--quiz-surface)]/82 p-4"><div className="mb-3 flex items-center justify-between"><div className="text-xs font-bold uppercase tracking-[.14em] text-white/48">{underlyingFlow.startsWith('semifinal')?'Chaveamento':underlyingFlow.startsWith('final')||flow==='champion'?'Placar final':'Ranking ao vivo'}</div>{!underlyingFlow.startsWith('semifinal')&&!underlyingFlow.startsWith('final')&&flow!=='champion'&&<div className="text-[10px] text-white/35">Top 10</div>}</div><div className="h-full overflow-auto pr-1">
+    <aside className="flex min-h-0 flex-col gap-3 overflow-hidden">
+      <section className="shrink-0 rounded-[22px] border border-[var(--quiz-secondary)]/25 bg-[var(--quiz-surface)]/90 p-4">
+       <div className="mb-3 text-xs font-bold uppercase tracking-[.14em] text-[var(--quiz-secondary)]">Controles do telão</div>
+       <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={()=>controlScreen({kind:'replay'})} className="rounded-lg border border-white/15 px-2 py-2 text-xs font-bold">Repetir efeito</button>
+        <button type="button" onClick={()=>{const next=!hideRanking;setHideRanking(next);controlScreen({kind:'ranking',hidden:next})}} className="rounded-lg border border-white/15 px-2 py-2 text-xs font-bold">{hideRanking?'Mostrar ranking':'Ocultar ranking'}</button>
+       </div>
+       <div className="mt-2 flex gap-2"><input maxLength={160} value={noticeDraft} onChange={e=>setNoticeDraft(e.target.value)} placeholder="Aviso rápido no telão" className="min-w-0 flex-1 rounded-lg border border-white/15 bg-[var(--quiz-bg)] px-2 text-xs outline-none"/><button type="button" onClick={()=>controlScreen({kind:'notice',text:noticeDraft.trim()})} disabled={!noticeDraft.trim()} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold disabled:opacity-40">Mostrar</button></div>
+       <button type="button" onClick={()=>{setNoticeDraft('');controlScreen({kind:'notice',text:''})}} className="mt-2 text-xs text-white/50">Limpar aviso</button>
+       <p className="mt-2 text-[10px] leading-relaxed text-white/35">Comandos instantâneos entre abas no mesmo navegador. Não alteram pontos ou tempo.</p>
+      </section><div className="rounded-[22px] border border-white/10 bg-[var(--quiz-surface)]/82 p-4"><div className="mb-3 text-xs font-bold uppercase tracking-[.14em] text-white/48">Etapas</div><StageRail flow={underlyingFlow} semifinal={session?.enable_semifinals} final={session?.enable_final}/></div><div className="min-h-0 flex-1 overflow-hidden rounded-[22px] border border-white/10 bg-[var(--quiz-surface)]/82 p-4"><div className="mb-3 flex items-center justify-between"><div className="text-xs font-bold uppercase tracking-[.14em] text-white/48">{underlyingFlow.startsWith('semifinal')?'Chaveamento':underlyingFlow.startsWith('final')||flow==='champion'?'Placar final':'Ranking ao vivo'}</div>{!underlyingFlow.startsWith('semifinal')&&!underlyingFlow.startsWith('final')&&flow!=='champion'&&<div className="text-[10px] text-white/35">Top 10</div>}</div><div className="h-full overflow-auto pr-1">
       {underlyingFlow.startsWith('semifinal')?<div className="space-y-3"><PairCard label="1º × 4º" players={bracket.semifinal1.players} winnerId={bracket.semifinal1.match?.winner_player_id}/><PairCard label="2º × 3º" players={bracket.semifinal2.players} winnerId={bracket.semifinal2.match?.winner_player_id}/></div>:underlyingFlow.startsWith('final')||flow==='champion'?<PairCard label="Final" players={bracket.final.players} winnerId={bracket.final.match?.winner_player_id}/>:<div className="space-y-1.5">{top.map((item:any,index:number)=><div key={item.participant_id} className={`grid grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-2 rounded-xl px-3 py-2 ${index<4?'bg-[var(--quiz-primary)]/7':'bg-white/[.025]'}`}><div className={`font-display font-extrabold ${index<4?'text-[#bfe84a]':'text-white/45'}`}>{index+1}</div><div className="truncate text-sm font-semibold text-white/82">{item.display_name}</div><div className="text-xs font-bold text-white/58">{Number(item.total_score??0).toLocaleString('pt-BR')}</div></div>)}</div>}
     </div></div><div className="rounded-[22px] border border-white/10 bg-[var(--quiz-surface)]/82 p-4"><div className="flex items-center justify-between text-xs"><span className="text-white/45">Participantes conectados</span><span className="font-display text-lg font-extrabold text-[var(--quiz-primary)]">{connected.length}</span></div></div></aside>
 
