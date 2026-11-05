@@ -11,6 +11,7 @@ import { ScreenLiveVisualPage } from '@/routes/screen/ScreenLiveVisualPage'
 import { PresenterNewMatchPage } from '@/routes/presenter/PresenterNewMatchPage'
 import { PresenterPage } from '@/routes/presenter/PresenterPage'
 import { PresenterFlowPreviewPage } from '@/routes/presenter/PresenterFlowPreviewPage'
+import { PresenterSimulationPage } from '@/routes/presenter/PresenterSimulationPage'
 import { LiveQuizPlayerPage } from '@/routes/livequiz/LiveQuizPlayerPage'
 import { ParticipantVisualPreviewPage } from '@/routes/livequiz/ParticipantVisualPreviewPage'
 import { ParticipantJoinVisualPage } from '@/routes/livequiz/ParticipantJoinVisualPage'
@@ -57,6 +58,7 @@ function App() {
         <Route path="/participar/:codigo" element={<ParticipantJoinVisualPage />} />
         <Route path="/participante/:sessionId/:participantId" element={<ParticipantErrorBoundary><ParticipantLiveVisualPage /></ParticipantErrorBoundary>} />
         <Route path="/apresentador-visual" element={<PresenterFlowPreviewPage />} />
+        <Route path="/simulador" element={<PresenterSimulationPage />} />
 
         {/* QRs antigos também entram pela nova experiência mobile */}
         <Route path="/quiz/entrar/:codigo" element={<ParticipantJoinVisualPage />} />
