@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 /** Comunicação local entre abas do mesmo navegador. Não grava nem altera partidas. */
 export type ScreenCommand =
@@ -26,8 +26,10 @@ export function useScreenControls(sessionId?:string){
  const [hidden,setHidden]=useState(false)
  const [notice,setNotice]=useState('')
  const [replay,setReplay]=useState(0)
+ const lastNonce=useRef('')
  const handle=useCallback((input:unknown)=>{
-  if(!valid(input))return
+  if(!valid(input)||lastNonce.current===input.nonce)return
+  lastNonce.current=input.nonce
   if(input.kind==='replay')setReplay(n=>n+1)
   if(input.kind==='ranking')setHidden(input.hidden)
   if(input.kind==='notice')setNotice(input.text)
