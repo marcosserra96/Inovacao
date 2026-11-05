@@ -165,7 +165,8 @@ export function useLiveDynamic(sessionId?: string) {
   const answerable = currentRound?.is_tiebreaker
     ? connected.filter((participant) => currentRound.tiebreak_participant_ids?.includes(participant.id))
     : connected.filter((participant) => !participant.is_spectator)
-  const answeredCount = flags.filter((flag) => flag.answered).length
+  const answerableIds = new Set(answerable.map(participant => participant.id))
+  const answeredCount = flags.filter((flag) => flag.answered && answerableIds.has(flag.participant_id)).length
   const answerPercent = answerable.length ? Math.min(100, Math.round((answeredCount / answerable.length) * 100)) : 0
 
   const authoritativeNow = serverNowMs(now)

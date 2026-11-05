@@ -60,12 +60,20 @@ export function ParticipantLiveVisualPage(){
   const { session, participant:me, round:currentRound, question, answered, myResult, resultLoaded, duel, remainingSeconds, error }=useParticipantLiveState(sessionId,participantId,joinToken)
   const [selected,setSelected]=useState<string|null>(null)
   const [submitting,setSubmitting]=useState(false)
+  const [submissionWarning,setSubmissionWarning]=useState('')
+  const [online,setOnline]=useState(typeof navigator==='undefined'?true:navigator.onLine)
   const flow=session?.paused?'paused':session?.flow_state
   const collectiveOptions=Array.isArray(question?.options)?question.options:[]
   const duelOptions=Array.isArray(duel.question?.options)?duel.question.options:[]
   const currentIdentity=`${currentRound?.id??''}:${duel.round?.id??''}`
 
-  useEffect(()=>{setSelected(null);setSubmitting(false)},[currentIdentity])
+  useEffect(()=>{setSelected(null);setSubmitting(false);setSubmissionWarning('')},[currentIdentity])
+  useEffect(()=>{
+    const update=()=>setOnline(navigator.onLine)
+    window.addEventListener('online',update)
+    window.addEventListener('offline',update)
+    return()=>{window.removeEventListener('online',update);window.removeEventListener('offline',update)}
+  },[])
 
   const statement=(value?:string|null)=>session?.hide_statement_on_phone?'Acompanhe o enunciado no telão.':String(value??'Preparando pergunta…')
 
@@ -73,8 +81,17 @@ export function ParticipantLiveVisualPage(){
     if(!currentRound||answered||submitting||!joinToken||!participantId) return
     setSelected(optionId);setSubmitting(true)
     const { error:submitError }=await supabase.rpc('submit_live_quiz_answer',{p_round_id:currentRound.id,p_participant_id:participantId,p_join_token:joinToken,p_option_id:optionId})
+    if(submitError){
+      const {data:confirmed}=await supabase.from('live_quiz_answer_flags').select('answered')
+        .eq('round_id',currentRound.id).eq('participant_id',participantId).maybeSingle()
+      if((confirmed as {answered?:boolean}|null)?.answered){
+        setSubmissionWarning('Resposta recebida pelo servidor.')
+      }else{
+        setSelected(null)
+        setSubmissionWarning('Não foi possível confirmar o envio. Confira sua conexão e tente novamente enquanto a pergunta estiver aberta.')
+      }
+    }else setSubmissionWarning('')
     setSubmitting(false)
-    if(submitError) setSelected(null)
   }
 
   async function answerDuel(optionId:string){
@@ -86,8 +103,17 @@ export function ParticipantLiveVisualPage(){
       p_join_token:duel.promotion.duelJoinToken,
       p_option_id:optionId,
     })
+    if(submitError){
+      const {data:confirmed}=await supabase.from('duel_answer_flags').select('answered')
+        .eq('round_id',duel.round.id).eq('player_id',duel.promotion.duelPlayerId).maybeSingle()
+      if((confirmed as {answered?:boolean}|null)?.answered){
+        setSubmissionWarning('Resposta recebida pelo servidor.')
+      }else{
+        setSelected(null)
+        setSubmissionWarning('Envio não confirmado. Verifique sua conexão e tente novamente se ainda houver tempo.')
+      }
+    }else setSubmissionWarning('')
     setSubmitting(false)
-    if(submitError) setSelected(null)
   }
 
   const isFinalist=Boolean(me?.is_finalist)
@@ -119,5 +145,7 @@ export function ParticipantLiveVisualPage(){
   else if(flow==='champion') content=(isCurrentFinalPlayer||isChampion)?(isChampion?<CenterMessage badge="Campeão" title="Você venceu! 🏆" text="Parabéns! Você venceu a dinâmica."/>:<CenterMessage badge="Finalista" title="Que disputa!" text="Você chegou à grande final. Parabéns pela participação!"/>):<CenterMessage badge="Temos um campeão" title="Fim da disputa!" text="Confira o resultado no telão."/>
   else content=<CenterMessage badge={theme.title} title="Acompanhe o telão" text="A dinâmica está seguindo para a próxima etapa."/>
 
-  return <main style={themeStyle(theme)} className="relative h-[100dvh] min-h-[100dvh] overflow-hidden bg-[var(--quiz-bg)] text-white"><div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_5%,rgba(23,77,145,.24),transparent_32%),radial-gradient(circle_at_88%_20%,rgba(0,182,218,.08),transparent_28%),linear-gradient(180deg,#03102b_0%,var(--quiz-bg)_100%)]"/><Dots/><div className="relative mx-auto flex h-full w-full max-w-[430px] flex-col px-5 py-4"><BrandHeader theme={theme}/><div key={`${flow}:${flow?.endsWith("reveal")?currentIdentity:""}`} className="live-mobile-scene flex min-h-0 flex-1 flex-col">{content}</div></div></main>
+  return <main style={themeStyle(theme)} className="relative h-[100dvh] min-h-[100dvh] overflow-hidden bg-[var(--quiz-bg)] text-white"><div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_5%,rgba(23,77,145,.24),transparent_32%),radial-gradient(circle_at_88%_20%,rgba(0,182,218,.08),transparent_28%),linear-gradient(180deg,#03102b_0%,var(--quiz-bg)_100%)]"/><Dots/><div className="relative mx-auto flex h-full w-full max-w-[430px] flex-col px-5 py-4"><BrandHeader theme={theme}/>{(!online||error||submissionWarning)&&<div role="status" className={`mt-3 rounded-xl border px-3 py-2.5 text-xs font-semibold ${!online||error?'border-orange-300/35 bg-orange-400/10 text-orange-100':'border-[var(--quiz-secondary)]/35 bg-[var(--quiz-secondary)]/10 text-white'}`}>
+     {!online?'Sem conexão. Sua tela será sincronizada automaticamente ao reconectar.':error?'Reconectando ao servidor…':submissionWarning}
+    </div>}<div key={`${flow}:${flow?.endsWith("reveal")?currentIdentity:""}`} className="live-mobile-scene flex min-h-0 flex-1 flex-col">{content}</div></div></main>
 }
